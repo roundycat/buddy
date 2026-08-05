@@ -1,0 +1,94 @@
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "Bedrock latency ms",
+        "region": "us-east-1",
+        "view": "timeSeries",
+        "stat": "Average",
+        "period": 60,
+        "metrics": [
+          ["Beddy", "BedrockLatencyMs", "Feature", "conversation.chat"],
+          ["Beddy", "BedrockFirstTokenMs", "Feature", "conversation.chat"]
+        ]
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "Invocations vs Errors",
+        "region": "us-east-1",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 60,
+        "metrics": [
+          ["Beddy", "Invocations", "Feature", "conversation.chat"],
+          ["Beddy", "Errors", "Feature", "conversation.chat"]
+        ]
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 6,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "DynamoDB latency ms",
+        "region": "us-east-1",
+        "view": "timeSeries",
+        "stat": "Average",
+        "period": 60,
+        "metrics": [
+          ["Beddy", "DynamoLatencyMs"]
+        ]
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 6,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "S3 storage errors",
+        "region": "us-east-1",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 60,
+        "metrics": [
+          ["Beddy", "S3WriteErrors"],
+          ["Beddy", "S3ReadErrors"],
+          ["Beddy", "StorageErrors"]
+        ]
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 12,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "Agent KB placeholders",
+        "region": "us-east-1",
+        "view": "timeSeries",
+        "stat": "Average",
+        "period": 60,
+        "metrics": [
+          ["Beddy", "AgentLatencyMs"],
+          ["Beddy", "KbSearchLatencyMs"]
+        ]
+      }
+    }
+  ]
+}

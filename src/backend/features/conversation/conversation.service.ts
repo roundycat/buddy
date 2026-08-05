@@ -17,6 +17,7 @@ import {
   streamCompanionChat,
 } from "@/backend/ai/orchestrator";
 import { env } from "@/backend/shared/config/env";
+import { logObservation, newRequestId } from "@/backend/shared/observability";
 
 /**
  * Conversation Service
@@ -130,9 +131,17 @@ export async function* streamMessage(
   unknown
 > {
   const userId = request.userId;
+  const requestId = newRequestId();
   const ctxStarted = Date.now();
   const ctx = await resolveChildCompanionContext(userId);
   const ctxMs = Date.now() - ctxStarted;
+  logObservation({
+    feature: "conversation.context",
+    operation: "resolve",
+    latencyMs: ctxMs,
+    success: true,
+    requestId,
+  });
 
   const clientHistory = (request.history ?? [])
     .filter((m) => m.role === "user" || m.role === "assistant")
@@ -145,23 +154,15 @@ export async function* streamMessage(
 
   const chatModel = resolveModelForPurpose("chat");
   let full = "";
-  let firstTokenMs: number | null = null;
-  const streamStarted = Date.now();
 
   for await (const token of streamCompanionChat(
     request.message,
     historyForLlm,
     ctx.companion
   )) {
-    if (firstTokenMs === null) firstTokenMs = Date.now() - streamStarted;
     full += token;
     yield { type: "token", text: token };
   }
-
-  const streamMs = Date.now() - streamStarted;
-  console.info(
-    `[conversation:timing] ctxMs=${ctxMs} firstTokenMs=${firstTokenMs ?? -1} streamMs=${streamMs} model=${chatModel}`
-  );
 
   const now = new Date().toISOString();
   const userMessage: ConversationMessage = {

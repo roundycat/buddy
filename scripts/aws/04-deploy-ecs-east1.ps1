@@ -92,7 +92,8 @@ $taskPolicy = Join-Path $env:TEMP "bedi-ecs-task-policy.json"
 {"Version":"2012-10-17","Statement":[
 {"Effect":"Allow","Action":["dynamodb:GetItem","dynamodb:PutItem","dynamodb:UpdateItem","dynamodb:DeleteItem","dynamodb:Query","dynamodb:Scan","dynamodb:DescribeTable"],"Resource":"arn:aws:dynamodb:${Region}:${Account}:table/BediApp"},
 {"Effect":"Allow","Action":["bedrock:InvokeModel","bedrock:InvokeModelWithResponseStream","bedrock:Converse","bedrock:ConverseStream"],"Resource":"*"},
-{"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:DeleteObject"],"Resource":"arn:aws:s3:::${Bucket}/avatars/*"}
+{"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:DeleteObject"],"Resource":"arn:aws:s3:::${Bucket}/avatars/*"},
+{"Effect":"Allow","Action":["cloudwatch:PutMetricData"],"Resource":"*","Condition":{"StringEquals":{"cloudwatch:namespace":"Beddy"}}}
 ]}
 "@ | Set-Content $taskPolicy -Encoding ascii
 cmd /c "`"$aws`" iam get-role --role-name $TaskRole >nul 2>&1"

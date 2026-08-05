@@ -14,6 +14,7 @@ import {
 import os from "os";
 import path from "path";
 import { env } from "@/backend/shared/config/env";
+import { observeFailure } from "@/backend/shared/observability";
 
 /**
  * Prefer /tmp in containers (ECS nextjs user cannot mkdir under /app).
@@ -92,7 +93,12 @@ function tryWriteLocal(userId: string, bytes: Buffer, candidate?: string) {
     writeFileSync(localPath(userId, candidate), bytes);
     return true;
   } catch (error) {
-    console.warn("[avatar.store] local write skipped:", error);
+    observeFailure({
+      feature: "avatar",
+      operation: "local_write",
+      error,
+      metricName: "StorageErrors",
+    });
     return false;
   }
 }
@@ -108,15 +114,25 @@ export async function saveAvatarImage(
   if (bucket) {
     const key = s3Key(userId, candidate);
     const client = createS3();
-    await client.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: bytes,
-        ContentType: contentType,
-        CacheControl: "private, max-age=60",
-      })
-    );
+    try {
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: bytes,
+          ContentType: contentType,
+          CacheControl: "private, max-age=60",
+        })
+      );
+    } catch (error) {
+      observeFailure({
+        feature: "avatar",
+        operation: "s3_put",
+        error,
+        metricName: "S3WriteErrors",
+      });
+      throw error;
+    }
     // Best-effort local cache — must not fail the request in ECS.
     tryWriteLocal(userId, bytes, candidate);
     return { stored: "s3", key };
@@ -150,7 +166,12 @@ export async function readAvatarImage(
         contentType: res.ContentType || "image/png",
       };
     } catch (error) {
-      console.warn("[avatar.store] S3 read failed, trying local", error);
+      observeFailure({
+        feature: "avatar",
+        operation: "s3_get",
+        error,
+        metricName: "S3ReadErrors",
+      });
     }
   }
 

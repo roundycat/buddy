@@ -6,6 +6,7 @@ import {
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { bediTableName, getDynamoDocClient } from "./dynamodb-client";
+import { observeAsync } from "@/backend/shared/observability";
 
 /**
  * DynamoDB-backed key/value map for a namespace (single-table design).
@@ -13,33 +14,52 @@ import { bediTableName, getDynamoDocClient } from "./dynamodb-client";
  */
 export function createDynamoMapStore<T extends object>(namespace: string) {
   const pk = `MAP#${namespace.replace(/\.json$/i, "")}`;
+  const ns = namespace.replace(/\.json$/i, "");
   const table = () => bediTableName();
   const doc = () => getDynamoDocClient();
 
   return {
     async getAsync(id: string): Promise<T | undefined> {
-      const res = await doc().send(
-        new GetCommand({
-          TableName: table(),
-          Key: { pk, sk: id },
-        })
+      return observeAsync(
+        {
+          feature: `ddb.${ns}`,
+          operation: "get",
+          latencyMetric: "DynamoLatencyMs",
+        },
+        async () => {
+          const res = await doc().send(
+            new GetCommand({
+              TableName: table(),
+              Key: { pk, sk: id },
+            })
+          );
+          return (res.Item?.data as T | undefined) ?? undefined;
+        }
       );
-      return (res.Item?.data as T | undefined) ?? undefined;
     },
 
     async setAsync(id: string, value: T): Promise<T> {
-      await doc().send(
-        new PutCommand({
-          TableName: table(),
-          Item: {
-            pk,
-            sk: id,
-            data: value,
-            updatedAt: new Date().toISOString(),
-          },
-        })
+      return observeAsync(
+        {
+          feature: `ddb.${ns}`,
+          operation: "put",
+          latencyMetric: "DynamoLatencyMs",
+        },
+        async () => {
+          await doc().send(
+            new PutCommand({
+              TableName: table(),
+              Item: {
+                pk,
+                sk: id,
+                data: value,
+                updatedAt: new Date().toISOString(),
+              },
+            })
+          );
+          return value;
+        }
       );
-      return value;
     },
 
     async deleteAsync(id: string) {

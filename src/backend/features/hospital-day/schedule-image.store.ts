@@ -13,6 +13,7 @@ import {
 import os from "os";
 import path from "path";
 import { env } from "@/backend/shared/config/env";
+import { observeFailure } from "@/backend/shared/observability";
 
 function resolveLocalDir(): string {
   const fromEnv = process.env.SCHEDULE_IMAGE_LOCAL_DIR?.trim();
@@ -74,7 +75,12 @@ export async function saveScheduleImage(
   try {
     writeFileSync(localPath(itemId), bytes);
   } catch (error) {
-    console.warn("[schedule-image.store] local write skipped:", error);
+    observeFailure({
+      feature: "schedule-image",
+      operation: "local_write",
+      error,
+      metricName: "StorageErrors",
+    });
   }
 
   const bucket = env.avatar.s3Bucket;
@@ -91,7 +97,12 @@ export async function saveScheduleImage(
       })
     );
   } catch (error) {
-    console.warn("[schedule-image.store] S3 write skipped:", error);
+    observeFailure({
+      feature: "schedule-image",
+      operation: "s3_put",
+      error,
+      metricName: "S3WriteErrors",
+    });
   }
 }
 
