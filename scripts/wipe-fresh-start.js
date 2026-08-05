@@ -1,17 +1,25 @@
 /**
- * Fresh-start wipe: Aurora users + DynamoDB app data + local .data.
- * Then re-seeds demo accounts (same as seed-aurora-users.js).
+ * Fresh-start wipe: DynamoDB app data + local .data + S3 prefixes.
+ *
+ * **경고: 이 스크립트는 DynamoDB BediApp 테이블의 모든 항목과
+ * S3 avatars/ schedule-images/ photos/ 를 삭제한다.
+ * 2026-08 데모 기간에는 실행 금지.
+ * 계정 자격증명만 복구하려면 scripts/restore-dynamo-users.js 를 쓸 것.**
+ *
+ * Opt-in only — without --yes-really-wipe-everything this script exits
+ * without deleting anything.
  *
  * Usage:
- *   node --env-file=.env.local scripts/wipe-fresh-start.js
- *   node --env-file=.env.local scripts/wipe-fresh-start.js --no-seed
- *   node --env-file=.env.local scripts/wipe-fresh-start.js --skip-dynamo
- *   node --env-file=.env.local scripts/wipe-fresh-start.js --skip-s3
+ *   node --env-file=.env.local scripts/wipe-fresh-start.js --yes-really-wipe-everything
+ *   node --env-file=.env.local scripts/wipe-fresh-start.js --yes-really-wipe-everything --no-seed
+ *   node --env-file=.env.local scripts/wipe-fresh-start.js --yes-really-wipe-everything --skip-dynamo
+ *   node --env-file=.env.local scripts/wipe-fresh-start.js --yes-really-wipe-everything --skip-s3
+ *
+ * 계정 목록이 seed-dynamo-users.js / auth.service.ts MOCK_USERS 와 중복이다.
+ * 하나를 바꾸면 나머지도 바꿔야 한다. 데모 후 공유 상수로 통합 예정.
  */
 const fs = require("fs");
 const path = require("path");
-const { Client } = require("pg");
-const bcrypt = require("bcryptjs");
 const {
   DynamoDBClient,
   DescribeTableCommand,
@@ -28,11 +36,14 @@ const {
 } = require("@aws-sdk/client-s3");
 
 const args = new Set(process.argv.slice(2));
+const CONFIRMED = args.has("--yes-really-wipe-everything");
 const NO_SEED = args.has("--no-seed");
 const SKIP_DYNAMO = args.has("--skip-dynamo");
 const SKIP_S3 = args.has("--skip-s3");
 const SKIP_LOCAL = args.has("--skip-local");
 
+// Kept for documentation parity with seed-dynamo-users.js / MOCK_USERS.
+// This script no longer seeds accounts — use `npm run seed:dynamo`.
 const DEMO_USERS = [
   {
     id: "user-demo-01",
@@ -94,73 +105,21 @@ function awsCreds() {
   return {};
 }
 
-function pgClient() {
-  const url = process.env.DATABASE_URL;
-  const host = process.env.PGHOST || process.env.DB_HOST;
-  const password = process.env.PGPASSWORD || process.env.DB_PASSWORD;
-  if (!url && !(host && password)) return null;
-
-  if (url) {
-    return new Client({
-      connectionString: url,
-      ssl: { rejectUnauthorized: false },
-    });
-  }
-  return new Client({
-    host,
-    port: Number(process.env.PGPORT || process.env.DB_PORT || 5432),
-    database: process.env.PGDATABASE || process.env.DB_NAME || "bedi",
-    user: process.env.PGUSER || process.env.DB_USER || "bediadmin",
-    password,
-    ssl:
-      String(process.env.PGSSL || "true").toLowerCase() !== "false"
-        ? { rejectUnauthorized: false }
-        : undefined,
-  });
-}
-
-async function wipeAurora() {
-  const client = pgClient();
-  if (!client) {
-    console.log("[aurora] skipped (no PGHOST/DATABASE_URL)");
-    return;
-  }
-
-  await client.connect();
-  console.log("[aurora] connected");
-
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      email TEXT NOT NULL UNIQUE,
-      name TEXT NOT NULL,
-      role TEXT NOT NULL CHECK (role IN ('child', 'guardian')),
-      password_hash TEXT NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `);
-
-  const before = await client.query(`SELECT count(*)::int AS n FROM users`);
-  console.log(`[aurora] users before: ${before.rows[0].n}`);
-
-  await client.query(`DELETE FROM users`);
-  console.log("[aurora] deleted all users");
-
-  if (!NO_SEED) {
-    for (const u of DEMO_USERS) {
-      const hash = await bcrypt.hash(u.password, 10);
-      await client.query(
-        `INSERT INTO users (id, email, name, role, password_hash)
-         VALUES ($1, lower($2), $3, $4, $5)`,
-        [u.id, u.email, u.name, u.role, hash]
-      );
-      console.log(`[aurora] seeded ${u.email} (${u.role})`);
-    }
-  }
-
-  const after = await client.query(`SELECT count(*)::int AS n FROM users`);
-  console.log(`[aurora] users after: ${after.rows[0].n}`);
-  await client.end();
+async function countDynamoItems(doc, table) {
+  let total = 0;
+  let startKey;
+  do {
+    const page = await doc.send(
+      new ScanCommand({
+        TableName: table,
+        ExclusiveStartKey: startKey,
+        Select: "COUNT",
+      })
+    );
+    total += page.Count || 0;
+    startKey = page.LastEvaluatedKey;
+  } while (startKey);
+  return total;
 }
 
 async function wipeDynamo() {
@@ -315,23 +274,72 @@ async function wipeS3() {
   }
 }
 
+async function printTargetsAndExitIfUnconfirmed() {
+  const table = process.env.BEDI_DDB_TABLE || "BediApp";
+  const region =
+    process.env.BEDI_DDB_REGION ||
+    process.env.AWS_REGION ||
+    "us-east-1";
+  const bucket = process.env.AVATAR_S3_BUCKET || "(unset)";
+
+  let itemCount = "?";
+  try {
+    const raw = new DynamoDBClient({ region, ...awsCreds() });
+    const doc = DynamoDBDocumentClient.from(raw, {
+      marshallOptions: { removeUndefinedValues: true },
+    });
+    await raw.send(new DescribeTableCommand({ TableName: table }));
+    itemCount = String(await countDynamoItems(doc, table));
+  } catch {
+    itemCount = "unreachable";
+  }
+
+  console.log("=== Beddy fresh-start wipe — targets ===");
+  console.log(`  DynamoDB table : ${table} (@${region}) — ~${itemCount} items (ALL)`);
+  console.log(`  S3 prefixes    : s3://${bucket}/avatars/`);
+  console.log(`                   s3://${bucket}/schedule-images/`);
+  console.log(`                   s3://${bucket}/photos/`);
+  console.log(`  Local          : .data/*.json, .data/avatars/, .data/schedule-images/`);
+  console.log("");
+  console.log("Demo accounts (for reference; this script does NOT seed):");
+  for (const u of DEMO_USERS) {
+    console.log(`  ${u.email} (${u.role})`);
+  }
+  console.log("");
+  console.log("계정 시드는 `npm run seed:dynamo` 를 쓸 것.");
+  console.log("");
+
+  if (!CONFIRMED) {
+    console.log("ABORT: nothing deleted.");
+    console.log(
+      "To actually wipe, pass --yes-really-wipe-everything (demo period: DO NOT)."
+    );
+    console.log("");
+    console.log("Usage:");
+    console.log(
+      "  node --env-file=.env.local scripts/wipe-fresh-start.js --yes-really-wipe-everything"
+    );
+    process.exit(1);
+  }
+}
+
 async function main() {
+  await printTargetsAndExitIfUnconfirmed();
+
   console.log("=== Beddy fresh-start wipe ===");
   console.log(
-    `flags: seed=${!NO_SEED} dynamo=${!SKIP_DYNAMO} s3=${!SKIP_S3} local=${!SKIP_LOCAL}`
+    `flags: confirmed=${CONFIRMED} dynamo=${!SKIP_DYNAMO} s3=${!SKIP_S3} local=${!SKIP_LOCAL} (seed disabled; use npm run seed:dynamo)`
   );
+  if (NO_SEED) {
+    console.log("(note: --no-seed is accepted but seeding is already disabled)");
+  }
 
-  await wipeAurora();
   await wipeDynamo();
   await wipeLocalData();
   await wipeS3();
 
   console.log("=== done ===");
-  if (!NO_SEED) {
-    console.log("Demo logins:");
-    console.log("  child    demo@bedi.app / BeddyDemo26!");
-    console.log("  guardian guardian@bedi.app / BeddyGuard26!");
-  }
+  console.log("Re-seed demo accounts with: npm run seed:dynamo");
 }
 
 main().catch((err) => {

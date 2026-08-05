@@ -14,10 +14,17 @@ import { clearMemoryEventsForUser } from "@/backend/features/memory-timeline/mem
 import { clearWishTreeForUser } from "@/backend/features/wish-tree/wish-tree.store";
 import { PERSONA_READY_COOKIE } from "@/backend/features/persona/persona.constants";
 
+export const dynamic = "force-dynamic";
+
 /**
  * TEMP / DEV: clear persona so onboarding can run again.
  */
 export async function POST() {
+  // 개발 전용. 프로덕션 빌드에서는 존재하지 않는 것처럼 응답한다.
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_DEV_ROUTES !== "1") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const token = cookies().get(AUTH_COOKIE_NAME)?.value;
   const user = token ? await verifySessionToken(token) : null;
 
