@@ -1,0 +1,282 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="1500" viewBox="0 0 2200 1500" font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR','Segoe UI',sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5A6675"/></marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#E7157B"/></marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#DC2626"/></marker>
+    <linearGradient id="gOrb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38CBB2"/><stop offset="1" stop-color="#017A6A"/></linearGradient>
+    <linearGradient id="gNeb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E164EA"/><stop offset="1" stop-color="#A11BA8"/></linearGradient>
+    <linearGradient id="gEnd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9CC72F"/><stop offset="1" stop-color="#5E7F10"/></linearGradient>
+    <linearGradient id="gCos" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4479C"/><stop offset="1" stop-color="#B60F60"/></linearGradient>
+    <linearGradient id="gSmi" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F79640"/><stop offset="1" stop-color="#C85B10"/></linearGradient>
+    <linearGradient id="gGal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A882FF"/><stop offset="1" stop-color="#6B2BE0"/></linearGradient>
+    <linearGradient id="gSqu" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4A5B70"/><stop offset="1" stop-color="#1A2431"/></linearGradient>
+    <linearGradient id="gAmb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F0A93C"/><stop offset="1" stop-color="#B45309"/></linearGradient>
+    <style>
+      .bg { fill: #FFFFFF; }
+      .title { font-size: 34px; font-weight: 700; fill: #16202E; }
+      .sub { font-size: 15px; fill: #5A6675; }
+      .lab { font-size: 12px; font-weight: 700; fill: #9BA7B6; letter-spacing: 1.4px; }
+      .h1 { font-size: 19px; font-weight: 700; }
+      .h2 { font-size: 16px; font-weight: 700; }
+      .cs { font-size: 12.5px; fill: #48546A; }
+      .cm { font-size: 12px; fill: #48546A; font-family: 'Consolas','Courier New',monospace; }
+      .cx { font-size: 11.5px; fill: #7A8699; }
+      .cw { font-size: 11.5px; font-weight: 700; fill: #C7253E; }
+      .flow { stroke: #5A6675; stroke-width: 2.2; fill: none; marker-end: url(#a); }
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="2200" height="1500"/>
+
+  <text class="title" x="44" y="56">Beddy — 기술 상세 아키텍처</text>
+  <text class="sub" x="44" y="86">서비스 · 내부 API · 외부 API · LLM 모델 라우팅   ·   코드에서 확인한 실제 값</text>
+
+  <!-- ================= CLIENT ================= -->
+  <text class="lab" x="44" y="140">CLIENT</text>
+  <rect x="44" y="156" width="290" height="300" rx="13" fill="#F8FAFC" stroke="#334155" stroke-width="2.4"/>
+  <g transform="translate(62,172)"><rect width="26" height="26" rx="6" fill="url(#gSqu)"/><rect x="7" y="5" width="12" height="16" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1.7"/><line x1="10" y1="18" x2="16" y2="18" stroke="#FFFFFF" stroke-width="1.7"/></g>
+  <text class="h1" x="98" y="191" fill="#16202E">Beddy 웹앱</text>
+  <text class="cx" x="62" y="216">Next.js 14 App Router · 페이지 19</text>
+  <text class="cx" x="62" y="234">middleware.ts 가 쿠키로 역할 분기</text>
+
+  <rect x="60" y="248" width="258" height="90" rx="10" fill="#FFFFFF" stroke="#0E7490" stroke-width="2"/>
+  <text class="h2" x="76" y="272" fill="#0E7490">환아용  role = child</text>
+  <text class="cs" x="76" y="294">대기실 · 정원 · 모험 · 소원 · 사진첩</text>
+  <text class="cx" x="76" y="316">SSE 스트리밍으로 대화 수신</text>
+
+  <rect x="60" y="352" width="258" height="90" rx="10" fill="#FFFFFF" stroke="#B45309" stroke-width="2"/>
+  <text class="h2" x="76" y="376" fill="#B45309">보호자용  role = guardian</text>
+  <text class="cs" x="76" y="398">홈 · 리포트 · 여정 · 프로필 · 일정</text>
+  <text class="cx" x="76" y="420">요약만 수신 · 원문 접근 경로 없음</text>
+
+  <rect x="44" y="480" width="290" height="150" rx="13" fill="#FFFFFF" stroke="#DC2626" stroke-width="2.2" stroke-dasharray="7 5"/>
+  <text class="h2" x="62" y="508" fill="#DC2626">브라우저 위치 권한</text>
+  <text class="cs" x="62" y="532">navigator.geolocation</text>
+  <text class="cm" x="62" y="556">lat/lon → 소수점 1자리 반올림</text>
+  <text class="cx" x="62" y="578">약 11km 단위로만 서버에 전송</text>
+  <text class="cx" x="62" y="600">거부하면 위젯만 사라짐</text>
+
+  <!-- ================= 내부 API ================= -->
+  <text class="lab" x="368" y="140">INTERNAL API  ·  47 routes</text>
+  <rect x="368" y="156" width="330" height="474" rx="13" fill="#FFFFFF" stroke="#8C4FFF" stroke-width="2.4"/>
+  <text class="cx" x="386" y="180">CloudFront → ALB :80 → ECS :3000</text>
+  <text class="cx" x="386" y="198">withApiGuard 가 401 · HttpError · 500 통일</text>
+
+  <text class="h2" x="386" y="228" fill="#7C3AED">환아 경로</text>
+  <text class="cm" x="386" y="250">POST /api/conversation  (SSE)</text>
+  <text class="cm" x="386" y="270">POST /api/adventure/progress</text>
+  <text class="cm" x="386" y="290">POST /api/companion/bond</text>
+  <text class="cm" x="386" y="310">POST /api/garden/plant</text>
+  <text class="cm" x="386" y="330">POST /api/photos  ·  GET /api/photos/[id]</text>
+  <text class="cm" x="386" y="350">POST /api/wallet/claim</text>
+  <text class="cm" x="386" y="370">GET  /api/hospital-day  ·  PATCH</text>
+  <text class="cm" x="386" y="390">POST /api/persona/generate · avatar 3종</text>
+  <text class="cm" x="386" y="410">POST /api/storybook/compose</text>
+  <text class="cm" x="386" y="430">POST /api/weather</text>
+
+  <text class="h2" x="386" y="462" fill="#B45309">보호자 경로</text>
+  <text class="cm" x="386" y="484">GET  /api/parent/home · report · timeline</text>
+  <text class="cm" x="386" y="504">GET  /api/parent/profile · empathy</text>
+  <text class="cm" x="386" y="524">POST /api/parent/schedule  PATCH [id]</text>
+  <text class="cm" x="386" y="544">POST /api/guardian/link</text>
+
+  <text class="h2" x="386" y="576" fill="#BE185D">배치 경로</text>
+  <text class="cm" x="386" y="598">POST /api/cron/daily</text>
+  <text class="cx" x="386" y="618">헤더 x-bedi-cron-secret · 202 즉시 반환</text>
+
+  <!-- ================= ECS ================= -->
+  <text class="lab" x="732" y="140">COMPUTE  ·  ECS Fargate</text>
+  <rect x="732" y="156" width="420" height="474" rx="13" fill="#FFF7ED" stroke="#ED7100" stroke-width="2.8"/>
+  <g transform="translate(752,174)"><rect width="30" height="30" rx="7" fill="url(#gSmi)"/><rect x="7" y="7" width="7" height="7" rx="1.3" fill="#FFFFFF"/><rect x="16" y="7" width="7" height="7" rx="1.3" fill="#FFFFFF"/><rect x="7" y="16" width="7" height="7" rx="1.3" fill="#FFFFFF"/><rect x="16" y="16" width="7" height="7" rx="1.3" fill="none" stroke="#FFFFFF" stroke-width="1.5"/></g>
+  <text class="h1" x="792" y="196" fill="#C2410C">Amazon ECS Fargate</text>
+  <text class="cx" x="752" y="222">1 vCPU / 2 GB · 태스크 1 · 도메인 서비스 19</text>
+
+  <rect x="752" y="238" width="382" height="88" rx="10" fill="#F8FAFC" stroke="#7D8998" stroke-width="2"/>
+  <text class="h2" x="770" y="262" fill="#5A6675">LLM Gateway  ·  배관</text>
+  <text class="cm" x="770" y="284">backend/ai/llm-gateway.ts</text>
+  <text class="cs" x="770" y="306">모델 매핑 · Guardrails · 계측만. 요청 판단 없음</text>
+
+  <rect x="752" y="338" width="382" height="88" rx="10" fill="#FFFFFF" stroke="#0E7490" stroke-width="2.4"/>
+  <text class="h2" x="770" y="362" fill="#0E7490">RAG  ·  보호자 인사이트</text>
+  <text class="cm" x="770" y="384">ai/rag/guardian-rag.ts</text>
+  <text class="cs" x="770" y="406">질의 재작성 → 병렬 검색 → 부족 시 1회 완화</text>
+
+  <rect x="752" y="438" width="382" height="70" rx="10" fill="#FFFFFF" stroke="#C7253E" stroke-width="2.4"/>
+  <text class="h2" x="770" y="462" fill="#C7253E">프라이버시 필터  ·  데이터 경계</text>
+  <text class="cm" x="770" y="484">ai/bridge/privacy-filter.ts  ·  원문·좌표 폐기</text>
+
+  <rect x="752" y="520" width="382" height="92" rx="10" fill="#FFFFFF" stroke="#ED7100" stroke-width="2"/>
+  <text class="h2" x="770" y="544" fill="#C2410C">AI Agent  ·  오늘의 미션</text>
+  <text class="cm" x="770" y="566">adventure-quest.agent.ts · mission-agent.ts</text>
+  <text class="cs" x="770" y="588">plan → tool → generate → validate → repair → fallback</text>
+
+  <!-- ================= 모델 라우팅 ================= -->
+  <text class="lab" x="1186" y="140">LLM MODEL ROUTING</text>
+  <rect x="1186" y="156" width="530" height="474" rx="13" fill="#FFFFFF" stroke="#01A88D" stroke-width="2.8"/>
+  <g transform="translate(1206,174)"><rect width="30" height="30" rx="7" fill="url(#gOrb)"/><path d="M 5 10 C 9 7.5 13 12.7 17 10 C 19.5 8.2 21.4 9.3 23 10.5" fill="none" stroke="#FFFFFF" stroke-width="1.8"/><path d="M 5 16 C 9 13.5 13 18.7 17 16 C 19.5 14.2 21.4 15.3 23 16.5" fill="none" stroke="#FFFFFF" stroke-width="1.8"/><path d="M 5 22 C 9 19.5 13 24.7 17 22 C 19.5 20.2 21.4 21.3 23 22.5" fill="none" stroke="#FFFFFF" stroke-width="1.8"/></g>
+  <text class="h1" x="1246" y="196" fill="#0F766E">Amazon Bedrock  ·  Converse API</text>
+  <text class="cx" x="1206" y="220">us-east-1 · Guardrail opr7cxjd4txo v1 전 호출 적용</text>
+
+  <rect x="1206" y="236" width="490" height="98" rx="10" fill="#F0FDFA" stroke="#0E7490" stroke-width="2"/>
+  <text class="h2" x="1224" y="260" fill="#0E7490">purpose: chat  →  즉시 경로</text>
+  <text class="cm" x="1224" y="282">BEDROCK_MODEL_ID_CHAT = claude-haiku-4-5</text>
+  <text class="cs" x="1224" y="304">conversation.chat  (스트리밍)</text>
+  <text class="cx" x="1224" y="324">첫 토큰 지연을 BedrockFirstTokenMs 로 별도 계측</text>
+
+  <rect x="1206" y="348" width="490" height="116" rx="10" fill="#F0FDFA" stroke="#0E7490" stroke-width="2"/>
+  <text class="h2" x="1224" y="372" fill="#0E7490">purpose: analysis  →  같은 Haiku</text>
+  <text class="cm" x="1224" y="394">구조화 JSON 추출 · 상위 티어 불필요</text>
+  <text class="cs" x="1224" y="416">emotion.analysis · adventure.story · companion.status</text>
+  <text class="cs" x="1224" y="436">hospital-day.schedule-copy · memory.post</text>
+  <text class="cs" x="1224" y="456">agent.mission.plan · rag.guardian.plan-queries</text>
+
+  <rect x="1206" y="478" width="490" height="136" rx="10" fill="#FFF7ED" stroke="#C2410C" stroke-width="2"/>
+  <text class="h2" x="1224" y="502" fill="#C2410C">purpose: quality  →  배치 · 품질</text>
+  <text class="cm" x="1224" y="524">BEDROCK_MODEL_ID_QUALITY = claude-opus-4-6</text>
+  <text class="cs" x="1224" y="546">agent.mission.generate  ← 오늘의 미션</text>
+  <text class="cs" x="1224" y="566">rag.guardian.generate  ← 보호자 인사이트</text>
+  <text class="cs" x="1224" y="586">batch.memory-consolidate · growth.journal · storybook</text>
+  <text class="cs" x="1224" y="606">parent.empathy · today-summary · daily-summary</text>
+
+  <!-- ================= AWS SDK ================= -->
+  <text class="lab" x="1750" y="140">AWS SDK CLIENTS</text>
+  <rect x="1750" y="156" width="406" height="474" rx="13" fill="#FFFFFF" stroke="#7D8998" stroke-width="2.4"/>
+  <text class="cm" x="1768" y="186">@aws-sdk/client-bedrock-runtime</text>
+  <text class="cs" x="1768" y="206">ConverseCommand — 대화 · 요약 · 분석</text>
+  <text class="cs" x="1768" y="226">ConverseStreamCommand — 토큰 스트리밍</text>
+  <text class="cs" x="1768" y="246">InvokeModelCommand — 이미지 생성</text>
+
+  <line x1="1768" y1="266" x2="2138" y2="266" stroke="#E2E8EE" stroke-width="1.5"/>
+  <text class="cm" x="1768" y="292">@aws-sdk/client-bedrock-agent-runtime</text>
+  <text class="cs" x="1768" y="312">RetrieveCommand — Knowledge Base 검색</text>
+
+  <line x1="1768" y1="332" x2="2138" y2="332" stroke="#E2E8EE" stroke-width="1.5"/>
+  <text class="cm" x="1768" y="358">@aws-sdk/client-dynamodb + lib-dynamodb</text>
+  <text class="cs" x="1768" y="378">Get · Put · Update · Query · TransactWrite</text>
+  <text class="cx" x="1768" y="398">인증은 TransactWrite 조건부 쓰기로 유일성 보장</text>
+
+  <line x1="1768" y1="418" x2="2138" y2="418" stroke="#E2E8EE" stroke-width="1.5"/>
+  <text class="cm" x="1768" y="444">@aws-sdk/client-s3</text>
+  <text class="cs" x="1768" y="464">GetObject · PutObject — 바이너리 전부</text>
+
+  <line x1="1768" y1="484" x2="2138" y2="484" stroke="#E2E8EE" stroke-width="1.5"/>
+  <text class="cm" x="1768" y="510">@aws-sdk/client-cloudwatch</text>
+  <text class="cs" x="1768" y="530">PutMetricData — 기능별 커스텀 메트릭</text>
+
+  <line x1="1768" y1="550" x2="2138" y2="550" stroke="#E2E8EE" stroke-width="1.5"/>
+  <text class="cw" x="1768" y="576">OpenAI SDK 제거 완료</text>
+  <text class="cx" x="1768" y="596">LLM 은 Bedrock 단일 · mock 은 로컬 개발용만</text>
+  <text class="cx" x="1768" y="616">pg / Aurora 는 롤백 대비로만 잔존</text>
+
+  <!-- ================= 화살표 (상단 행) ================= -->
+  <path class="flow" d="M 338 300 L 364 300"/>
+  <path class="flow" d="M 702 390 L 728 390"/>
+  <path class="flow" d="M 1156 300 L 1182 300" stroke-width="3.2"/>
+
+  <!-- ================= 하단: 배치 · 외부 · 데이터 ================= -->
+  <text class="lab" x="44" y="700">BATCH  ·  EventBridge</text>
+  <rect x="44" y="716" width="654" height="330" rx="13" fill="#FFFFFF" stroke="#E7157B" stroke-width="2.6"/>
+  <g transform="translate(64,734)"><rect width="30" height="30" rx="7" fill="url(#gCos)"/><circle cx="15" cy="15" r="8.4" fill="none" stroke="#FFFFFF" stroke-width="1.8"/><line x1="15" y1="15" x2="15" y2="9.4" stroke="#FFFFFF" stroke-width="1.8"/><line x1="15" y1="15" x2="19.2" y2="17.5" stroke="#FFFFFF" stroke-width="1.8"/></g>
+  <text class="h1" x="104" y="756" fill="#BE185D">Amazon EventBridge  →  API Destination</text>
+  <text class="cw" x="64" y="784">API Destination 응답 타임아웃 5초 → 202 즉시 반환 + 날짜별 멱등성 마커</text>
+  <text class="cx" x="64" y="806">재시도가 와도 중복 실행되지 않음 · ?force=1 로 수동 재실행</text>
+
+  <rect x="64" y="822" width="614" height="48" rx="8" fill="#FDF2F8" stroke="#E7157B" stroke-width="1.6"/>
+  <text class="h2" x="80" y="843" fill="#BE185D">잡 1 · 기억 통합</text>
+  <text class="cs" x="264" y="843">하루치 대화 → Opus → 휘발성/영속 2층 메모리 재작성</text>
+  <text class="cx" x="80" y="861">batch/memory-consolidate.job.ts · 매 턴 LLM 추출을 대체</text>
+
+  <rect x="64" y="882" width="614" height="48" rx="8" fill="#FDF2F8" stroke="#E7157B" stroke-width="1.6"/>
+  <text class="h2" x="80" y="903" fill="#BE185D">잡 2 · 오늘의 미션</text>
+  <text class="cs" x="264" y="903">AI Agent 추론 → Opus 로 퀘스트 3개 생성</text>
+  <text class="cx" x="80" y="921">실패 시 buildRuleBasedPack() 규칙 기반 폴백 · generatedBy 로 구분</text>
+
+  <rect x="64" y="942" width="614" height="48" rx="8" fill="#FDF2F8" stroke="#E7157B" stroke-width="1.6"/>
+  <text class="h2" x="80" y="963" fill="#BE185D">잡 3 · 보호자 요약</text>
+  <text class="cs" x="264" y="963">오늘의 마음 · 공감 가이드 사전 생성</text>
+  <text class="cx" x="80" y="981">parent-daily-prep · parent-empathy-guide 에 저장</text>
+
+  <rect x="64" y="1002" width="614" height="30" rx="8" fill="#FDF2F8" stroke="#E7157B" stroke-width="1.6"/>
+  <text class="h2" x="80" y="1023" fill="#BE185D">잡 4 · KB 색인</text>
+  <text class="cs" x="264" y="1023">요약 문서를 S3 에 쓰고 Knowledge Base 에 반영</text>
+
+  <text class="lab" x="732" y="700">EXTERNAL API  ·  단 하나</text>
+  <rect x="732" y="716" width="420" height="330" rx="13" fill="#FFFFFF" stroke="#DC2626" stroke-width="2.4" stroke-dasharray="7 5"/>
+  <text class="h1" x="752" y="748" fill="#DC2626">Open-Meteo</text>
+  <text class="cm" x="752" y="774">api.open-meteo.com/v1/forecast</text>
+  <text class="cm" x="752" y="796">daily=weather_code,temperature_2m_max</text>
+  <text class="cm" x="752" y="818">timezone=Asia/Seoul · start=end=dateKey</text>
+  <text class="cs" x="752" y="846">API 키 불필요 · 서버에서만 호출</text>
+  <text class="cs" x="752" y="868">45분 인프로세스 캐시 + revalidate 1800</text>
+  <text class="cs" x="752" y="890">새벽 배치는 current 가 아니라 일일 예보 사용</text>
+  <text class="cx" x="752" y="918">위치 없으면 기본값 lat 37.6 / lon 127.0</text>
+  <text class="cx" x="752" y="940">실패 시 날짜 해시 기반 폴백 날씨</text>
+  <text class="cw" x="752" y="970">이전에 브라우저가 직접 호출했던 구조를 서버로 이관</text>
+  <text class="cx" x="752" y="992">제3자가 보는 것은 아이 기기가 아니라 ECS 송신 IP</text>
+  <text class="cx" x="752" y="1014">BigDataCloud 역지오코딩은 제거</text>
+
+  <text class="lab" x="1186" y="700">DATA  ·  AI SERVICES</text>
+
+  <rect x="1186" y="716" width="530" height="158" rx="13" fill="#FFFFFF" stroke="#C925D1" stroke-width="2.6"/>
+  <g transform="translate(1206,734)"><rect width="30" height="30" rx="7" fill="url(#gNeb)"/><ellipse cx="15" cy="9" rx="7.5" ry="3" fill="none" stroke="#FFFFFF" stroke-width="1.8"/><path d="M 7.5 9 V 21 C 7.5 22.7 10.9 24 15 24 C 19.1 24 22.5 22.7 22.5 21 V 9" fill="none" stroke="#FFFFFF" stroke-width="1.8"/><circle cx="15" cy="16" r="2.1" fill="#FFFFFF"/></g>
+  <text class="h1" x="1246" y="756" fill="#A11BA8">Amazon DynamoDB  ·  BediApp</text>
+  <text class="cm" x="1206" y="782">pk = MAP#namespace   sk = id   (네임스페이스 21)</text>
+  <text class="cx" x="1206" y="804">personas · conversations · memories · emotion-analyses · emotion-gardens</text>
+  <text class="cx" x="1206" y="822">adventure-packs · wish-trees · wallets · memory-events · memory-post</text>
+  <text class="cx" x="1206" y="840">hospital-schedule · parent-settings · parent-daily-prep · photo-album</text>
+  <text class="cm" x="1206" y="862">인증은 전용 리포지토리 — pk = USER#id / EMAIL#주소</text>
+
+  <rect x="1186" y="888" width="530" height="158" rx="13" fill="#FFFFFF" stroke="#01A88D" stroke-width="2.6"/>
+  <g transform="translate(1206,906)"><rect width="30" height="30" rx="7" fill="url(#gOrb)"/><circle cx="13" cy="13" r="7" fill="none" stroke="#FFFFFF" stroke-width="1.8"/><line x1="18" y1="18" x2="24" y2="24" stroke="#FFFFFF" stroke-width="2.2"/></g>
+  <text class="h1" x="1246" y="928" fill="#0F766E">Knowledge Bases for Bedrock</text>
+  <text class="cm" x="1206" y="954">KB GREBZFCNYP · 벡터 스토어 S3 Vectors</text>
+  <text class="cm" x="1206" y="976">kb-summaries/{childUserId}/{dateKey}-{kind}.md</text>
+  <text class="cs" x="1206" y="998">색인 대상은 요약 문서만 — 대화 원문 제외</text>
+  <text class="cw" x="1206" y="1020">조회 시 소유자 경로 없는 히트는 전부 폐기</text>
+  <text class="cx" x="1206" y="1040">parent.report · growth.storybook 이 소비</text>
+
+  <rect x="1750" y="716" width="406" height="158" rx="13" fill="#FFFFFF" stroke="#7AA116" stroke-width="2.6"/>
+  <g transform="translate(1770,734)"><rect width="30" height="30" rx="7" fill="url(#gEnd)"/><path d="M 7 8 H 23 L 20.8 23 H 9.2 Z" fill="none" stroke="#FFFFFF" stroke-width="1.8"/><line x1="7.7" y1="13" x2="22.3" y2="13" stroke="#FFFFFF" stroke-width="1.6"/></g>
+  <text class="h1" x="1810" y="756" fill="#4D7C0F">Amazon S3</text>
+  <text class="cm" x="1770" y="782">avatars/  schedule-images/  photos/{userId}/</text>
+  <text class="cm" x="1770" y="804">kb-summaries/  vectors/  src/ (빌드 소스)</text>
+  <text class="cs" x="1770" y="828">공개 버킷 아님 · 앱이 소유자 확인 후 전달</text>
+  <text class="cx" x="1770" y="850">Cache-Control private · 로컬/tmp 폴백 캐시</text>
+
+  <rect x="1750" y="888" width="406" height="158" rx="13" fill="#FFFFFF" stroke="#01A88D" stroke-width="2.6"/>
+  <text class="h1" x="1770" y="918" fill="#0F766E">Bedrock 이미지  ·  us-west-2</text>
+  <text class="cm" x="1770" y="944">stable-image-style-guide-v1:0</text>
+  <text class="cx" x="1770" y="962">아바타 1순위 · 크레용 예시 참조 fidelity 0.72</text>
+  <text class="cm" x="1770" y="984">stable-image-ultra-v1:1</text>
+  <text class="cx" x="1770" y="1002">2순위 image-to-image strength 0.78</text>
+  <text class="cm" x="1770" y="1024">stable-image-core-v1:1</text>
+  <text class="cx" x="1770" y="1040">3순위 · 일정 삽화 text-to-image</text>
+
+  <path d="M 371 712 L 371 636" fill="none" stroke="#E7157B" stroke-width="2.6" marker-end="url(#ap)"/>
+  <path d="M 187 478 L 187 452" fill="none" stroke="#DC2626" stroke-width="2.4" marker-end="url(#ar)"/>
+
+  <!-- ================= 관측 ================= -->
+  <text class="lab" x="44" y="1096">OBSERVABILITY  ·  SECURITY</text>
+  <rect x="44" y="1112" width="2112" height="196" rx="13" fill="#FFFFFF" stroke="#E7157B" stroke-width="2.4"/>
+
+  <g transform="translate(64,1132)"><rect width="28" height="28" rx="6" fill="url(#gCos)"/><rect x="5.6" y="7.7" width="16.8" height="12.5" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1.7"/><path d="M 8.4 15.4 H 11.2 L 12.9 10.8 L 15.3 19 L 17.3 14.4 H 19.6" fill="none" stroke="#FFFFFF" stroke-width="1.7"/></g>
+  <text class="h1" x="102" y="1152" fill="#BE185D">Amazon CloudWatch</text>
+  <text class="cm" x="64" y="1180">BedrockLatencyMs · BedrockFirstTokenMs · AgentLatencyMs · KbSearchLatencyMs · Invocations · Errors</text>
+  <text class="cs" x="64" y="1204">차원: feature · model · operation   —   기능별로 지연과 토큰을 분리해 집계</text>
+  <text class="cs" x="64" y="1226">observability/{log,metrics,types}.ts · observeAsync() · observeFailure() 로 예외를 삼키지 않고 기록</text>
+  <text class="cx" x="64" y="1250">이전에 console.warn 으로 삼켰던 S3 쓰기 실패 · 배치 실패 · KB 폐기 히트가 모두 메트릭으로 올라옴</text>
+  <text class="cx" x="64" y="1272">첫 토큰 지연을 별도 메트릭으로 둔 이유 — 스트리밍 UI 에서 아이가 체감하는 값은 전체 응답 시간이 아님</text>
+
+  <line x1="1180" y1="1132" x2="1180" y2="1288" stroke="#E2E8EE" stroke-width="1.5"/>
+
+  <text class="h1" x="1210" y="1152" fill="#BE123C">Secrets Manager  ·  IAM</text>
+  <text class="cm" x="1210" y="1180">OPENAI_API_KEY(제거) · AUTH_SESSION_SECRET · PGPASSWORD → secrets valueFrom</text>
+  <text class="cs" x="1210" y="1204">태스크 정의 환경변수 평문 제거 — describe-task-definition 권한만으로 읽히던 문제</text>
+  <text class="cs" x="1210" y="1226">TaskRole: DynamoDB · Bedrock · S3 avatars/ schedule-images/ photos/ 프리픽스</text>
+  <text class="cm" x="1210" y="1250">CRON_SECRET — /api/cron/* 공유 시크릿 · timingSafeEqual 상수 시간 비교</text>
+  <text class="cx" x="1210" y="1272">Aurora 보안 그룹 0.0.0.0/0 회수 · publicly-accessible 해제 완료</text>
+
+  <text class="cx" x="44" y="1352">즉시 경로 — 대화는 Bedrock 1회 호출로 응답하고 SSE done 을 먼저 닫습니다. 대화 저장과 감정 분석은 응답 이후 백그라운드에서 실행됩니다.</text>
+  <text class="cx" x="44" y="1376">배치 경로 — 오늘의 미션 · 보호자 요약 · 기억 통합 · KB 색인을 EventBridge 가 전날 밤에 미리 만들어 DynamoDB 에 저장합니다.</text>
+  <text class="cx" x="44" y="1400">프라이버시 — 대화 원문은 보호자 응답에도, 검색 색인에도 들어가지 않습니다. AI Bridge 가 요약만 통과시킵니다.</text>
+  <text class="cx" x="44" y="1436" fill="#9BA7B6">모델 ID · Guardrail ID · KB ID · S3 프리픽스 · 메트릭 이름은 코드와 .env.local 에서 확인한 실제 값입니다.</text>
+</svg>

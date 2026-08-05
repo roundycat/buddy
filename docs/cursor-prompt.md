@@ -96,7 +96,7 @@ Beddy is **not** a medical chatbot. No diagnosis, no prescription, no clinical i
 |---|---|
 | 화요일 (남은 시간) | STEP 0 (30분) + STEP 1 속도 |
 | 수요일 | STEP 2 계측 + STEP 5 보안 · Aurora 이전 |
-| 목요일 | STEP 3 Orchestrator · Guardrails + STEP 4 배치 · 메모리 |
+| 목요일 | STEP 3 LLM Gateway · Guardrails + STEP 4 배치 · 메모리 |
 | 금요일 | 오전 STEP 6 KB · 오후 STEP 7 리허설 |
 
 **Aurora 이전(STEP 5-4)은 수요일에 시작하지 못하면 포기하세요.** 로그인 경로를 건드리므로 고칠 시간이 남아 있어야 합니다. 대신 STEP 5-1(SG 회수, 10분)과 5-2(S3 권한)는 반드시 하세요.
@@ -237,29 +237,23 @@ ECS Fargate 1 태스크 (1 vCPU / 2 GB) · ALB · CloudFront · DynamoDB `BediAp
 
 ## 4. TARGET ARCHITECTURE
 
-### 세 개의 AI 능력 — 각각 하나의 책임
+### 세 개의 AI 능력 — 각각 분류가 다름
 ```
-Amazon Bedrock              자연어 생성만. 무엇을 검색할지 결정하지 않음
-AI Agent                    추론과 추천. 무엇을 만들지 결정
-Knowledge Bases (Bedrock)   과거 기억 검색. 보호자 인사이트의 근거
+대화 (LLM 직접 호출)   Agent도 RAG도 아님. Haiku 스트리밍 · 판단 단계 없음
+AI Agent · 오늘의 미션  plan → tool(조건부) → generate → validate → repair → fallback
+RAG · 보호자 인사이트   질의 재작성 → 병렬 KB 검색 → 프라이버시 필터 → 1회 완화 재검색
 ```
 
-### AI Orchestrator — 모든 AI 요청의 단일 진입점
+배관·경계는 능력으로 세지 않음:
 ```
-src/backend/ai/orchestrator.ts     (신규)
-src/backend/ai/prompts/            (신규 — 흩어진 프롬프트 통합)
-src/backend/ai/agent/              (신규 — 미션 추론)
-src/backend/ai/bridge/             (신규 — 보호자 요약 경로)
+LLM Gateway             backend/ai/llm-gateway.ts — 모델 매핑 · Guardrails · 계측만. 요청 판단 없음
+프라이버시 필터         backend/ai/bridge/privacy-filter.ts — 데이터 경계
 ```
-컨트롤러와 React 컴포넌트는 Bedrock 을 직접 호출하지 않습니다.
-책임: 용도별 모델 선택 · 프롬프트 조립 · Guardrails 적용 · 계측 · 폴백.
 
 ```
-아동 대화        → Orchestrator → Bedrock (Haiku, 스트리밍)
-감정 분석        → Orchestrator → Bedrock (Haiku, 응답 후)
-오늘의 미션      → Orchestrator → AI Agent → Bedrock (Opus, 배치)
-보호자 질문      → Orchestrator → AI Bridge → KB 검색 → 프라이버시 필터 → Bedrock (Opus)
-스토리북        → Orchestrator → KB 검색 → Bedrock (Opus)
+아동 대화        → feature 서비스 → LLM Gateway → Bedrock (Haiku, 스트리밍)
+오늘의 미션      → mission agent → LLM Gateway → Bedrock (plan=Haiku, generate=Opus, 배치)
+보호자 질문      → guardian RAG → privacy filter → LLM Gateway → Bedrock (Opus)
 ```
 
 ### 두 개의 실행 경로 — 가장 중요한 구조
@@ -303,9 +297,10 @@ Bedrock KB          S3 의 요약 문서를 색인. 원문 대화는 색인하�
    - 기존 `BEDROCK_MODEL_ID` 는 하위 호환으로 유지
    - 현재 `.env.local` 이 대화에 Opus 4.6 을 쓰고 있습니다. 최상위 티어라 첫 토큰이 가장 느립니다.
 
-2. **`src/backend/ai/orchestrator.ts` 최소 버전 생성**
+2. **`src/backend/ai/llm-gateway.ts` 최소 버전 생성**
    - 이번 STEP 에서는 **대화 경로만** 통과시킵니다. 나머지는 기존 호출을 그대로 두세요 (점진 이관).
    - 용도(`chat` / `analysis` / `quality`)에 따라 모델을 고르는 함수 하나로 시작
+   - **요청을 Agent/RAG로 라우팅하지 않음.** feature 서비스가 호출 경로를 직접 정함
 
 3. **SSE `done` 을 분석 호출과 분리** — `conversation.service.ts`
    - `streamMessage()` 가 `done` 을 yield **한 뒤** 저장·분석을 시작
@@ -326,8 +321,8 @@ Bedrock KB          S3 의 요약 문서를 색인. 원문 대화는 색인하�
 
 1. 구조화 로깅 유틸 — `src/backend/shared/observability/`
    - 필드: `feature`, `model`, `latencyMs`, `inputTokens`, `outputTokens`, `success`, `requestId`
-2. Orchestrator 에서 Bedrock 호출을 감싸 **CloudWatch 커스텀 메트릭** 발행
-   - Bedrock 지연 · AI Agent 실행 시간 · KB 검색 시간 · 토큰 사용량 · 오류율 · DynamoDB 지연
+2. LLM Gateway 에서 Bedrock 호출을 감싸 **CloudWatch 커스텀 메트릭** 발행
+   - Bedrock 지연 · Agent/RAG/Batch 실행 시간 · KB 검색 시간 · 토큰 사용량 · 오류율 · DynamoDB 지연
 3. 대시보드 1개 + 알람 2개 (LLM 실패율, p95 지연)
 4. `console.warn` 으로 예외를 삼키는 지점을 계측으로 승급
    - 우선순위: `schedule-image.store.ts`, `avatar.store.ts` 의 S3 쓰기 실패
@@ -336,19 +331,20 @@ Bedrock KB          S3 의 요약 문서를 색인. 원문 대화는 색인하�
 
 ---
 
-### STEP 3 — Orchestrator 완성 + 프롬프트 통합 + Guardrails
+### STEP 3 — LLM Gateway 완성 + 프롬프트 통합 + Guardrails
 
 1. **Bedrock Guardrail 생성**
    - 거부 토픽: 의료 진단 · 처방 · 검사 수치 해석
    - 자해 · 위기 발화 감지 경로
    - PII 마스킹
-2. Orchestrator 의 **모든** Converse 호출에 guardrail 적용 (한 곳에서)
+2. LLM Gateway 의 **모든** Converse 호출에 guardrail 적용 (한 곳에서)
 3. 흩어진 시스템 프롬프트를 `src/backend/ai/prompts/` 로 통합
    - 공통 안전 규칙을 **단일 상수**로 추출해 모든 프롬프트가 참조
    - 기존 프롬프트 문구를 임의로 바꾸지 마세요. 위치만 옮기고 중복만 제거
-4. 남은 직접 호출(`getLlmProvider()` 을 쓰는 서비스들)을 Orchestrator 경유로 이관
+4. 남은 직접 호출(`getLlmProvider()` 을 쓰는 서비스들)을 `runLlm()` 경유로 이관
+5. **분류 정리 (후속):** 배관 파일명은 `llm-gateway.ts`. AI 능력은 Agent(`ai/agent/`) · RAG(`ai/rag/`) · 대화(직접 호출)로만 표기. 중앙 디스패처 금지.
 
-**완료 조건**: 안전 규칙이 한 파일에만 존재 · 컨트롤러에서 Bedrock 직접 호출 0건 · 기존 응답 품질 유지
+**완료 조건**: 안전 규칙이 한 파일에만 존재 · 컨트롤러에서 Bedrock 직접 호출 0건 · Guardrail 누락 0건 · 기존 응답 품질 유지
 
 ---
 

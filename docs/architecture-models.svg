@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR','Segoe UI',sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5A6675"/></marker>
+    <marker id="at" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#0F766E"/></marker>
+    <linearGradient id="gOrb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38CBB2"/><stop offset="1" stop-color="#017A6A"/></linearGradient>
+    <linearGradient id="gSmi" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F79640"/><stop offset="1" stop-color="#C85B10"/></linearGradient>
+    <linearGradient id="gCos" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4479C"/><stop offset="1" stop-color="#B60F60"/></linearGradient>
+    <linearGradient id="gEnd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9CC72F"/><stop offset="1" stop-color="#5E7F10"/></linearGradient>
+    <style>
+      .bg { fill: #FFFFFF; }
+      .title { font-size: 34px; font-weight: 700; fill: #16202E; }
+      .sub { font-size: 15px; fill: #5A6675; }
+      .lab { font-size: 12px; font-weight: 700; fill: #9BA7B6; letter-spacing: 1.5px; }
+      .h1 { font-size: 20px; font-weight: 700; }
+      .h2 { font-size: 16px; font-weight: 700; }
+      .h3 { font-size: 14px; font-weight: 700; }
+      .cs { font-size: 13px; fill: #48546A; }
+      .cm { font-size: 13px; fill: #16202E; font-family: 'Consolas','Courier New',monospace; }
+      .cmx { font-size: 12px; fill: #48546A; font-family: 'Consolas','Courier New',monospace; }
+      .cx { font-size: 12px; fill: #7A8699; }
+      .cw { font-size: 12px; font-weight: 700; fill: #C7253E; }
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1920" height="1080"/>
+
+  <text class="title" x="44" y="56">Beddy — LLM 모델 라우팅과 외부 의존</text>
+  <text class="sub" x="44" y="86">2 / 2   ·   purpose 별 모델 선택 · 기능별 호출 지점 · 이미지 모델 폴백 · 외부 API</text>
+
+  <!-- ===== 라우팅 규칙 ===== -->
+  <text class="lab" x="44" y="140">MODEL ROUTING  ·  backend/ai/llm-gateway.ts</text>
+  <rect x="44" y="156" width="1180" height="86" rx="12" fill="#F8FAFC" stroke="#334155" stroke-width="2.2"/>
+  <text class="cm" x="64" y="188">resolveModelForPurpose(purpose)   →   env.bedrock.chatModelId | qualityModelId</text>
+  <text class="cx" x="64" y="212">모든 호출은 runLlm() / streamCompanionChat() 을 지나며, 여기서 모델 · Guardrail · 계측이 한 번에 적용됩니다.</text>
+  <text class="cw" x="64" y="232">feature 서비스가 getLlmProvider() 를 직접 부르는 코드는 0건</text>
+
+  <rect x="1256" y="156" width="620" height="86" rx="12" fill="#F0FDFA" stroke="#0F766E" stroke-width="2.2"/>
+  <text class="h2" x="1276" y="184" fill="#0F766E">Guardrails — 전 Converse 호출에 적용</text>
+  <text class="cm" x="1276" y="208">BEDROCK_GUARDRAIL_ID = opr7cxjd4txo   ·   VERSION = 1</text>
+  <text class="cx" x="1276" y="230">의료 진단 · 처방 차단 · PII 마스킹 · 프롬프트가 아니라 플랫폼 레벨 강제</text>
+
+  <!-- ===== chat ===== -->
+  <rect x="44" y="266" width="590" height="196" rx="13" fill="#FFFFFF" stroke="#0E7490" stroke-width="2.8"/>
+  <rect x="44" y="266" width="590" height="46" rx="13" fill="#F0FDFA"/>
+  <text class="h1" x="66" y="298" fill="#0E7490">purpose: "chat"   ·   즉시 경로</text>
+  <text class="cm" x="66" y="340">BEDROCK_MODEL_ID_CHAT</text>
+  <text class="cm" x="66" y="364">= us.anthropic.claude-haiku-4-5-20251001-v1:0</text>
+  <text class="h3" x="66" y="396" fill="#0E7490">호출 지점</text>
+  <text class="cs" x="66" y="418">conversation.chat  —  ConverseStream 토큰 스트리밍</text>
+  <text class="cx" x="66" y="440">첫 토큰까지의 시간을 BedrockFirstTokenMs 로 별도 계측</text>
+
+  <!-- ===== analysis ===== -->
+  <rect x="664" y="266" width="590" height="196" rx="13" fill="#FFFFFF" stroke="#0E7490" stroke-width="2.8"/>
+  <rect x="664" y="266" width="590" height="46" rx="13" fill="#F0FDFA"/>
+  <text class="h1" x="686" y="298" fill="#0E7490">purpose: "analysis"   ·   같은 Haiku</text>
+  <text class="cx" x="686" y="336">구조화 JSON 추출이라 상위 티어가 필요하지 않습니다</text>
+  <text class="h3" x="686" y="366" fill="#0E7490">호출 지점 7</text>
+  <text class="cs" x="686" y="388">emotion.analysis · adventure.story · companion.status</text>
+  <text class="cs" x="686" y="408">hospital-day.schedule-copy · memory.post</text>
+  <text class="cs" x="686" y="428">agent.mission.plan  —  미션 장면·도구 판단</text>
+  <text class="cs" x="686" y="448">rag.guardian.plan-queries  —  보호자 질의 재작성</text>
+
+  <!-- ===== quality ===== -->
+  <rect x="1284" y="266" width="592" height="196" rx="13" fill="#FFFFFF" stroke="#C2410C" stroke-width="2.8"/>
+  <rect x="1284" y="266" width="592" height="46" rx="13" fill="#FFF7ED"/>
+  <text class="h1" x="1306" y="298" fill="#C2410C">purpose: "quality"   ·   배치 · 품질</text>
+  <text class="cm" x="1306" y="336">BEDROCK_MODEL_ID_QUALITY = claude-opus-4-6-v1</text>
+  <text class="h3" x="1306" y="366" fill="#C2410C">호출 지점 8   ·   전부 지연이 무관한 경로</text>
+  <text class="cs" x="1306" y="388">agent.mission.generate  —  오늘의 미션 3개</text>
+  <text class="cs" x="1306" y="408">rag.guardian.generate  —  보호자 인사이트 답변</text>
+  <text class="cs" x="1306" y="428">batch.memory-consolidate · growth.journal · storybook</text>
+  <text class="cs" x="1306" y="448">parent.empathy · today-summary · daily-summary</text>
+
+  <!-- ===== 이미지 모델 ===== -->
+  <text class="lab" x="44" y="516">IMAGE MODELS  ·  us-west-2  ·  InvokeModel</text>
+  <rect x="44" y="532" width="900" height="264" rx="13" fill="#FFFFFF" stroke="#01A88D" stroke-width="2.6"/>
+  <g transform="translate(64,550)"><rect width="30" height="30" rx="7" fill="url(#gOrb)"/><rect x="6" y="8" width="18" height="14" rx="2.2" fill="none" stroke="#FFFFFF" stroke-width="1.8"/><circle cx="11" cy="13" r="1.9" fill="#FFFFFF"/><path d="M 7 21 L 12 15 L 17 20 L 19.5 17.4 L 23 21 Z" fill="#FFFFFF"/></g>
+  <text class="h1" x="104" y="572" fill="#0F766E">Stability  ·  아바타 3단 폴백</text>
+  <text class="cx" x="64" y="596">앞 단계가 실패하면 다음으로 내려갑니다. 전부 실패하면 예외를 남기고 생성을 포기합니다.</text>
+
+  <rect x="64" y="612" width="860" height="52" rx="9" fill="#F0FDFA" stroke="#0F766E" stroke-width="1.6"/>
+  <text class="h3" x="82" y="634" fill="#0F766E">1순위</text>
+  <text class="cm" x="150" y="634">stable-image-style-guide-v1:0</text>
+  <text class="cx" x="150" y="654">번들된 유치원생 크레용 예시 8종을 스타일 참조로 전달 · fidelity 0.72</text>
+
+  <rect x="64" y="676" width="860" height="52" rx="9" fill="#FFFFFF" stroke="#7D8998" stroke-width="1.6"/>
+  <text class="h3" x="82" y="698" fill="#5A6675">2순위</text>
+  <text class="cm" x="150" y="698">stable-image-ultra-v1:1</text>
+  <text class="cx" x="150" y="718">image-to-image · strength 0.78 · 크레용 질감을 유지하며 주제만 교체</text>
+
+  <rect x="64" y="740" width="860" height="44" rx="9" fill="#FFFFFF" stroke="#7D8998" stroke-width="1.6"/>
+  <text class="h3" x="82" y="762" fill="#5A6675">3순위</text>
+  <text class="cm" x="150" y="762">stable-image-core-v1:1</text>
+  <text class="cx" x="480" y="762">text-to-image · 일정 삽화도 이 모델</text>
+
+  <rect x="976" y="532" width="900" height="264" rx="13" fill="#FFFFFF" stroke="#DC2626" stroke-width="2.4" stroke-dasharray="7 5"/>
+  <text class="h1" x="996" y="564" fill="#DC2626">외부 API  ·  Open-Meteo 하나뿐</text>
+  <text class="cm" x="996" y="592">GET api.open-meteo.com/v1/forecast</text>
+  <text class="cmx" x="996" y="616">daily = weather_code, temperature_2m_max</text>
+  <text class="cmx" x="996" y="638">timezone = Asia/Seoul   ·   start_date = end_date = dateKey</text>
+  <text class="cs" x="996" y="666">API 키 불필요 · 서버에서만 호출 · 45분 인프로세스 캐시 + revalidate 1800</text>
+  <text class="cs" x="996" y="688">새벽 배치는 current 가 아니라 일일 예보를 씁니다</text>
+  <text class="cx" x="996" y="712">아이가 오전에 보는 날씨와 새벽 기온이 어긋나지 않도록</text>
+  <text class="cm" x="996" y="738">기본 좌표  lat 37.6 / lon 127.0</text>
+  <text class="cx" x="996" y="760">위치 미보고 시 사용 · 호출 실패 시 날짜 해시 기반 폴백 날씨</text>
+  <text class="cw" x="996" y="784">브라우저 직접 호출을 서버로 이관 · BigDataCloud 역지오코딩 제거</text>
+
+  <!-- ===== 폴백 · 안전 ===== -->
+  <text class="lab" x="44" y="850">FALLBACK  ·  SAFETY</text>
+  <rect x="44" y="866" width="900" height="176" rx="13" fill="#FFFFFF" stroke="#7D8998" stroke-width="2.2"/>
+  <text class="h2" x="64" y="894" fill="#16202E">LLM 실패 시 동작</text>
+  <text class="cs" x="64" y="920">대화 — LLM_FALLBACK_TO_MOCK 이 켜져 있으면 규칙 기반 mock 응답으로 대체</text>
+  <text class="cs" x="64" y="942">감정 분석 — 정규식 휴리스틱으로 감정 라벨과 점수를 추정</text>
+  <text class="cs" x="64" y="964">오늘의 미션 — buildRuleBasedPack() 규칙 기반 팩 · generatedBy 로 구분 가능</text>
+  <text class="cs" x="64" y="986">일정 문구 · 성장 기록 — 기존 규칙 기반 문장을 그대로 사용</text>
+  <text class="cw" x="64" y="1014">리허설 중에는 LLM_FALLBACK_TO_MOCK=false 로 두고 실패를 드러내는 편이 안전합니다</text>
+
+  <rect x="976" y="866" width="900" height="176" rx="13" fill="#FFFFFF" stroke="#E7157B" stroke-width="2.2"/>
+  <g transform="translate(996,884)"><rect width="28" height="28" rx="6" fill="url(#gCos)"/><rect x="5.6" y="7.7" width="16.8" height="12.5" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1.7"/><path d="M 8.4 15.4 H 11.2 L 12.9 10.8 L 15.3 19 L 17.3 14.4 H 19.6" fill="none" stroke="#FFFFFF" stroke-width="1.7"/></g>
+  <text class="h2" x="1034" y="904" fill="#BE185D">CloudWatch 커스텀 메트릭</text>
+  <text class="cm" x="996" y="932">BedrockLatencyMs  ·  BedrockFirstTokenMs</text>
+  <text class="cm" x="996" y="954">Agent*  ·  Rag*  ·  BatchLatencyMs  ·  KbSearchLatencyMs</text>
+  <text class="cm" x="996" y="976">Invocations  ·  Errors</text>
+  <text class="cs" x="996" y="1000">차원 — feature · model · operation</text>
+  <text class="cx" x="996" y="1022">기능별로 어느 모델이 얼마나 느린지, 어디서 실패했는지 분리해 볼 수 있습니다</text>
+</svg>

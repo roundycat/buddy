@@ -20,8 +20,9 @@ import {
 import { StandardUnit } from "@aws-sdk/client-cloudwatch";
 
 /**
- * AI Orchestrator — single entry for model routing, Guardrails, instrumentation.
- * Controllers and feature services must not call Bedrock providers directly.
+ * LLM Gateway — model routing, Guardrails, instrumentation.
+ * NOT a central decision layer: it never decides which component handles a request.
+ * The caller supplies `feature` and `purpose`; this layer only maps and measures.
  */
 export type AiPurpose = "chat" | "analysis" | "quality";
 
@@ -191,16 +192,16 @@ export async function companionChat(
   );
 }
 
-export async function observeAgentRun<T>(
+export async function observeBatchRun<T>(
   feature: string,
   fn: () => Promise<T>
 ): Promise<T> {
   return observeAsync(
     {
       feature,
-      operation: "agent",
+      operation: "batch",
       model: resolveModelForPurpose("quality"),
-      latencyMetric: "AgentLatencyMs",
+      latencyMetric: "BatchLatencyMs",
     },
     fn
   );

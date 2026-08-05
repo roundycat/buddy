@@ -5,7 +5,7 @@ import {
   type KnowledgeBaseRetrievalResult,
 } from "@aws-sdk/client-bedrock-agent-runtime";
 import { env } from "@/backend/shared/config/env";
-import { observeKbSearch } from "@/backend/ai/orchestrator";
+import { observeKbSearch } from "@/backend/ai/llm-gateway";
 import { logObservation, newRequestId, recordCount } from "@/backend/shared/observability";
 
 export type KbHit = {

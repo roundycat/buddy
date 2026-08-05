@@ -2,6 +2,8 @@
  * Today's Small Adventure — 3 gentle, personalized quests per day.
  */
 
+import type { RunTraceStep } from "@/backend/ai/agent/agent-run";
+
 export type AdventureScene = "sunny" | "rainy" | "treatment" | "low_energy";
 
 export type AdventureQuestStatus = "available" | "done";
@@ -99,6 +101,20 @@ export interface AdventureDayPackQuest {
   progress?: AdventureQuestProgress;
 }
 
+export interface MissionPlan {
+  scene: AdventureScene;
+  /** Why this scene — 1~2 sentences */
+  reasoning: string;
+  /** Signals used as evidence */
+  focusSignals: string[];
+  /** Things to avoid */
+  avoid: string[];
+  /** Prefer distinct kinds across the 3 quests */
+  questKinds: AdventureQuestKind[];
+  /** Whether recent history tool should run */
+  needsRecentHistory: boolean;
+}
+
 export interface AdventureDayPack {
   userId: string;
   date: string;
@@ -108,6 +124,10 @@ export interface AdventureDayPack {
   factors: Array<{ emoji: string; label: string }>;
   context: AdventureContextFactors;
   quests: AdventureDayPackQuest[];
-  generatedBy: "rules" | "llm";
+  generatedBy: "rules" | "llm" | "llm-repaired";
   dayStory?: AdventureDayStory;
+  /** Agent plan when generated via mission agent */
+  plan?: MissionPlan;
+  agentTrace?: RunTraceStep[];
 }
+

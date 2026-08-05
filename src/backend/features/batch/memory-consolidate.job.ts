@@ -1,5 +1,5 @@
 import "server-only";
-import { runLlm } from "@/backend/ai/orchestrator";
+import { runLlm } from "@/backend/ai/llm-gateway";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { env } from "@/backend/shared/config/env";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";

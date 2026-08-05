@@ -15,7 +15,7 @@ import {
   companionChat,
   resolveModelForPurpose,
   streamCompanionChat,
-} from "@/backend/ai/orchestrator";
+} from "@/backend/ai/llm-gateway";
 import { env } from "@/backend/shared/config/env";
 import { logObservation, newRequestId } from "@/backend/shared/observability";
 

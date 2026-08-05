@@ -1,6 +1,3 @@
-import { runLlm } from "@/backend/ai/orchestrator";
-import { withBeddySafety } from "@/backend/ai/prompts/safety";
-import { env } from "@/backend/shared/config/env";
 import { getPersonaForUser } from "@/backend/features/persona/persona.store";
 import { getHospitalDay } from "@/backend/features/hospital-day/hospital-day.service";
 import { getGardenAccount } from "@/backend/features/emotion-garden/emotion-garden.store";
@@ -14,13 +11,12 @@ import {
   getAdventurePack,
   saveAdventurePack,
 } from "./adventure-quest.store";
+import { runMissionAgent } from "./adventure-quest.agent";
 import {
   actionHrefFor,
   buildFactorChips,
-  buildRuleBasedPack,
   isQuestReadyToClaim,
   normalizeQuestKind,
-  resolveScene,
 } from "./adventure-quest.rules";
 import type {
   AdventureContextFactors,
@@ -30,7 +26,6 @@ import type {
   AdventureQuestResponse,
 } from "./adventure-quest.types";
 import { todayKey } from "@/backend/shared/time/date";
-import { extractJsonObject } from "@/backend/shared/llm/parse-json";
 
 function headlineForLiveWeather(
   weather: AdventureContextFactors["weather"]
@@ -179,109 +174,6 @@ function normalizePackQuest(
   };
 }
 
-async function tryGenerateWithLlm(
-  userId: string,
-  date: string,
-  context: AdventureContextFactors,
-  scene: ReturnType<typeof resolveScene>
-): Promise<AdventureDayPack | null> {
-  if (env.llmProvider === "mock") return null;
-  const system = `당신은 입원 청소년을 위한 앱 Beddy의 오늘의 모험 Agent입니다.
-병실·복도·침대 근처에서 할 수 있는 작고 즐거운 모험을 제안하세요.
-각 모험은 앱 안에서 할 수 있어야 합니다. kind는 photo|garden|chat|post|observe 중 하나.
-위험하거나 무리한 활동만 피하세요. 한국어. JSON만 출력.`;
-
-  const user = `오늘 날짜: ${date}
-장면 유형: ${scene}
-컨텍스트:
-${JSON.stringify(context, null, 2)}
-
-정확히 3개의 모험을 만들어 주세요. 형식:
-{
-  "headline": "이모지와 함께 오늘의 한 줄",
-  "companionNote": "왜 이런 모험인지 한두 문장",
-  "quests": [
-    {
-      "emoji": "🌳",
-      "title": "짧은 제목",
-      "hint": "어떻게 하면 되는지",
-      "points": 10,
-      "kind": "photo"
-    }
-  ]
-}
-kind 설명:
-- photo: 사진 업로드
-- garden: 감정 정원
-- chat: 대기실에서 베디와 대화
-- post: 우체국 편지
-- observe: 짧은 메모 또는 선택 사진
-points는 10~20 정수. 가능하면 kind를 다양하게.`;
-
-  try {
-    const result = await runLlm({
-      feature: "adventure.quest",
-      purpose: "quality",
-      messages: [
-        { role: "system", content: withBeddySafety(system) },
-        { role: "user", content: user },
-      ],
-      temperature: 0.7,
-      maxTokens: 900,
-    });
-
-    const parsed = extractJsonObject(result.content) as {
-      headline?: string;
-      companionNote?: string;
-      quests?: Array<{
-        emoji?: string;
-        title?: string;
-        hint?: string;
-        points?: number;
-        kind?: string;
-      }>;
-    };
-
-    const quests = (parsed.quests ?? [])
-      .filter((q) => q.title?.trim())
-      .slice(0, 3)
-      .map((q, index) =>
-        normalizePackQuest(
-          {
-            id: `aq-${date}-${index}`,
-            emoji: q.emoji ?? "🌈",
-            title: q.title!,
-            hint: q.hint ?? "",
-            points: q.points ?? 12,
-            kind: normalizeQuestKind(q.kind, q.title, q.hint),
-            progress: {},
-          },
-          date,
-          index
-        )
-      );
-
-    if (quests.length < 3) return null;
-
-    return {
-      userId,
-      date,
-      scene,
-      headline: parsed.headline?.trim() || "🌈 오늘의 작은 모험",
-      companionNote:
-        parsed.companionNote?.trim() ||
-        "오늘 상태와 병원에 맞춰 작은 모험을 골랐어요.",
-      factors: buildFactorChips(context, scene),
-      context,
-      quests,
-      generatedBy: "llm",
-    };
-  } catch (error) {
-    console.warn("[adventure] LLM generate failed → rules", error);
-    return null;
-  }
-}
-
 function migratePack(pack: AdventureDayPack): AdventureDayPack {
   const quests = pack.quests.map((q, index) =>
     normalizePackQuest(q as AdventureDayPackQuest & { kind?: string }, pack.date, index)
@@ -338,9 +230,7 @@ export async function prepareAdventurePackForDate(
   date: string
 ): Promise<AdventureDayPack> {
   const context = await buildContext(userId, date);
-  const scene = resolveScene(context);
-  const llmPack = await tryGenerateWithLlm(userId, date, context, scene);
-  const pack = llmPack ?? buildRuleBasedPack(userId, date, scene, context);
+  const pack = await runMissionAgent(userId, date, context);
   return saveAdventurePack(pack);
 }
 

@@ -1,4 +1,4 @@
-import { runLlm } from "@/backend/ai/orchestrator";
+import { runLlm } from "@/backend/ai/llm-gateway";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { env } from "@/backend/shared/config/env";
 import { appendMemoryEvent } from "@/backend/features/memory-timeline/memory-timeline.store";

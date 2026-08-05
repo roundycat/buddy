@@ -4,7 +4,7 @@ import { MOOD_OPTIONS } from "@/backend/features/emotion-garden/emotion-garden.s
 import { aggregateEmotionsByDay } from "@/backend/features/emotion-analysis/emotion.service";
 import { getAdventureQuest } from "@/backend/features/adventure-quest/adventure-quest.service";
 import { listDayStoriesForUser } from "@/backend/features/adventure-quest/adventure-story.service";
-import { runLlm } from "@/backend/ai/orchestrator";
+import { runLlm } from "@/backend/ai/llm-gateway";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { env } from "@/backend/shared/config/env";
 import type {

@@ -7,7 +7,7 @@ import { consolidateMemoryForUser } from "./memory-consolidate.job";
 import { prepareMissionsForUser } from "./mission-prep.job";
 import { prepareParentSummaryForGuardian } from "./parent-summary.job";
 import { indexKbSummariesForUser } from "./kb-index.job";
-import { observeAgentRun } from "@/backend/ai/orchestrator";
+import { observeBatchRun } from "@/backend/ai/llm-gateway";
 
 export type DailyBatchResult = {
   dateKey: string;
@@ -31,7 +31,7 @@ async function listChildUserIds(): Promise<string[]> {
 export async function runDailyBatch(
   dateKey = todayKey()
 ): Promise<DailyBatchResult> {
-  return observeAgentRun("batch.daily", async () => {
+  return observeBatchRun("batch.daily", async () => {
     const childIds = await listChildUserIds();
     const guardianIds = await listGuardianUserIds();
 

@@ -1,4 +1,4 @@
-import { runLlm } from "@/backend/ai/orchestrator";
+import { runLlm } from "@/backend/ai/llm-gateway";
 import { env } from "@/backend/shared/config/env";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";

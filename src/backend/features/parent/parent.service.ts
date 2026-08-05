@@ -15,7 +15,7 @@ import { listDayStoriesForUser } from "@/backend/features/adventure-quest/advent
 import { getMemoryTimeline } from "@/backend/features/memory-timeline/memory-timeline.service";
 import { resolveLinkedChildUserId } from "@/backend/features/guardian-link/guardian-link.service";
 import { hasLedgerRef } from "@/backend/features/wallet/wallet.store";
-import { runLlm } from "@/backend/ai/orchestrator";
+import { runLlm } from "@/backend/ai/llm-gateway";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { env } from "@/backend/shared/config/env";
 import {
@@ -38,9 +38,8 @@ import { autoCompleteDueScheduleItems } from "@/backend/features/hospital-day/ho
 import {
   formatKbHitsForPrompt,
   kbSourceLabels,
-  retrieveChildSummaries,
 } from "@/backend/ai/kb/retrieve";
-import { filterBridgeHits } from "@/backend/ai/bridge/privacy-filter";
+import { retrieveGuardianContext } from "@/backend/ai/rag/guardian-rag";
 import type {
   ParentCalendarDay,
   ParentCalendarMark,
@@ -1012,13 +1011,12 @@ export async function askParentReport(
         .map((f) => MOOD_OPTIONS.find((o) => o.id === f.mood)?.label ?? "기록")
     : [];
 
-  const kbHits = filterBridgeHits(
-    await retrieveChildSummaries({
-      childUserId: childId,
-      query: q,
-      maxResults: 5,
-    })
-  );
+  const rag = await retrieveGuardianContext({
+    childUserId: childId,
+    question: q,
+    maxResults: 5,
+  });
+  const kbHits = rag.hits;
 
   const context = {
     childName: link.childName,
@@ -1101,7 +1099,7 @@ async function composeReportAnswerWithLlm(
 ): Promise<string | null> {
   try {
     const result = await runLlm({
-      feature: "parent.report",
+      feature: "rag.guardian.generate",
       purpose: "quality",
       messages: [
         {
