@@ -77,8 +77,9 @@ const MOCK_USERS: Array<
   },
 ];
 
-function assertMockAllowed() {
-  if (env.authProvider !== "mock" && process.env.NODE_ENV === "production") {
+/** Block AUTH_PROVIDER=mock when running a production Node build. */
+function assertMockNotUsedInProduction() {
+  if (env.authProvider === "mock" && process.env.NODE_ENV === "production") {
     throw new AuthError("인증 저장소에 연결할 수 없습니다.", 503);
   }
 }
@@ -137,7 +138,7 @@ export async function login(request: LoginRequest): Promise<LoginResult> {
   }
 
   if (env.authProvider === "mock") {
-    assertMockAllowed();
+    assertMockNotUsedInProduction();
     const found = MOCK_USERS.find(
       (u) => u.email === email && u.password === password
     );
