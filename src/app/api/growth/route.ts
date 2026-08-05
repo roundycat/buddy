@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getGrowthJournal } from "@/backend/features/growth-journal/growth-journal.service";
 import { getSessionUser } from "@/backend/shared/http/auth";
 
+export const dynamic = "force-dynamic";
+
 /**
  * API Bridge: Emotion & growth journal
  */

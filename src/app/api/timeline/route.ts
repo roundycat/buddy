@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getTimeline } from "@/backend/features/timeline/timeline.service";
 import { getSessionUser } from "@/backend/shared/http/auth";
 
+export const dynamic = "force-dynamic";
+
 /**
  * API Bridge: Timeline
  * Frontend calls this route — never imports backend services directly.

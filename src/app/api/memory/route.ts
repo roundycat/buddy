@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getMemoryTimeline } from "@/backend/features/memory-timeline/memory-timeline.service";
 import { getSessionUser } from "@/backend/shared/http/auth";
 
+export const dynamic = "force-dynamic";
+
 /**
  * API Bridge: AI Memory Timeline
  */
