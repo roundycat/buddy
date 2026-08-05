@@ -16,7 +16,7 @@ Measured locally on 2026-08-05 against Bedrock `us-east-1`.
 
 1. **SSE `done` before persist/analysis** — child input unlocks without waiting for memory + emotion LLM (previously 2 extra Bedrock calls blocked `done`).
 2. **`resolveChildCompanionContext` via `Promise.all`** — persona / history / memory / wishes no longer sequential.
-3. Chat goes through `src/backend/ai/orchestrator.ts` with purpose=`chat`.
+3. Chat goes through `src/backend/ai/llm-gateway.ts` with purpose=`chat`.
 
 ## How to re-measure
 

@@ -240,7 +240,7 @@ ECS Fargate 1 태스크 (1 vCPU / 2 GB) · ALB · CloudFront · DynamoDB `BediAp
 ### 세 개의 AI 능력 — 각각 분류가 다름
 ```
 대화 (LLM 직접 호출)   Agent도 RAG도 아님. Haiku 스트리밍 · 판단 단계 없음
-AI Agent · 오늘의 미션  plan → tool(조건부) → generate → validate → repair → fallback
+AI Agent · 오늘의 미션  tool use(모델이 도구 선택) → generate → validate → repair → fallback
 RAG · 보호자 인사이트   질의 재작성 → 병렬 KB 검색 → 프라이버시 필터 → 1회 완화 재검색
 ```
 

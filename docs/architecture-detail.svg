@@ -107,7 +107,7 @@
   <rect x="752" y="520" width="382" height="92" rx="10" fill="#FFFFFF" stroke="#ED7100" stroke-width="2"/>
   <text class="h2" x="770" y="544" fill="#C2410C">AI Agent  ·  오늘의 미션</text>
   <text class="cm" x="770" y="566">adventure-quest.agent.ts · mission-agent.ts</text>
-  <text class="cs" x="770" y="588">plan → tool → generate → validate → repair → fallback</text>
+  <text class="cs" x="770" y="588">tool use → generate → validate → repair → fallback</text>
 
   <!-- ================= 모델 라우팅 ================= -->
   <text class="lab" x="1186" y="140">LLM MODEL ROUTING</text>

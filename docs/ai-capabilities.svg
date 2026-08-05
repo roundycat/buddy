@@ -99,9 +99,9 @@
   <text class="sd" x="682" y="340">장면 · 근거 · 피할 것 · kind 배분   —   현재는 규칙 resolveScene()</text>
 
   <rect x="664" y="360" width="592" height="50" rx="9" fill="#FFF7ED" stroke="#C2410C" stroke-width="2" stroke-dasharray="6 4"/>
-  <text class="st" x="682" y="382">3 · 조건부 도구 호출</text>
+  <text class="st" x="682" y="382">3 · 모델이 도구를 고른다 (Converse tool use)</text>
   <text class="tag" x="1178" y="382" fill="#C2410C">STEP 2</text>
-  <text class="sd" x="682" y="400">계획이 요구할 때만 최근 7일 미션 제목 조회 → 중복 회피</text>
+  <text class="sd" x="682" y="400">정서 가이드 카드 · 최근 미션 제목 — 필요하다고 판단한 것만 호출</text>
 
   <rect x="664" y="420" width="592" height="50" rx="9" fill="#FFFFFF" stroke="#C2410C" stroke-width="1.8"/>
   <text class="st" x="682" y="442">4 · 퀘스트 3개 생성</text>

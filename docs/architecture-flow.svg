@@ -113,7 +113,7 @@
   <rect x="830" y="516" width="400" height="136" rx="10" fill="#FFFFFF" stroke="#ED7100" stroke-width="2"/>
   <text class="h2" x="848" y="540" fill="#C2410C">AI Agent  ·  오늘의 미션</text>
   <text class="cm" x="848" y="562">adventure-quest.agent.ts</text>
-  <text class="cs" x="848" y="586">plan → tool(조건부) → generate</text>
+  <text class="cs" x="848" y="586">tool use(모델이 도구 선택) → generate</text>
   <text class="cs" x="848" y="608">validate(순수) → repair(최대1) → rules</text>
   <text class="cx" x="848" y="632">배치 경로 · AgentLatencyMs / AgentStepLatencyMs</text>
 
