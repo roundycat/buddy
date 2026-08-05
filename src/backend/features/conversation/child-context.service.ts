@@ -10,7 +10,7 @@ import {
   getConversationMemory,
 } from "@/backend/features/conversation/conversation.store";
 import { formatWishesForPrompt } from "@/backend/features/wish-tree/wish-tree.service";
-import type { CompanionPromptContext } from "@/backend/shared/llm/prompts/companion";
+import type { CompanionPromptContext } from "@/backend/ai/prompts/companion";
 import type { ConversationMessage } from "@/backend/features/conversation/conversation.types";
 import type { ConversationMemory } from "@/backend/features/conversation/memory.types";
 import type { Persona } from "@/backend/features/persona/persona.types";

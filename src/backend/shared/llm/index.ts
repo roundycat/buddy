@@ -1,13 +1,12 @@
 import { env, isLlmConfigured } from "@/backend/shared/config/env";
 import type { LlmChatRequest, LlmChatResult, LlmProvider } from "./types";
 import { MockLlmProvider } from "./providers/mock.provider";
-import { OpenAiLlmProvider } from "./providers/openai.provider";
 import { BedrockLlmProvider } from "./providers/bedrock.provider";
 import {
   BEDI_CHAT_DEFAULTS,
   buildCompanionSystemPrompt,
   type CompanionPromptContext,
-} from "./prompts/companion";
+} from "@/backend/ai/prompts/companion";
 
 let cached: LlmProvider | null = null;
 
@@ -20,17 +19,12 @@ export function getLlmProvider(): LlmProvider {
 
   const provider = env.llmProvider;
 
-  if (provider === "openai") {
-    if (!isLlmConfigured("openai")) {
-      console.warn("[llm] OPENAI_API_KEY 없음 → mock으로 전환");
+  if (provider === "bedrock") {
+    if (!isLlmConfigured("bedrock")) {
+      console.warn("[llm] Bedrock 미설정 → mock으로 전환");
       cached = new MockLlmProvider();
       return cached;
     }
-    cached = new OpenAiLlmProvider();
-    return cached;
-  }
-
-  if (provider === "bedrock") {
     cached = new BedrockLlmProvider();
     return cached;
   }
@@ -149,16 +143,11 @@ export function getLlmStatus() {
     configured: isLlmConfigured(provider),
     fallbackToMock: env.llmFallbackToMock,
     model:
-      provider === "openai"
-        ? env.openai.model
-        : provider === "bedrock"
-          ? env.bedrock.modelId
-          : "mock-rules",
+      provider === "bedrock" ? env.bedrock.modelId : "mock-rules",
     chatModel:
       provider === "bedrock" ? env.bedrock.chatModelId : undefined,
     qualityModel:
       provider === "bedrock" ? env.bedrock.qualityModelId : undefined,
-    openaiBaseUrl: provider === "openai" ? env.openai.baseUrl : undefined,
     bedrockRegion: provider === "bedrock" ? env.bedrock.region : undefined,
   };
 }
