@@ -18,11 +18,20 @@ function Get-EnvVal([string]$key, [string]$fallback = "") {
 $session = Get-EnvVal "AUTH_SESSION_SECRET" "bedi-prod-change-me"
 $openai = Get-EnvVal "OPENAI_API_KEY" ""
 $pgPass = Get-EnvVal "PGPASSWORD" ""
+$cron = Get-EnvVal "CRON_SECRET" ""
+if (-not $cron) {
+  $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+  $bytes = New-Object byte[] 32
+  $rng.GetBytes($bytes)
+  $cron = ([Convert]::ToBase64String($bytes) -replace '[+/=]', '')
+  Write-Host "Generated CRON_SECRET (also write to .env.local for local cron tests)"
+}
 
 $secretObj = @{
   AUTH_SESSION_SECRET = $session
   OPENAI_API_KEY = $openai
   PGPASSWORD = $pgPass
+  CRON_SECRET = $cron
 }
 $secretJson = $secretObj | ConvertTo-Json -Compress
 $secretFile = Join-Path $env:TEMP "bedi-secret.json"

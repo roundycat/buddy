@@ -9,6 +9,7 @@ import { hasLedgerRef } from "@/backend/features/wallet/wallet.store";
 import { getConversationMemory } from "@/backend/features/conversation/conversation.store";
 import { countGuardiansForChild } from "@/backend/features/guardian-link/guardian-link.store";
 import { latestEmotionSummary } from "@/backend/features/emotion-analysis/emotion.service";
+import { getWeatherForUser } from "@/backend/features/weather/weather.service";
 import {
   getAdventurePack,
   saveAdventurePack,
@@ -30,63 +31,6 @@ import type {
 } from "./adventure-quest.types";
 import { todayKey } from "@/backend/shared/time/date";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";
-
-function hashSeed(input: string): number {
-  let h = 0;
-  for (let i = 0; i < input.length; i++) {
-    h = (h * 31 + input.charCodeAt(i)) >>> 0;
-  }
-  return h;
-}
-
-/** Seoul City Hall — matches waiting-room Korea default area. */
-const DEFAULT_WEATHER_LAT = 37.5665;
-const DEFAULT_WEATHER_LON = 126.978;
-
-function weatherFromWmoCode(
-  code: number
-): AdventureContextFactors["weather"] {
-  if (code === 0) return { code: "sunny", label: "맑음", emoji: "☀️" };
-  if (code <= 3) return { code: "cloudy", label: "구름 조금", emoji: "⛅" };
-  if (code <= 48) return { code: "cloudy", label: "흐림", emoji: "☁️" };
-  if (code <= 67 || (code >= 80 && code <= 82) || code >= 95) {
-    return { code: "rainy", label: "비", emoji: "🌧️" };
-  }
-  if (code <= 77 || (code >= 85 && code <= 86)) {
-    return { code: "cloudy", label: "눈", emoji: "🌨️" };
-  }
-  return { code: "cloudy", label: "흐림", emoji: "☁️" };
-}
-
-function fallbackWeatherForDate(date: string): AdventureContextFactors["weather"] {
-  const roll = hashSeed(date) % 3;
-  if (roll === 0) return { code: "sunny", label: "맑음", emoji: "☀️" };
-  if (roll === 1) return { code: "rainy", label: "비", emoji: "🌧️" };
-  return { code: "cloudy", label: "흐림", emoji: "☁️" };
-}
-
-async function fetchLiveWeather(
-  date: string
-): Promise<AdventureContextFactors["weather"]> {
-  try {
-    const url = new URL("https://api.open-meteo.com/v1/forecast");
-    url.searchParams.set("latitude", String(DEFAULT_WEATHER_LAT));
-    url.searchParams.set("longitude", String(DEFAULT_WEATHER_LON));
-    url.searchParams.set("current", "weather_code");
-    url.searchParams.set("timezone", "Asia/Seoul");
-    const res = await fetch(url.toString(), {
-      next: { revalidate: 1800 },
-    } as RequestInit);
-    if (!res.ok) throw new Error(`weather http ${res.status}`);
-    const data = (await res.json()) as {
-      current?: { weather_code?: number };
-    };
-    return weatherFromWmoCode(data.current?.weather_code ?? 1);
-  } catch (error) {
-    console.warn("[adventure] live weather failed → date fallback", error);
-    return fallbackWeatherForDate(date);
-  }
-}
 
 function headlineForLiveWeather(
   weather: AdventureContextFactors["weather"]
@@ -130,15 +74,34 @@ function parseInterests(...chunks: Array<string | undefined>): string[] {
     .slice(0, 5);
 }
 
-async function buildContext(userId: string): Promise<AdventureContextFactors> {
-  const date = todayKey();
-  const persona = await getPersonaForUser(userId);
+async function fetchAdventureWeather(
+  userId: string,
+  date: string
+): Promise<AdventureContextFactors["weather"]> {
+  const snap = await getWeatherForUser(userId, date);
+  return {
+    code: snap.code,
+    label: snap.label,
+    emoji: snap.emoji,
+  };
+}
+
+async function buildContext(
+  userId: string,
+  date = todayKey()
+): Promise<AdventureContextFactors> {
+  const [persona, hospital, garden, memory, guardianCount, latestEmotion, weather] =
+    await Promise.all([
+      getPersonaForUser(userId),
+      getHospitalDay(userId),
+      getGardenAccount(userId),
+      getConversationMemory(userId),
+      countGuardiansForChild(userId),
+      latestEmotionSummary(userId),
+      fetchAdventureWeather(userId, date),
+    ]);
+
   const self = persona.self;
-  const hospital = await getHospitalDay(userId);
-  const garden = await getGardenAccount(userId);
-  const memory = await getConversationMemory(userId);
-  const guardianCount = await countGuardiansForChild(userId);
-  const latestEmotion = await latestEmotionSummary(userId);
   const todayFlower = garden.flowers.find((f) => f.plantedOn === date);
   const moodMeta = todayFlower
     ? MOOD_OPTIONS.find((m) => m.id === todayFlower.mood)
@@ -149,9 +112,7 @@ async function buildContext(userId: string): Promise<AdventureContextFactors> {
       (item.type === "exam" || item.type === "treatment") && !item.done
   );
 
-  const weather = await fetchLiveWeather(date);
   const outdoorOk = weather.code === "sunny";
-
   const emotionalThemes = [
     ...(latestEmotion ? [latestEmotion.primaryEmotion] : []),
     ...memory.emotionalThemes,
@@ -260,7 +221,7 @@ points는 10~20 정수. 가능하면 kind를 다양하게.`;
   try {
     const result = await runLlm({
       feature: "adventure.quest",
-      purpose: "analysis",
+      purpose: "quality",
       messages: [
         { role: "system", content: withBeddySafety(system) },
         { role: "user", content: user },
@@ -330,7 +291,7 @@ function migratePack(pack: AdventureDayPack): AdventureDayPack {
 
 async function ensureTodayPack(userId: string): Promise<AdventureDayPack> {
   const date = todayKey();
-  const liveWeather = await fetchLiveWeather(date);
+  const liveWeather = await fetchAdventureWeather(userId, date);
   const existing = await getAdventurePack(userId, date);
   if (existing) {
     const migrated = migratePack(existing);
@@ -366,9 +327,18 @@ async function ensureTodayPack(userId: string): Promise<AdventureDayPack> {
     return next;
   }
 
-  const context = await buildContext(userId);
-  const scene = resolveScene(context);
+  return prepareAdventurePackForDate(userId, date);
+}
 
+/**
+ * Pre-create (or rebuild) the day's adventure pack — used by dawn batch + first open.
+ */
+export async function prepareAdventurePackForDate(
+  userId: string,
+  date: string
+): Promise<AdventureDayPack> {
+  const context = await buildContext(userId, date);
+  const scene = resolveScene(context);
   const llmPack = await tryGenerateWithLlm(userId, date, context, scene);
   const pack = llmPack ?? buildRuleBasedPack(userId, date, scene, context);
   return saveAdventurePack(pack);

@@ -70,7 +70,7 @@ export async function sendMessage(
   request: SendMessageRequest
 ): Promise<SendMessageResponse> {
   const userId = request.userId;
-  const ctx = await resolveChildCompanionContext(userId);
+  const ctx = await resolveChildCompanionContext(userId, request.message);
 
   const clientHistory = (request.history ?? [])
     .filter((m) => m.role === "user" || m.role === "assistant")
@@ -133,7 +133,7 @@ export async function* streamMessage(
   const userId = request.userId;
   const requestId = newRequestId();
   const ctxStarted = Date.now();
-  const ctx = await resolveChildCompanionContext(userId);
+  const ctx = await resolveChildCompanionContext(userId, request.message);
   const ctxMs = Date.now() - ctxStarted;
   logObservation({
     feature: "conversation.context",

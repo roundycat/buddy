@@ -8,6 +8,15 @@ import {
 import { bediTableName, getDynamoDocClient } from "./dynamodb-client";
 import { observeAsync } from "@/backend/shared/observability";
 
+/** Map store records may carry ISO expiresAt → top-level DynamoDB TTL (epoch sec). */
+function ttlFromValue(value: object): { ttl?: number } {
+  const expiresAt = (value as { expiresAt?: unknown }).expiresAt;
+  if (typeof expiresAt !== "string" || !expiresAt) return {};
+  const ms = Date.parse(expiresAt);
+  if (!Number.isFinite(ms)) return {};
+  return { ttl: Math.floor(ms / 1000) };
+}
+
 /**
  * DynamoDB-backed key/value map for a namespace (single-table design).
  * pk = MAP#<namespace>, sk = <id>, payload in `data`
@@ -54,6 +63,8 @@ export function createDynamoMapStore<T extends object>(namespace: string) {
                 sk: id,
                 data: value,
                 updatedAt: new Date().toISOString(),
+                // Soft TTL fields (e.g. coarse-locations expiresAt) → DynamoDB TTL attr
+                ...ttlFromValue(value),
               },
             })
           );

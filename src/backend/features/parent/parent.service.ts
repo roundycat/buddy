@@ -26,6 +26,7 @@ import {
   getStoredEmpathyGuide,
   saveEmpathyGuide,
 } from "./parent-empathy-guide.store";
+import { getPreparedParentSummary } from "./parent-daily-prep.store";
 import {
   composeEmpathyGuideWithLlm,
   childProfileFingerprint,
@@ -98,8 +99,10 @@ async function resolveChild(guardianUserId: string) {
  * Parent Home — answers “How was my child today?” without private chat.
  */
 export async function getParentHome(
-  guardianUserId: string
+  guardianUserId: string,
+  opts?: { preferPrepared?: boolean }
 ): Promise<ParentHomeDashboard> {
+  const preferPrepared = opts?.preferPrepared !== false;
   const link = await resolveChild(guardianUserId);
   if (!link.linked || !link.childUserId || !link.persona) {
     return {
@@ -178,26 +181,35 @@ export async function getParentHome(
     memorySummary: formatMemoryForPrompt(memory),
   };
 
+  // Dawn batch may already have warmed todayMessage / empathyGuide
+  const prepared = preferPrepared
+    ? await getPreparedParentSummary(guardianUserId, day)
+    : null;
+
   const [todayMessageText, dailySummaryText, empathyGuide] = await Promise.all([
-    composeTodayMessageWithLlm(summaryInput),
+    prepared?.todayMessage
+      ? Promise.resolve(prepared.todayMessage)
+      : composeTodayMessageWithLlm(summaryInput),
     settings.notifications.dailyDigest
       ? composeDailySummaryWithLlm(summaryInput)
       : Promise.resolve(null),
     settings.notifications.careTips
-      ? getOrCreateEmpathyGuide({
-          guardianUserId,
-          childUserId: childId,
-          dateKey: day,
-          childName: link.childName,
-          moodLabel: meta?.label ?? null,
-          themes,
-          memorySummary: formatMemoryForPrompt(memory),
-          scheduleTitles,
-          completedAdventures: completedTitles,
-          memoryCaptions: memoryHighlights.map((m) => m.caption),
-          dayStoryHint: adventure.dayStory?.narrative?.slice(0, 80) ?? null,
-          childProfile: buildEmpathyChildProfile(link.persona),
-        })
+      ? prepared?.empathyGuide
+        ? Promise.resolve(prepared.empathyGuide)
+        : getOrCreateEmpathyGuide({
+            guardianUserId,
+            childUserId: childId,
+            dateKey: day,
+            childName: link.childName,
+            moodLabel: meta?.label ?? null,
+            themes,
+            memorySummary: formatMemoryForPrompt(memory),
+            scheduleTitles,
+            completedAdventures: completedTitles,
+            memoryCaptions: memoryHighlights.map((m) => m.caption),
+            dayStoryHint: adventure.dayStory?.narrative?.slice(0, 80) ?? null,
+            childProfile: buildEmpathyChildProfile(link.persona),
+          })
       : Promise.resolve(null),
   ]);
 

@@ -14,7 +14,7 @@
 
 ## 5-3 Secrets Manager
 
-- Secret: `bedi/app` (`AUTH_SESSION_SECRET`, `OPENAI_API_KEY`, `PGPASSWORD`)
+- Secret: `bedi/app` (`AUTH_SESSION_SECRET`, `OPENAI_API_KEY`, `PGPASSWORD`, `CRON_SECRET`)
 - ECS task definition pulls via `secrets` (not plaintext `environment`)
 - Script: `scripts/aws/08-secrets.ps1`
 

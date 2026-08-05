@@ -116,6 +116,9 @@ export const env = {
     s3Bucket: read("AVATAR_S3_BUCKET"),
     s3Region: read("AVATAR_S3_REGION", read("AWS_REGION", "us-east-1")),
   },
+
+  /** Shared secret for EventBridge → /api/cron/* (header x-bedi-cron-secret) */
+  cronSecret: read("CRON_SECRET"),
 } as const;
 
 export function isLlmConfigured(

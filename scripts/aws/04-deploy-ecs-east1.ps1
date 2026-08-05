@@ -287,7 +287,8 @@ $envList = @(
 $secretList = @(
   @{ name = "AUTH_SESSION_SECRET"; valueFrom = "${SecretArn}:AUTH_SESSION_SECRET::" },
   @{ name = "OPENAI_API_KEY"; valueFrom = "${SecretArn}:OPENAI_API_KEY::" },
-  @{ name = "PGPASSWORD"; valueFrom = "${SecretArn}:PGPASSWORD::" }
+  @{ name = "PGPASSWORD"; valueFrom = "${SecretArn}:PGPASSWORD::" },
+  @{ name = "CRON_SECRET"; valueFrom = "${SecretArn}:CRON_SECRET::" }
 )
 
 $td = @{

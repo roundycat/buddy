@@ -1,13 +1,14 @@
 import type { ConversationMessage } from "./conversation.types";
 import {
+  allFactTexts,
   createEmptyMemory,
   type ConversationMemory,
+  type PersistentFact,
 } from "./memory.types";
 import { createMapStore } from "@/backend/shared/persist/map-store";
 
 /**
  * Conversation + learning stores.
- * TODO [AWS DynamoDB]: already supported via PERSISTENCE=dynamodb
  */
 
 interface MessageBag {
@@ -39,11 +40,18 @@ export async function appendConversationMessages(
 export async function getConversationMemory(
   userId: string
 ): Promise<ConversationMemory> {
-  return (await memories.get(userId)) ?? createEmptyMemory(userId);
+  const row = (await memories.get(userId)) ?? createEmptyMemory(userId);
+  if (!row.persistentFacts) row.persistentFacts = [];
+  return row;
 }
 
 export async function saveConversationMemory(memory: ConversationMemory) {
   return memories.set(memory.userId, memory);
+}
+
+export async function listMemoryUserIds(): Promise<string[]> {
+  const entries = await memories.entries();
+  return entries.map(([id]) => id);
 }
 
 export async function clearConversationForUser(userId: string) {
@@ -51,21 +59,77 @@ export async function clearConversationForUser(userId: string) {
   await memories.delete(userId);
 }
 
-export function formatMemoryForPrompt(memory: ConversationMemory): string {
+/**
+ * Inject only keyword-overlap + recent/important top N facts (STEP 4).
+ */
+export function formatMemoryForPrompt(
+  memory: ConversationMemory,
+  currentMessage?: string
+): string {
   if (memory.turnCount === 0) {
     return "아직 대화 학습 메모리가 없습니다. 온보딩 페르소나를 우선 따르세요.";
   }
 
+  const facts = selectFactsForContext(memory, currentMessage, 6);
   const lines = [
     `- 대화 턴 수: ${memory.turnCount}`,
     memory.speechStyleNotes && `- 학습된 어투/속도: ${memory.speechStyleNotes}`,
     memory.preferredToneNotes.length > 0 &&
-      `- 선호 톤: ${memory.preferredToneNotes.join("; ")}`,
+      `- 선호 톤: ${memory.preferredToneNotes.slice(-4).join("; ")}`,
     memory.emotionalThemes.length > 0 &&
-      `- 반복되는 감정 테마: ${memory.emotionalThemes.join(", ")}`,
-    memory.importantFacts.length > 0 &&
-      `- 기억할 사실: ${memory.importantFacts.join("; ")}`,
+      `- 반복되는 감정 테마: ${memory.emotionalThemes.slice(-6).join(", ")}`,
+    facts.length > 0 && `- 기억할 사실: ${facts.join("; ")}`,
   ].filter(Boolean);
 
   return lines.join("\n");
 }
+
+function selectFactsForContext(
+  memory: ConversationMemory,
+  currentMessage: string | undefined,
+  limit: number
+): string[] {
+  const persistent = [...(memory.persistentFacts ?? [])];
+  if (persistent.length === 0) {
+    return allFactTexts(memory).slice(-limit);
+  }
+
+  const tokens = tokenize(currentMessage ?? "");
+  const scored = persistent.map((f) => ({
+    f,
+    score:
+      f.importance * 2 +
+      overlapScore(tokens, f.text) * 3 +
+      recencyBonus(f.updatedAt),
+  }));
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, limit).map((s) => s.f.text);
+}
+
+function tokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .split(/[^0-9a-zA-Z가-힣]+/)
+    .filter((t) => t.length >= 2);
+}
+
+function overlapScore(tokens: string[], fact: string): number {
+  if (!tokens.length) return 0;
+  const lower = fact.toLowerCase();
+  let n = 0;
+  for (const t of tokens) {
+    if (lower.includes(t)) n += 1;
+  }
+  return n;
+}
+
+function recencyBonus(iso: string): number {
+  const ageMs = Date.now() - new Date(iso).getTime();
+  const days = ageMs / (24 * 60 * 60 * 1000);
+  if (days < 2) return 3;
+  if (days < 7) return 2;
+  if (days < 30) return 1;
+  return 0;
+}
+
+export type { PersistentFact };

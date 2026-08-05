@@ -76,6 +76,11 @@ export async function countGuardiansForChild(childUserId: string): Promise<numbe
   return allLinks.filter((link) => link.childUserId === childUserId).length;
 }
 
+export async function listGuardianUserIds(): Promise<string[]> {
+  const allLinks = await links.values();
+  return allLinks.map((link) => link.guardianUserId);
+}
+
 export async function clearGuardianDataForUser(userId: string) {
   await links.delete(userId);
 

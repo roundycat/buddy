@@ -279,6 +279,11 @@ export async function clearPersonaForUser(userId: string) {
   await store.delete(userId);
 }
 
+export async function listPersonaUserIds(): Promise<string[]> {
+  const entries = await store.entries();
+  return entries.map(([id]) => id);
+}
+
 export function formatSelfForPrompt(self?: SelfProfile): string {
   if (!self) return "아직 상대(사용자) 정보가 없습니다.";
   const lines = [

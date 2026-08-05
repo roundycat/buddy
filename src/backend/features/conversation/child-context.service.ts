@@ -31,7 +31,8 @@ export interface ChildCompanionContext {
 }
 
 export async function resolveChildCompanionContext(
-  userId?: string
+  userId?: string,
+  currentMessage?: string
 ): Promise<ChildCompanionContext> {
   if (!userId) {
     return emptyContext();
@@ -66,7 +67,9 @@ export async function resolveChildCompanionContext(
       companionVoice: persona?.companionMessage,
       characterSheet,
       selfSummary,
-      memorySummary: memory ? formatMemoryForPrompt(memory) : undefined,
+      memorySummary: memory
+        ? formatMemoryForPrompt(memory, currentMessage)
+        : undefined,
       wishSummary,
       hasPersona,
     },
