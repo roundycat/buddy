@@ -26,7 +26,6 @@ import { StandardUnit } from "@aws-sdk/client-cloudwatch";
 export type AiPurpose = "chat" | "analysis" | "quality";
 
 export function resolveModelForPurpose(purpose: AiPurpose): string {
-  if (env.llmProvider === "openai") return env.openai.model;
   if (env.llmProvider !== "bedrock") return "mock-rules";
 
   switch (purpose) {

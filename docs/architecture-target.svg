@@ -234,9 +234,9 @@
   </g>
   <text class="h" x="1230" y="900" fill="#BE123C">Secrets Manager</text>
   <rect x="1444" y="884" width="44" height="19" rx="9" fill="#059669"/><text class="nb" x="1466" y="898" text-anchor="middle">NEW</text>
-  <text class="s" x="1186" y="942">OPENAI_API_KEY</text>
-  <text class="s" x="1186" y="964">AUTH_SESSION_SECRET</text>
-  <text class="s" x="1186" y="986">PGPASSWORD · CRON_SECRET</text>
+  <text class="s" x="1186" y="942">AUTH_SESSION_SECRET</text>
+  <text class="s" x="1186" y="964">PGPASSWORD · CRON_SECRET</text>
+  <text class="s" x="1186" y="986"> </text>
   <text class="xs" x="1186" y="1012">ECS 태스크는 secrets 참조</text>
   <text class="xs" x="1186" y="1030">(평문 environment 제거)</text>
   <text class="xs" x="1186" y="1058">bedi/app Secrets Manager</text>

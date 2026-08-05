@@ -3,7 +3,7 @@
  * Values come from `.env.local` (see `.env.example`).
  */
 
-export type LlmProviderName = "mock" | "openai" | "bedrock";
+export type LlmProviderName = "mock" | "bedrock";
 export type PersistenceMode = "json" | "dynamodb";
 export type AuthProviderName = "dynamodb" | "aurora" | "mock" | "auto";
 
@@ -51,20 +51,11 @@ export const env = {
     ssl: readBool("PGSSL", true),
   },
 
-  /** mock | openai | bedrock */
+  /** mock | bedrock */
   llmProvider: (read("LLM_PROVIDER", "mock") || "mock") as LlmProviderName,
 
   /** Fallback to mock when LLM call fails */
   llmFallbackToMock: readBool("LLM_FALLBACK_TO_MOCK", true),
-
-  openai: {
-    apiKey: read("OPENAI_API_KEY"),
-    baseUrl: read("OPENAI_BASE_URL", "https://api.openai.com/v1").replace(
-      /\/$/,
-      ""
-    ),
-    model: read("OPENAI_MODEL", "gpt-4o-mini"),
-  },
 
   bedrock: {
     region: read("AWS_REGION", "us-east-1"),
@@ -127,7 +118,6 @@ export function isLlmConfigured(
   provider: LlmProviderName = env.llmProvider
 ): boolean {
   if (provider === "mock") return true;
-  if (provider === "openai") return Boolean(env.openai.apiKey);
   if (provider === "bedrock") return Boolean(env.bedrock.modelId);
   return false;
 }

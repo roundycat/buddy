@@ -275,8 +275,6 @@ $envList = @(
   @{ name = "AVATAR_S3_BUCKET"; value = $Bucket },
   @{ name = "AVATAR_S3_REGION"; value = $Region },
   @{ name = "AUTH_PROVIDER"; value = (Get-EnvVal "AUTH_PROVIDER" "dynamodb") },
-  @{ name = "OPENAI_MODEL"; value = (Get-EnvVal "OPENAI_MODEL" "gpt-4o-mini") },
-  @{ name = "OPENAI_BASE_URL"; value = (Get-EnvVal "OPENAI_BASE_URL" "https://api.openai.com/v1") },
   @{ name = "NEXT_PUBLIC_APP_URL"; value = $appUrl },
   @{ name = "PGHOST"; value = $pgHost },
   @{ name = "PGPORT"; value = (Get-EnvVal "PGPORT" "5432") },
@@ -289,7 +287,6 @@ $envList = @(
 
 $secretList = @(
   @{ name = "AUTH_SESSION_SECRET"; valueFrom = "${SecretArn}:AUTH_SESSION_SECRET::" },
-  @{ name = "OPENAI_API_KEY"; valueFrom = "${SecretArn}:OPENAI_API_KEY::" },
   @{ name = "PGPASSWORD"; valueFrom = "${SecretArn}:PGPASSWORD::" },
   @{ name = "CRON_SECRET"; valueFrom = "${SecretArn}:CRON_SECRET::" }
 )

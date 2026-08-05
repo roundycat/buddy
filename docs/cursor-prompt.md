@@ -128,7 +128,7 @@ src/backend/shared/llm/index.ts
   chatWithCompanion()     단발 응답
   streamWithCompanion()   토큰 스트리밍
   getLlmStatus()
-src/backend/shared/llm/providers/{bedrock,openai,mock}.provider.ts
+src/backend/shared/llm/providers/{bedrock,mock}.provider.ts
 src/backend/shared/llm/prompts/companion.ts
 src/backend/shared/llm/parse-json.ts        extractJsonObject
 ```
@@ -406,7 +406,7 @@ Bedrock KB          S3 의 요약 문서를 색인. 원문 대화는 색인하�
 - 대상: `scripts/aws/02-iam-apprunner-role.ps1`, `scripts/aws/04-deploy-ecs-east1.ps1`
 
 **5-3. 시크릿 이관**
-- `OPENAI_API_KEY`, `AUTH_SESSION_SECRET`, `PGPASSWORD` → Secrets Manager
+- `AUTH_SESSION_SECRET`, `PGPASSWORD` → Secrets Manager (+ `CRON_SECRET`)
 - `04-deploy-ecs-east1.ps1` 의 태스크 정의를 `environment` → `secrets` 참조로 변경
 - 태스크 정의는 조회 권한만 있으면 누구나 읽습니다
 

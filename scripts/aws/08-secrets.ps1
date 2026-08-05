@@ -16,7 +16,6 @@ function Get-EnvVal([string]$key, [string]$fallback = "") {
 }
 
 $session = Get-EnvVal "AUTH_SESSION_SECRET" "bedi-prod-change-me"
-$openai = Get-EnvVal "OPENAI_API_KEY" ""
 $pgPass = Get-EnvVal "PGPASSWORD" ""
 $cron = Get-EnvVal "CRON_SECRET" ""
 if (-not $cron) {
@@ -29,7 +28,6 @@ if (-not $cron) {
 
 $secretObj = @{
   AUTH_SESSION_SECRET = $session
-  OPENAI_API_KEY = $openai
   PGPASSWORD = $pgPass
   CRON_SECRET = $cron
 }

@@ -5,7 +5,7 @@
 ## Stack
 
 - Next.js 14 (App Router), TypeScript, Tailwind CSS, Lucide React
-- LLM: OpenAI-compatible API **또는** AWS Bedrock (`@aws-sdk/client-bedrock-runtime`)
+- LLM: AWS Bedrock (`@aws-sdk/client-bedrock-runtime`). 로컬은 `LLM_PROVIDER=mock` 가능.
 
 ## Architecture
 
@@ -29,31 +29,22 @@ npm run dev
 
 `.env.local`에서 프로바이더를 고릅니다.
 
-### 1) Mock (기본)
+### 1) Mock (로컬 기본)
 
 ```env
 LLM_PROVIDER=mock
 ```
 
-키 없이 규칙 기반 한국어 응답.
+키 없이 규칙 기반 한국어 응답. Bedrock 없이 UI·플로우만 확인할 때 사용합니다.
 
-### 2) OpenAI / 호환 API
-
-```env
-LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-...
-OPENAI_BASE_URL=https://api.openai.com/v1
-OPENAI_MODEL=gpt-4o-mini
-```
-
-OpenRouter, Groq, Ollama 등은 `OPENAI_BASE_URL`만 바꾸면 됩니다.
-
-### 3) AWS Bedrock
+### 2) AWS Bedrock
 
 ```env
 LLM_PROVIDER=bedrock
-AWS_REGION=ap-northeast-2
-BEDROCK_MODEL_ID=anthropic.claude-3-haiku-20240307-v1:0
+AWS_REGION=us-east-1
+BEDROCK_MODEL_ID=us.anthropic.claude-haiku-4-5-20251001-v1:0
+BEDROCK_MODEL_ID_CHAT=us.anthropic.claude-haiku-4-5-20251001-v1:0
+BEDROCK_MODEL_ID_QUALITY=us.anthropic.claude-opus-4-6-v1
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 ```
