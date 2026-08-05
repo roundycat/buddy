@@ -6,6 +6,7 @@ import {
 } from "@aws-sdk/client-bedrock-agent-runtime";
 import { env } from "@/backend/shared/config/env";
 import { observeKbSearch } from "@/backend/ai/orchestrator";
+import { logObservation, newRequestId, recordCount } from "@/backend/shared/observability";
 
 export type KbHit = {
   text: string;
@@ -90,14 +91,32 @@ export async function retrieveChildSummaries(input: {
       );
 
       const hits: KbHit[] = [];
+      let dropped = 0;
       for (const r of res.retrievalResults ?? []) {
         const hit = hitFromResult(r);
         if (!hit) continue;
         const uri = hit.sourceUri ?? "";
-        // Prefer path-scoped docs; allow unscored local/mock uris without path
-        if (uri.includes("kb-summaries/") && !uri.includes(needle)) continue;
+        // Strict owner scope: only docs under kb-summaries/{childUserId}/
+        if (!uri.includes(needle)) {
+          dropped += 1;
+          continue;
+        }
         hits.push(hit);
         if (hits.length >= maxResults) break;
+      }
+      if (dropped > 0) {
+        const requestId = newRequestId();
+        logObservation({
+          feature: "kb.retrieve",
+          operation: "owner_filter",
+          success: true,
+          requestId,
+          message: `dropped_cross_child_hits=${dropped}`,
+        });
+        recordCount("KbCrossChildDrops", dropped, {
+          feature: "kb.retrieve",
+          operation: "owner_filter",
+        });
       }
       return hits;
     } catch (error) {
