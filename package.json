@@ -9,6 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "seed:aurora": "node --env-file=.env.local scripts/seed-aurora-users.js",
+    "seed:dynamo": "node --env-file=.env.local scripts/seed-dynamo-users.js",
     "wipe:fresh": "node --env-file=.env.local scripts/wipe-fresh-start.js",
     "check:bedrock": "node --env-file=.env.local scripts/check-bedrock.js"
   },

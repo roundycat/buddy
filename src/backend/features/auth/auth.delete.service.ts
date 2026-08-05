@@ -11,9 +11,10 @@ import { env } from "@/backend/shared/config/env";
 import { isAuroraConfigured } from "@/backend/shared/db/postgres";
 import type { AuthUser } from "./auth.types";
 import { deleteUserById } from "./auth.users.repo";
+import { deleteDynamoUser } from "./auth.users.dynamo.repo";
 
 /**
- * Wipe app data + Aurora user row for account deletion.
+ * Wipe app data + auth user row for account deletion.
  */
 export async function deleteAccount(user: AuthUser): Promise<void> {
   await Promise.all([
@@ -28,11 +29,15 @@ export async function deleteAccount(user: AuthUser): Promise<void> {
     clearGuardianDataForUser(user.id),
   ]);
 
-  const preferAurora =
-    env.authProvider === "aurora" ||
-    (env.authProvider === "auto" && isAuroraConfigured());
+  if (env.authProvider === "dynamodb" || env.authProvider === "auto") {
+    await deleteDynamoUser(user.id);
+    return;
+  }
 
-  if (preferAurora && isAuroraConfigured()) {
+  const preferAurora =
+    env.authProvider === "aurora" && isAuroraConfigured();
+
+  if (preferAurora) {
     await deleteUserById(user.id);
   }
 }

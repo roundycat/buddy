@@ -13,6 +13,7 @@ import {
 import os from "os";
 import path from "path";
 import { env } from "@/backend/shared/config/env";
+import { observeFailure } from "@/backend/shared/observability";
 import { createMapStore } from "@/backend/shared/persist/map-store";
 import type { PhotoAlbumItem } from "./photo-album.types";
 
@@ -82,15 +83,25 @@ export async function savePhotoBytes(
   const bucket = env.avatar.s3Bucket;
   if (bucket) {
     const client = createS3();
-    await client.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: s3Key(userId, photoId),
-        Body: bytes,
-        ContentType: contentType,
-        CacheControl: "private, max-age=120",
-      })
-    );
+    try {
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: s3Key(userId, photoId),
+          Body: bytes,
+          ContentType: contentType,
+          CacheControl: "private, max-age=120",
+        })
+      );
+    } catch (error) {
+      observeFailure({
+        feature: "photo-album",
+        operation: "s3_put",
+        error,
+        metricName: "S3WriteErrors",
+      });
+      throw error;
+    }
     try {
       writeFileSync(localPath(userId, photoId), bytes);
     } catch {

@@ -38,42 +38,42 @@ const DEMO_USERS = [
     id: "user-demo-01",
     name: "지민",
     email: "demo@bedi.app",
-    password: "bedi1234",
+    password: "BeddyDemo26!",
     role: "child",
   },
   {
     id: "user-demo-02",
     name: "서연",
     email: "guest@bedi.app",
-    password: "guest1234",
+    password: "BeddyGuest26!",
     role: "child",
   },
   {
     id: "user-demo-03",
     name: "미나",
     email: "mina@bedi.app",
-    password: "mina1234",
+    password: "BeddyMina26!",
     role: "child",
   },
   {
     id: "user-demo-04",
     name: "하루",
     email: "haru@bedi.app",
-    password: "haru1234",
+    password: "BeddyHaru26!",
     role: "child",
   },
   {
     id: "user-guardian-01",
     name: "보호자",
     email: "guardian@bedi.app",
-    password: "guardian1234",
+    password: "BeddyGuard26!",
     role: "guardian",
   },
   {
     id: "user-guardian-02",
     name: "엄마",
     email: "parent@bedi.app",
-    password: "parent1234",
+    password: "BeddyParent26!",
     role: "guardian",
   },
 ];
@@ -329,8 +329,8 @@ async function main() {
   console.log("=== done ===");
   if (!NO_SEED) {
     console.log("Demo logins:");
-    console.log("  child    demo@bedi.app / bedi1234");
-    console.log("  guardian guardian@bedi.app / guardian1234");
+    console.log("  child    demo@bedi.app / BeddyDemo26!");
+    console.log("  guardian guardian@bedi.app / BeddyGuard26!");
   }
 }
 

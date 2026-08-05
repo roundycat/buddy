@@ -30,6 +30,9 @@ yarn-error.log*
 # local MVP data stores (persona / conversation)
 /.data/
 
+# AWS script local outputs
+scripts/aws/last-secret-arn.txt
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

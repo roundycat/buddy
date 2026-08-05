@@ -5,8 +5,7 @@
 
 export type LlmProviderName = "mock" | "openai" | "bedrock";
 export type PersistenceMode = "json" | "dynamodb";
-/** aurora = require RDS; mock = in-memory demo users; auto = Aurora if configured */
-export type AuthProviderName = "auto" | "aurora" | "mock";
+export type AuthProviderName = "dynamodb" | "aurora" | "mock" | "auto";
 
 function read(key: string, fallback = ""): string {
   return (process.env[key] ?? fallback).trim();
@@ -37,8 +36,9 @@ export const env = {
     region: read("AWS_REGION", "us-east-1"),
   },
 
-  /** auto | aurora | mock — login credential store */
-  authProvider: (read("AUTH_PROVIDER", "auto") || "auto") as AuthProviderName,
+  /** aurora | dynamodb | mock — login credential store (no silent auto→mock in prod) */
+  authProvider: (read("AUTH_PROVIDER", "dynamodb") ||
+    "dynamodb") as AuthProviderName,
 
   /** Aurora PostgreSQL (RDS) */
   database: {

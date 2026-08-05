@@ -25,7 +25,7 @@ if (-not $AuroraSg -or $AuroraSg -eq "None") {
   $AuroraSg = (& $aws ec2 create-security-group --region $Region --group-name bedi-aurora-sg --description "Bedi Aurora" --vpc-id $VpcId --query GroupId --output text).Trim()
 } else { $AuroraSg = $AuroraSg.Trim() }
 cmd /c "`"$aws`" ec2 authorize-security-group-ingress --region $Region --group-id $AuroraSg --protocol tcp --port 5432 --source-group $EcsSg >nul 2>&1"
-cmd /c "`"$aws`" ec2 authorize-security-group-ingress --region $Region --group-id $AuroraSg --protocol tcp --port 5432 --cidr 0.0.0.0/0 >nul 2>&1"
+# Do NOT open 0.0.0.0/0 — STEP 5-1: Aurora stays private to ECS only
 
 cmd /c "`"$aws`" rds describe-db-subnet-groups --region $Region --db-subnet-group-name bedi-aurora-subnets >nul 2>&1"
 if ($LASTEXITCODE -ne 0) {
@@ -43,7 +43,7 @@ if ($LASTEXITCODE -ne 0) {
 cmd /c "`"$aws`" rds describe-db-instances --region $Region --db-instance-identifier $InstanceId >nul 2>&1"
 if ($LASTEXITCODE -ne 0) {
   & $aws rds create-db-instance --region $Region --db-instance-identifier $InstanceId --db-cluster-identifier $ClusterId `
-    --engine aurora-postgresql --db-instance-class db.serverless --publicly-accessible | Out-Null
+    --engine aurora-postgresql --db-instance-class db.serverless --no-publicly-accessible | Out-Null
 }
 
 Write-Host "Waiting for Aurora available..."

@@ -90,9 +90,13 @@ $ExecRoleArn = (& $aws iam get-role --role-name $ExecRole --query Role.Arn --out
 $taskPolicy = Join-Path $env:TEMP "bedi-ecs-task-policy.json"
 @"
 {"Version":"2012-10-17","Statement":[
-{"Effect":"Allow","Action":["dynamodb:GetItem","dynamodb:PutItem","dynamodb:UpdateItem","dynamodb:DeleteItem","dynamodb:Query","dynamodb:Scan","dynamodb:DescribeTable"],"Resource":"arn:aws:dynamodb:${Region}:${Account}:table/BediApp"},
+{"Effect":"Allow","Action":["dynamodb:GetItem","dynamodb:PutItem","dynamodb:UpdateItem","dynamodb:DeleteItem","dynamodb:Query","dynamodb:Scan","dynamodb:DescribeTable","dynamodb:TransactWriteItems","dynamodb:TransactGetItems","dynamodb:ConditionCheckItem"],"Resource":"arn:aws:dynamodb:${Region}:${Account}:table/BediApp"},
 {"Effect":"Allow","Action":["bedrock:InvokeModel","bedrock:InvokeModelWithResponseStream","bedrock:Converse","bedrock:ConverseStream"],"Resource":"*"},
-{"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:DeleteObject"],"Resource":"arn:aws:s3:::${Bucket}/avatars/*"},
+{"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:DeleteObject"],"Resource":[
+  "arn:aws:s3:::${Bucket}/avatars/*",
+  "arn:aws:s3:::${Bucket}/schedule-images/*",
+  "arn:aws:s3:::${Bucket}/photos/*"
+]},
 {"Effect":"Allow","Action":["cloudwatch:PutMetricData"],"Resource":"*","Condition":{"StringEquals":{"cloudwatch:namespace":"Beddy"}}}
 ]}
 "@ | Set-Content $taskPolicy -Encoding ascii
@@ -241,9 +245,13 @@ if (-not $cl -or $cl -eq "None" -or $cl -eq "INACTIVE") {
 }
 
 # ---------- Task definition ----------
-$oak = Get-EnvVal "OPENAI_API_KEY" ""
+# Refresh Secrets Manager values from .env.local (STEP 5-3)
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "08-secrets.ps1") | Write-Host
+$SecretArn = (Get-Content (Join-Path $PSScriptRoot "last-secret-arn.txt") -ErrorAction SilentlyContinue | Select-Object -First 1)
+if (-not $SecretArn) {
+  throw "Missing scripts/aws/last-secret-arn.txt — run 08-secrets.ps1 first"
+}
 $pgHost = Get-EnvVal "PGHOST" ""
-$pgPass = Get-EnvVal "PGPASSWORD" ""
 $cfUrl = Get-EnvVal "NEXT_PUBLIC_APP_URL" ""
 $appUrl = if ($cfUrl -and $cfUrl -notmatch "localhost") { $cfUrl } else { "https://d36nmab92hbhe2.cloudfront.net" }
 $envList = @(
@@ -261,8 +269,7 @@ $envList = @(
   @{ name = "AVATAR_REMOVE_BG"; value = (Get-EnvVal "AVATAR_REMOVE_BG" "false") },
   @{ name = "AVATAR_S3_BUCKET"; value = $Bucket },
   @{ name = "AVATAR_S3_REGION"; value = $Region },
-  @{ name = "AUTH_PROVIDER"; value = (Get-EnvVal "AUTH_PROVIDER" "aurora") },
-  @{ name = "AUTH_SESSION_SECRET"; value = (Get-EnvVal "AUTH_SESSION_SECRET" "bedi-prod-change-me") },
+  @{ name = "AUTH_PROVIDER"; value = (Get-EnvVal "AUTH_PROVIDER" "dynamodb") },
   @{ name = "OPENAI_MODEL"; value = (Get-EnvVal "OPENAI_MODEL" "gpt-4o-mini") },
   @{ name = "OPENAI_BASE_URL"; value = (Get-EnvVal "OPENAI_BASE_URL" "https://api.openai.com/v1") },
   @{ name = "NEXT_PUBLIC_APP_URL"; value = $appUrl },
@@ -270,12 +277,16 @@ $envList = @(
   @{ name = "PGPORT"; value = (Get-EnvVal "PGPORT" "5432") },
   @{ name = "PGDATABASE"; value = (Get-EnvVal "PGDATABASE" "bedi") },
   @{ name = "PGUSER"; value = (Get-EnvVal "PGUSER" "bediadmin") },
-  @{ name = "PGPASSWORD"; value = $pgPass },
   @{ name = "PGSSL"; value = "true" },
   @{ name = "PORT"; value = "3000" },
   @{ name = "HOSTNAME"; value = "0.0.0.0" }
 )
-if ($oak) { $envList += @{ name = "OPENAI_API_KEY"; value = $oak } }
+
+$secretList = @(
+  @{ name = "AUTH_SESSION_SECRET"; valueFrom = "${SecretArn}:AUTH_SESSION_SECRET::" },
+  @{ name = "OPENAI_API_KEY"; valueFrom = "${SecretArn}:OPENAI_API_KEY::" },
+  @{ name = "PGPASSWORD"; valueFrom = "${SecretArn}:PGPASSWORD::" }
+)
 
 $td = @{
   family = $TaskFamily
@@ -292,6 +303,7 @@ $td = @{
       essential = $true
       portMappings = @(@{ containerPort = 3000; protocol = "tcp" })
       environment = $envList
+      secrets = $secretList
       logConfiguration = @{
         logDriver = "awslogs"
         options = @{
