@@ -1,6 +1,9 @@
 /**
  * Seed DynamoDB auth users (STEP 5-4).
  * Usage: node --env-file=.env.local scripts/seed-dynamo-users.js
+ *
+ * 계정 목록이 auth.service.ts MOCK_USERS / wipe-fresh-start.js 와 중복이다.
+ * 하나를 바꾸면 나머지도 바꿔야 한다. 데모 후 공유 상수로 통합 예정.
  */
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {

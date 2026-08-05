@@ -32,6 +32,9 @@ yarn-error.log*
 
 # AWS script local outputs
 scripts/aws/last-secret-arn.txt
+scripts/aws/last-*.txt
+scripts/aws/last-deploy.log
+scripts/aws/last-guardrail.json
 
 # typescript
 *.tsbuildinfo
