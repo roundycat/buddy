@@ -50,13 +50,13 @@
   <text class="bs" x="924" y="182">4탭 — 요약 · 리포트 · 여정 · 프로필</text>
   <text class="bs" x="924" y="204">병원 일정만 아이 쪽에 쓸 수 있음</text>
 
-  <rect x="60" y="112" width="280" height="116" rx="12" fill="#FFFFFF" stroke="#DC2626" stroke-width="2" stroke-dasharray="8 5"/>
-  <text class="pt" x="84" y="150" fill="#DC2626">외부 날씨 API</text>
-  <text class="ps" x="84" y="176">브라우저에서 직접 호출</text>
-  <text class="ps" x="84" y="196">위치 좌표가 AWS 를 거치지 않음</text>
-  <text class="ps" x="84" y="216">Open-Meteo · BigDataCloud</text>
+  <rect x="60" y="112" width="280" height="116" rx="12" fill="#FFFFFF" stroke="#0F766E" stroke-width="2.2"/>
+  <text class="pt" x="84" y="150" fill="#0F766E">서버 날씨 API</text>
+  <text class="ps" x="84" y="176">coarse 좌표 → ECS → Open-Meteo</text>
+  <text class="ps" x="84" y="196">브라우저 직접 호출 없음</text>
+  <text class="ps" x="84" y="216">병원 기본값 · 7일 TTL</text>
 
-  <line x1="376" y1="170" x2="346" y2="170" stroke="#DC2626" stroke-width="2.4" stroke-dasharray="6 4" marker-end="url(#arR)"/>
+  <line x1="376" y1="170" x2="346" y2="170" stroke="#0F766E" stroke-width="2.4" marker-end="url(#ar)"/>
 
   <!-- ===== 엣지 ===== -->
   <text class="lab" x="48" y="322">EDGE</text>
@@ -126,9 +126,9 @@
     <ellipse cx="18" cy="11" rx="9" ry="3.6" fill="none" stroke="#FFFFFF" stroke-width="1.8"/>
     <path d="M 9 11 V 25 C 9 27 13 28.6 18 28.6 C 23 28.6 27 27 27 25 V 11" fill="none" stroke="#FFFFFF" stroke-width="1.8"/>
   </g>
-  <text class="pt" x="405" y="784" fill="#A11BA8">Aurora</text>
-  <text class="ps" x="405" y="808">계정 · 로그인</text>
-  <text class="ps" x="405" y="828">users 테이블만</text>
+  <text class="pt" x="405" y="784" fill="#A11BA8">Auth</text>
+  <text class="ps" x="405" y="808">DynamoDB USER/EMAIL</text>
+  <text class="ps" x="405" y="828">Aurora는 롤백용만</text>
 
   <rect x="597" y="690" width="190" height="164" rx="12" fill="#FFFFFF" stroke="#C925D1" stroke-width="2.2"/>
   <g transform="translate(621,712)">
@@ -148,8 +148,8 @@
     <line x1="10" y1="15.5" x2="26" y2="15.5" stroke="#FFFFFF" stroke-width="1.5"/>
   </g>
   <text class="pt" x="837" y="784" fill="#4D7C0F">S3</text>
-  <text class="ps" x="837" y="808">아바타 · 삽화 · 사진첩</text>
-  <text class="ps" x="837" y="828">앱 라우트로만 열람</text>
+  <text class="ps" x="837" y="808">아바타 · 삽화 · 사진 · KB요약</text>
+  <text class="ps" x="837" y="828">S3 Vectors 백엔드</text>
 
   <rect x="1029" y="690" width="190" height="164" rx="12" fill="#FFFFFF" stroke="#01A88D" stroke-width="2.2"/>
   <g transform="translate(1053,712)">
@@ -159,8 +159,8 @@
     <path d="M 7 26 C 12 23 16 29.6 21 26 C 24.3 23.9 26.6 25 28.4 26.3" fill="none" stroke="#FFFFFF" stroke-width="2"/>
   </g>
   <text class="pt" x="1053" y="784" fill="#0F766E">Bedrock</text>
-  <text class="ps" x="1053" y="808">스트리밍 대화 · 감정 분석</text>
-  <text class="ps" x="1053" y="828">아바타 · 삽화 (예시 그림 참조)</text>
+  <text class="ps" x="1053" y="808">Haiku 대화 · Opus 배치/리포트</text>
+  <text class="ps" x="1053" y="828">Guardrail · KB Retrieve</text>
 
   <line class="flow" x1="476" y1="626" x2="476" y2="686"/>
   <line class="flow" x1="692" y1="626" x2="692" y2="686"/>
@@ -196,6 +196,6 @@
 
   <!-- ===== 푸터 ===== -->
   <line x1="48" y1="884" x2="1552" y2="884" stroke="#DDE3EA" stroke-width="1.5"/>
-  <text class="ft" x="48" y="910">로그인 자격 증명만 Aurora, 나머지 앱 데이터는 DynamoDB   ·   보호자에게는 요약만 전달   ·   대화 한 턴에 Bedrock 3회 호출 (응답 1 + 메모리·감정 분석 2 병렬)</text>
-  <text class="ft" x="48" y="930">상세 버전: architecture-v2 (전체 구성) · feature-architecture (아동 / 보호자 기능) · pipelines (단계별 흐름)</text>
+  <text class="ft" x="48" y="910">로그인 DynamoDB · 앱 데이터 DynamoDB · 보호자에게는 요약만 · 대화 턴: Haiku 1회(+응답 후 감정) · 새벽 EventBridge 배치 · KB(S3 Vectors)</text>
+  <text class="ft" x="48" y="930">상세: architecture-target (최종) · step7-demo.md (리허설) · feature-architecture · pipelines</text>
 </svg>

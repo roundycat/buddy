@@ -26,10 +26,10 @@
   </defs>
   <rect class="bg" x="0" y="0" width="1900" height="1300"/>
 
-  <text class="title" x="46" y="54">Beddy — 이렇게 구현하세요</text>
-  <text class="sub" x="46" y="84">핵심은 경로를 둘로 쪼개는 것입니다.  아이가 기다리는 것만 즉시 처리하고, 나머지는 전날 밤에 미리 만들어 둡니다.</text>
-  <rect x="1592" y="34" width="44" height="20" rx="9" fill="#059669"/><text class="nb" x="1614" y="49" text-anchor="middle">NEW</text>
-  <text class="xs" x="1646" y="49">= 이번 주에 추가</text>
+  <text class="title" x="46" y="54">Beddy — 최종 아키텍처 (구현 완료)</text>
+  <text class="sub" x="46" y="84">즉시 경로(Haiku)와 새벽 배치(Opus)를 분리했습니다.  아이가 기다리는 것만 즉시 처리하고, 나머지는 미리 만듭니다.</text>
+  <rect x="1592" y="34" width="44" height="20" rx="9" fill="#059669"/><text class="nb" x="1614" y="49" text-anchor="middle">DONE</text>
+  <text class="xs" x="1646" y="49">= 이번 주 완료</text>
 
   <!-- ================= ① 즉시 경로 ================= -->
   <rect x="40" y="118" width="1820" height="312" rx="14" fill="#FFF7ED" stroke="#EA580C" stroke-width="2.6"/>
@@ -67,10 +67,10 @@
   <text class="s" x="658" y="258">의료 진단 · 처방 차단</text>
   <text class="s" x="658" y="278">자해 발화 감지 경로</text>
   <text class="s" x="658" y="298">PII 마스킹</text>
-  <text class="xs" x="658" y="322">지금은 이 규칙이 프롬프트</text>
-  <text class="xs" x="658" y="340">텍스트로 5개 파일에 흩어짐</text>
-  <text class="xs" x="658" y="364">→ 플랫폼 레벨로 올림</text>
-  <text class="xs" x="658" y="382">   프롬프트도 한 모듈로 통합</text>
+  <text class="xs" x="658" y="322">Bedrock Guardrail</text>
+  <text class="xs" x="658" y="340">bedi-safety (전 Converse)</text>
+  <text class="xs" x="658" y="364">공통 안전 규칙은</text>
+  <text class="xs" x="658" y="382">prompts/safety 단일 상수</text>
 
   <line x1="898" y1="298" x2="920" y2="298" stroke="#EA580C" stroke-width="2.2" marker-end="url(#ah)"/>
 
@@ -80,11 +80,11 @@
   <rect x="1120" y="206" width="44" height="19" rx="9" fill="#059669"/><text class="nb" x="1142" y="220" text-anchor="middle">NEW</text>
   <text class="s" x="944" y="258">Converse 스트리밍</text>
   <text class="s" x="944" y="278">대화는 Haiku 계열로</text>
-  <text class="xs" x="944" y="302">지금은 Opus 4.6 —</text>
-  <text class="xs" x="944" y="320">최상위 티어라 가장 느림</text>
+  <text class="xs" x="944" y="302">첫 토큰 2139→1413ms</text>
+  <text class="xs" x="944" y="320">(−34%, STEP 1 측정)</text>
   <text class="xs" x="944" y="344">짧은 감정 대화는</text>
-  <text class="xs" x="944" y="362">티어 차이가 체감되지 않음</text>
-  <text class="xs" x="944" y="382">품질 필요한 곳은 ②에서</text>
+  <text class="xs" x="944" y="362">Haiku로 충분</text>
+  <text class="xs" x="944" y="382">품질 경로는 ② Opus</text>
 
   <line x1="1184" y1="298" x2="1206" y2="298" stroke="#EA580C" stroke-width="2.2" marker-end="url(#ah)"/>
 
@@ -93,11 +93,11 @@
   <text class="h" x="1258" y="225" fill="#C2410C">응답 종료</text>
   <text class="s" x="1230" y="258">SSE 토큰 → 화면</text>
   <text class="s" x="1230" y="278">여기서 스트림을 닫음</text>
-  <text class="xs" x="1230" y="302">지금은 done 이벤트가</text>
-  <text class="xs" x="1230" y="320">분석 2개를 기다림 →</text>
-  <text class="xs" x="1230" y="338">글이 끝났는데 입력창이</text>
-  <text class="xs" x="1230" y="356">몇 초 안 풀림</text>
-  <text class="xs" x="1230" y="380" fill="#059669">그 대기를 없애는 것이 핵심</text>
+  <text class="xs" x="1230" y="302">done 을 persist/분석</text>
+  <text class="xs" x="1230" y="320">이전에 보내 입력창을</text>
+  <text class="xs" x="1230" y="338">즉시 해제 (STEP 1)</text>
+  <text class="xs" x="1230" y="356"> </text>
+  <text class="xs" x="1230" y="380" fill="#059669">아이 대기는 응답만</text>
 
   <line x1="1470" y1="298" x2="1492" y2="298" stroke="#94A3B8" stroke-width="2.2" stroke-dasharray="6 4" marker-end="url(#an)"/>
 
@@ -142,7 +142,7 @@
 
   <rect x="326" y="704" width="470" height="68" rx="10" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.6"/>
   <text class="h" x="346" y="734" fill="#1D4ED8">잡 3 — 보호자 요약 · 하루 성찰</text>
-  <text class="s" x="346" y="757">지금 규칙 기반인 리포트를 Opus 요약으로 승급</text>
+  <text class="s" x="346" y="757">사전생성 + KB(S3 Vectors) 리포트 승급</text>
 
   <line x1="800" y1="652" x2="822" y2="652" stroke="#1D4ED8" stroke-width="2.2" marker-end="url(#ac)"/>
 
@@ -155,8 +155,8 @@
   <text class="xs" x="846" y="666">상한 없음 · 중요도 점수 부여</text>
   <text class="xs" x="846" y="690">“누나가 화요일마다 온다”</text>
   <text class="xs" x="846" y="708">“주사를 무서워한다”</text>
-  <text class="xs" x="846" y="732" fill="#C7253E">지금은 12개 상한에 밀려</text>
-  <text class="xs" x="846" y="750" fill="#C7253E">오래된 기억이 조용히 사라짐</text>
+  <text class="xs" x="846" y="732" fill="#059669">영속 사실은 중요도로 유지</text>
+  <text class="xs" x="846" y="750" fill="#059669">프롬프트엔 상위 N개만</text>
 
   <line x1="1160" y1="652" x2="1182" y2="652" stroke="#1D4ED8" stroke-width="2.2" marker-end="url(#ac)"/>
 
@@ -165,10 +165,10 @@
   <text class="s" x="1206" y="596">아침에 아이가 앱을 열면 오늘의 모험이 이미 준비되어 있습니다.</text>
   <text class="s" x="1206" y="620">보호자가 홈을 열면 요약이 이미 만들어져 있습니다.</text>
   <text class="s" x="1206" y="644">비밀친구는 어제 나눈 이야기를 기억한 상태로 인사합니다.</text>
-  <text class="s" x="1206" y="676" fill="#059669">요청 시점 LLM 호출: 대화 1회 + (응답 후) 감정 1회</text>
-  <text class="xs" x="1206" y="700">지금은 한 턴에 3회를 전부 응답 경로에서 처리합니다.</text>
-  <text class="xs" x="1206" y="724">이 재배치만으로 체감 응답이 초 단위로 짧아지고,</text>
-  <text class="xs" x="1206" y="748">배치는 큰 모델을 써도 아이 대기 시간에 영향이 없습니다.</text>
+  <text class="s" x="1206" y="676" fill="#059669">요청 시점 LLM: 대화 1회 + (응답 후) 감정 1회</text>
+  <text class="xs" x="1206" y="700">턴당 메모리 LLM 제거 → 새벽 Opus 통합</text>
+  <text class="xs" x="1206" y="724">체감 응답이 짧아지고,</text>
+  <text class="xs" x="1206" y="748">배치는 큰 모델을 써도 아이 대기에 무관</text>
 
   <path d="M 1500 458 L 1500 434" fill="none" stroke="#059669" stroke-width="2.6" marker-end="url(#ag)"/>
   <text class="xs" x="1512" y="450" fill="#059669">미리 만든 결과를 읽음</text>
@@ -184,13 +184,13 @@
     <circle cx="17" cy="18" r="2.4" fill="#FFFFFF"/>
   </g>
   <text class="h" x="114" y="900" fill="#A11BA8">DynamoDB</text>
-  <text class="s" x="70" y="942">앱 데이터 17종 + 메모리 2층</text>
-  <text class="s" x="70" y="964">배치 결과 저장소</text>
-  <text class="xs" x="70" y="990">이번 주 유지 — 이전 없음</text>
-  <text class="xs" x="70" y="1014">Aurora 는 users 테이블 하나라</text>
-  <text class="xs" x="70" y="1032">다음 사이클에 통합 권장</text>
-  <text class="xs" x="70" y="1062" fill="#C7253E">단, SG 에서 0.0.0.0/0 회수는</text>
-  <text class="xs" x="70" y="1080" fill="#C7253E">이번 주에 (10분 작업)</text>
+  <text class="s" x="70" y="942">앱 데이터 + 인증(USER/EMAIL)</text>
+  <text class="s" x="70" y="964">배치 결과 · 메모리 2층</text>
+  <text class="xs" x="70" y="990">단일 테이블 BediApp</text>
+  <text class="xs" x="70" y="1014">Aurora 는 롤백용으로만 유지</text>
+  <text class="xs" x="70" y="1032">(데모 후 클러스터 삭제)</text>
+  <text class="xs" x="70" y="1062" fill="#059669">SG 0.0.0.0/0 회수 완료</text>
+  <text class="xs" x="70" y="1080" fill="#059669">PubliclyAccessible=false</text>
 
   <rect x="418" y="856" width="352" height="240" rx="12" fill="#FFFFFF" stroke="#01A88D" stroke-width="2.2"/>
   <g transform="translate(442,878)">
@@ -236,11 +236,11 @@
   <rect x="1444" y="884" width="44" height="19" rx="9" fill="#059669"/><text class="nb" x="1466" y="898" text-anchor="middle">NEW</text>
   <text class="s" x="1186" y="942">OPENAI_API_KEY</text>
   <text class="s" x="1186" y="964">AUTH_SESSION_SECRET</text>
-  <text class="s" x="1186" y="986">PGPASSWORD</text>
-  <text class="xs" x="1186" y="1012">지금은 ECS 태스크 정의 환경변수에</text>
-  <text class="xs" x="1186" y="1030">평문으로 구워집니다</text>
-  <text class="xs" x="1186" y="1058">태스크 정의는 조회 권한만 있으면</text>
-  <text class="xs" x="1186" y="1076">누구나 읽습니다 → secrets 참조로</text>
+  <text class="s" x="1186" y="986">PGPASSWORD · CRON_SECRET</text>
+  <text class="xs" x="1186" y="1012">ECS 태스크는 secrets 참조</text>
+  <text class="xs" x="1186" y="1030">(평문 environment 제거)</text>
+  <text class="xs" x="1186" y="1058">bedi/app Secrets Manager</text>
+  <text class="xs" x="1186" y="1076">08-secrets.ps1</text>
 
   <rect x="1534" y="856" width="326" height="240" rx="12" fill="#FFFFFF" stroke="#7AA116" stroke-width="2.2"/>
   <g transform="translate(1558,878)">
@@ -249,19 +249,19 @@
     <line x1="9" y1="14.5" x2="25" y2="14.5" stroke="#FFFFFF" stroke-width="1.5"/>
   </g>
   <text class="h" x="1602" y="900" fill="#4D7C0F">S3</text>
-  <text class="s" x="1558" y="942">아바타 · 일정 삽화 · 사진첩</text>
-  <text class="s" x="1558" y="964">배치가 만든 이미지도 여기</text>
-  <text class="xs" x="1558" y="990" fill="#C7253E">TaskRole 권한이 avatars/* 만</text>
-  <text class="xs" x="1558" y="1008" fill="#C7253E">열려 있어 사진 업로드가</text>
-  <text class="xs" x="1558" y="1026" fill="#C7253E">프로덕션에서 실패합니다</text>
-  <text class="xs" x="1558" y="1054">→ schedule-images/ · photos/</text>
-  <text class="xs" x="1558" y="1072">   프리픽스 추가 (이번 주)</text>
+  <text class="s" x="1558" y="942">avatars · schedule-images · photos</text>
+  <text class="s" x="1558" y="964">kb-summaries (요약만 색인)</text>
+  <text class="xs" x="1558" y="990" fill="#059669">TaskRole 프리픽스 권한 완료</text>
+  <text class="xs" x="1558" y="1008">S3 Vectors = KB 벡터 스토어</text>
+  <text class="xs" x="1558" y="1026">(OpenSearch 미사용)</text>
+  <text class="xs" x="1558" y="1054">원문 대화는 색인하지 않음</text>
+  <text class="xs" x="1558" y="1072">AI Bridge 원칙 유지</text>
 
   <!-- ================= 순서 ================= -->
   <line x1="46" y1="1128" x2="1854" y2="1128" stroke="#DDE3EA" stroke-width="1.5"/>
-  <text class="lane" x="46" y="1162" fill="#1E293B">한 주 순서</text>
-  <text class="note" x="200" y="1162">0일 git init  ·  1일 모델 라우팅 + SSE 분리 + 병렬 조회  ·  2일 CloudWatch 계측  ·  3일 Guardrails + 프롬프트 통합</text>
-  <text class="note" x="200" y="1188">4~5일 EventBridge 배치 3종 + 메모리 2층  ·  6일 보안 (Aurora SG · Secrets · S3 권한 · 데모 비밀번호)  ·  7일 리허설</text>
-  <text class="note" x="200" y="1214" fill="#C7253E">시간이 밀리면 — 1일차와 4~5일차를 지키고, 6일차는 Aurora SG 회수(10분)와 S3 권한만 남기세요.</text>
-  <text class="xs" x="200" y="1244">이번 주에 넣지 않는 것: Cognito · OpenSearch · Aurora 이전 · SQS 워커. 각각 이유와 도입 트리거를 문서에 적어두면 심사에서 감점 대신 가점이 됩니다.</text>
+  <text class="lane" x="46" y="1162" fill="#1E293B">한 주 결과</text>
+  <text class="note" x="200" y="1162">0 git · 1 Haiku+SSE(−34%) · 2 CloudWatch · 3 Guardrails · 4 EventBridge 배치+메모리2층</text>
+  <text class="note" x="200" y="1188">5 보안·Dynamo auth · 6 KB S3 Vectors · 7 리허설 문서 · 프로덕션 ECS :16</text>
+  <text class="note" x="200" y="1214" fill="#059669">도입하지 않음(의도): Cognito · OpenSearch · SQS 워커 · Aurora 클러스터 삭제(데모 후)</text>
+  <text class="xs" x="200" y="1244">위기 Guardrail은 차단+지지 메시지만 — 보호자 자동 알림은 제품 결정으로 보류. 상세: docs/step7-demo.md</text>
 </svg>
