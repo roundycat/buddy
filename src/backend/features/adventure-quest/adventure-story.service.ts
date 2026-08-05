@@ -1,4 +1,6 @@
-import { getLlmProvider } from "@/backend/shared/llm";
+import { runLlm } from "@/backend/ai/orchestrator";
+import { withBeddySafety } from "@/backend/ai/prompts/safety";
+import { env } from "@/backend/shared/config/env";
 import { appendMemoryEvent } from "@/backend/features/memory-timeline/memory-timeline.store";
 import { hasLedgerRef } from "@/backend/features/wallet/wallet.store";
 import {
@@ -41,18 +43,19 @@ function ruleBasedNarrative(pack: AdventureDayPack): string {
 }
 
 async function generateNarrative(pack: AdventureDayPack): Promise<string> {
-  const provider = getLlmProvider();
-  if (provider.name === "mock") {
+  if (env.llmProvider === "mock") {
     return ruleBasedNarrative(pack);
   }
 
   try {
-    const result = await provider.chat({
+    const result = await runLlm({
+      feature: "adventure.story",
+      purpose: "analysis",
       messages: [
         {
           role: "system",
-          content: `당신은 Beddy(베디)입니다. 입원 청소년의 하루 미션을 따뜻한 한국어 이야기로 남깁니다.
-확진·처방은 하지 말고, 친구처럼 자랑하듯 다정하게. 길이는 자유롭게. JSON만: { "narrative": "..." }`,
+          content: withBeddySafety(`당신은 Beddy(베디)입니다. 입원 청소년의 하루 미션을 따뜻한 한국어 이야기로 남깁니다.
+친구처럼 자랑하듯 다정하게. 길이는 자유롭게. JSON만: { "narrative": "..." }`),
         },
         {
           role: "user",

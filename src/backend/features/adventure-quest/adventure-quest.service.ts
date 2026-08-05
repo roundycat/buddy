@@ -1,4 +1,6 @@
-import { getLlmProvider } from "@/backend/shared/llm";
+import { runLlm } from "@/backend/ai/orchestrator";
+import { withBeddySafety } from "@/backend/ai/prompts/safety";
+import { env } from "@/backend/shared/config/env";
 import { getPersonaForUser } from "@/backend/features/persona/persona.store";
 import { getHospitalDay } from "@/backend/features/hospital-day/hospital-day.service";
 import { getGardenAccount } from "@/backend/features/emotion-garden/emotion-garden.store";
@@ -222,8 +224,7 @@ async function tryGenerateWithLlm(
   context: AdventureContextFactors,
   scene: ReturnType<typeof resolveScene>
 ): Promise<AdventureDayPack | null> {
-  const provider = getLlmProvider();
-  if (provider.name === "mock") return null;
+  if (env.llmProvider === "mock") return null;
   const system = `당신은 입원 청소년을 위한 앱 Beddy의 오늘의 모험 Agent입니다.
 병실·복도·침대 근처에서 할 수 있는 작고 즐거운 모험을 제안하세요.
 각 모험은 앱 안에서 할 수 있어야 합니다. kind는 photo|garden|chat|post|observe 중 하나.
@@ -257,9 +258,11 @@ kind 설명:
 points는 10~20 정수. 가능하면 kind를 다양하게.`;
 
   try {
-    const result = await provider.chat({
+    const result = await runLlm({
+      feature: "adventure.quest",
+      purpose: "analysis",
       messages: [
-        { role: "system", content: system },
+        { role: "system", content: withBeddySafety(system) },
         { role: "user", content: user },
       ],
       temperature: 0.7,

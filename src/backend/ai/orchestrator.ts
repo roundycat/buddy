@@ -2,10 +2,15 @@ import "server-only";
 import { env } from "@/backend/shared/config/env";
 import {
   chatWithCompanion,
+  getLlmProvider,
   streamWithCompanion,
 } from "@/backend/shared/llm";
-import type { CompanionPromptContext } from "@/backend/shared/llm/prompts/companion";
-import type { LlmChatResult } from "@/backend/shared/llm/types";
+import type { CompanionPromptContext } from "@/backend/ai/prompts/companion";
+import type {
+  LlmChatRequest,
+  LlmChatResult,
+  LlmMessage,
+} from "@/backend/shared/llm/types";
 import {
   logObservation,
   newRequestId,
@@ -15,8 +20,8 @@ import {
 import { StandardUnit } from "@aws-sdk/client-cloudwatch";
 
 /**
- * AI Orchestrator — single entry for model routing + instrumentation.
- * STEP 1–2: chat path instrumented. Other features migrate later.
+ * AI Orchestrator — single entry for model routing, Guardrails, instrumentation.
+ * Controllers and feature services must not call Bedrock providers directly.
  */
 export type AiPurpose = "chat" | "analysis" | "quality";
 
@@ -33,6 +38,50 @@ export function resolveModelForPurpose(purpose: AiPurpose): string {
     default:
       return env.bedrock.chatModelId;
   }
+}
+
+function defaultGuardrail(): LlmChatRequest["guardrail"] {
+  if (!env.bedrock.guardrailId) return undefined;
+  return {
+    guardrailIdentifier: env.bedrock.guardrailId,
+    guardrailVersion: env.bedrock.guardrailVersion || "DRAFT",
+  };
+}
+
+/**
+ * Generic LLM call — all non-stream feature paths should use this.
+ */
+export async function runLlm(input: {
+  feature: string;
+  purpose: AiPurpose;
+  messages: LlmMessage[];
+  temperature?: number;
+  maxTokens?: number;
+  /** default true when BEDROCK_GUARDRAIL_ID is set */
+  applyGuardrail?: boolean;
+}): Promise<LlmChatResult> {
+  const model = resolveModelForPurpose(input.purpose);
+  const guardrail =
+    input.applyGuardrail === false ? false : defaultGuardrail();
+
+  return observeAsync(
+    {
+      feature: input.feature,
+      operation: "chat",
+      model,
+      latencyMetric: "BedrockLatencyMs",
+    },
+    async () => {
+      const provider = getLlmProvider();
+      return provider.chat({
+        messages: input.messages,
+        temperature: input.temperature,
+        maxTokens: input.maxTokens,
+        model: env.llmProvider === "bedrock" ? model : undefined,
+        guardrail,
+      });
+    }
+  );
 }
 
 /** Child chat — Haiku (speed). Streaming immediate path + metrics. */
@@ -143,7 +192,6 @@ export async function companionChat(
   );
 }
 
-/** Placeholder hooks for later STEPs (Agent / KB) — keep metric names stable. */
 export async function observeAgentRun<T>(
   feature: string,
   fn: () => Promise<T>

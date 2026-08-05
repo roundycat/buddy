@@ -4,7 +4,9 @@ import { MOOD_OPTIONS } from "@/backend/features/emotion-garden/emotion-garden.s
 import { aggregateEmotionsByDay } from "@/backend/features/emotion-analysis/emotion.service";
 import { getAdventureQuest } from "@/backend/features/adventure-quest/adventure-quest.service";
 import { listDayStoriesForUser } from "@/backend/features/adventure-quest/adventure-story.service";
-import { getLlmProvider } from "@/backend/shared/llm";
+import { runLlm } from "@/backend/ai/orchestrator";
+import { withBeddySafety } from "@/backend/ai/prompts/safety";
+import { env } from "@/backend/shared/config/env";
 import type {
   GrowthJournalResponse,
   GrowthMoment,
@@ -156,17 +158,18 @@ async function enrichMomentsWithLlm(input: {
 }): Promise<GrowthMoment[]> {
   if (input.moments.length === 0) return [];
   try {
-    const llm = getLlmProvider();
-    if (llm.name === "mock") return input.moments;
+    if (env.llmProvider === "mock") return input.moments;
 
-    const result = await llm.chat({
+    const result = await runLlm({
+      feature: "growth.journal",
+      purpose: "quality",
       temperature: 0.5,
       maxTokens: 500,
       messages: [
         {
           role: "system",
-          content: `Beddy 성장 기록 에디터입니다. 의료 진단 없이 따뜻한 한국어로 순간 설명을 다듬습니다.
-JSON만: { "moments": [{ "id": "...", "note": "한두 문장" }] }`,
+          content: withBeddySafety(`Beddy 성장 기록 에디터입니다. 따뜻한 한국어로 순간 설명을 다듬습니다.
+JSON만: { "moments": [{ "id": "...", "note": "한두 문장" }] }`),
         },
         {
           role: "user",

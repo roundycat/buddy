@@ -1,5 +1,6 @@
-import { getLlmProvider } from "@/backend/shared/llm";
+import { runLlm } from "@/backend/ai/orchestrator";
 import { env } from "@/backend/shared/config/env";
+import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";
 import { todayKey } from "@/backend/shared/time/date";
 import { getConversationMemory } from "@/backend/features/conversation/conversation.store";
@@ -274,14 +275,15 @@ async function maybePolishWithLlm(params: {
   if (env.llmProvider === "mock") return params.fallback;
 
   try {
-    const llm = getLlmProvider();
-    const result = await llm.chat({
+    const result = await runLlm({
+      feature: "companion.status",
+      purpose: "analysis",
       messages: [
         {
           role: "system",
-          content: `당신은 병원 아이 돌봄 동반자 베디의 보호자용 요약가입니다.
-생활·감정 신호를 편하게 요약하세요. 확진·처방만 피하고, 보호자가 이해하기 쉬운 말투로.
-JSON만 반환: {"overallLabel":"짧은 제목","overallHint":"2~4문장"}`,
+          content: withBeddySafety(`당신은 병원 아이 돌봄 동반자 베디의 보호자용 요약가입니다.
+생활·감정 신호를 편하게 요약하고, 보호자가 이해하기 쉬운 말투로 씁니다.
+JSON만 반환: {"overallLabel":"짧은 제목","overallHint":"2~4문장"}`),
         },
         {
           role: "user",

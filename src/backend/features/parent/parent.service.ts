@@ -15,7 +15,9 @@ import { listDayStoriesForUser } from "@/backend/features/adventure-quest/advent
 import { getMemoryTimeline } from "@/backend/features/memory-timeline/memory-timeline.service";
 import { resolveLinkedChildUserId } from "@/backend/features/guardian-link/guardian-link.service";
 import { hasLedgerRef } from "@/backend/features/wallet/wallet.store";
-import { getLlmProvider } from "@/backend/shared/llm";
+import { runLlm } from "@/backend/ai/orchestrator";
+import { withBeddySafety } from "@/backend/ai/prompts/safety";
+import { env } from "@/backend/shared/config/env";
 import {
   getParentSettings,
   saveParentSettings,
@@ -367,19 +369,20 @@ async function composeTodayMessageWithLlm(
   });
 
   try {
-    const llm = getLlmProvider();
-    if (llm.name === "mock") return fallback;
+    if (env.llmProvider === "mock") return fallback;
 
-    const result = await llm.chat({
+    const result = await runLlm({
+      feature: "parent.today-summary",
+      purpose: "quality",
       temperature: 0.5,
       maxTokens: 180,
       messages: [
         {
           role: "system",
-          content: `보호자용 한 줄 요약 작성자입니다.
+          content: withBeddySafety(`보호자용 한 줄 요약 작성자입니다.
 - 원문 대화·비밀 일기는 절대 인용하지 마세요.
 - 요약 지표(감정, 모험 완료, 학습 메모리 요약, 소원)만 사용하세요.
-- 의료 진단 금지. 한국어 존댓말 1~2문장.`,
+- 한국어 존댓말 1~2문장.`),
         },
         {
           role: "user",
@@ -422,19 +425,20 @@ async function composeDailySummaryWithLlm(
   });
 
   try {
-    const llm = getLlmProvider();
-    if (llm.name === "mock") return fallback;
+    if (env.llmProvider === "mock") return fallback;
 
-    const result = await llm.chat({
+    const result = await runLlm({
+      feature: "parent.daily-summary",
+      purpose: "quality",
       temperature: 0.45,
       maxTokens: 320,
       messages: [
         {
           role: "system",
-          content: `보호자용 하루 다이제스트 작성자입니다.
+          content: withBeddySafety(`보호자용 하루 다이제스트 작성자입니다.
 - 감정·활동·완료 모험·하루 기억 요약을 부드럽게 정리하세요.
 - 원문 대화는 절대 노출하지 마세요. 학습 메모리 요약만 참고하세요.
-- 의료 진단·처방 금지. 한국어 존댓말 3~5문장.`,
+- 한국어 존댓말 3~5문장.`),
         },
         {
           role: "user",
@@ -1065,20 +1069,20 @@ async function composeReportAnswerWithLlm(
   }
 ): Promise<string | null> {
   try {
-    const llm = getLlmProvider();
-    const result = await llm.chat({
+    const result = await runLlm({
+      feature: "parent.report",
+      purpose: "quality",
       messages: [
         {
           role: "system",
-          content: `당신은 병원 아이 돌봄 앱 Beddy의 보호자용 AI 어시스턴트입니다.
+          content: withBeddySafety(`당신은 병원 아이 돌봄 앱 Beddy의 보호자용 AI 어시스턴트입니다.
 
 역할:
 - 연결된 아이의 요약 데이터만 보고, 보호자 질문에 따뜻하고 구체적으로 답합니다.
-- 의료 진단·처방·검사 해석은 절대 하지 않습니다.
 - 아이와 베디의 원문 대화·비밀 일기는 절대 인용하거나 재구성하지 않습니다.
 - 주어진 요약(감정, 모험, 학습 메모리 요약, 소원, 하루 이야기 제목)만 근거로 씁니다.
 - 데이터가 부족하면 솔직히 말하고, 같은 문장을 반복하지 마세요.
-- 2~5문장, 한국어, 존댓말. 과장하거나 확정적으로 단정하지 마세요.`,
+- 2~5문장, 한국어, 존댓말. 과장하거나 확정적으로 단정하지 마세요.`),
         },
         {
           role: "user",

@@ -1,5 +1,7 @@
 import "server-only";
-import { getLlmProvider } from "@/backend/shared/llm";
+import { runLlm } from "@/backend/ai/orchestrator";
+import { withBeddySafety } from "@/backend/ai/prompts/safety";
+import { env } from "@/backend/shared/config/env";
 import type { ParentEmpathyGuide } from "./parent.types";
 
 /**
@@ -224,20 +226,19 @@ export async function composeEmpathyGuideWithLlm(
   const fallback = buildEmpathyFallback(ctx, dateKey);
 
   try {
-    const llm = getLlmProvider();
-    if (llm.name === "mock") return fallback;
+    if (env.llmProvider === "mock") return fallback;
 
-    const result = await llm.chat({
+    const result = await runLlm({
+      feature: "parent.empathy",
+      purpose: "quality",
       temperature: 0.55,
       maxTokens: 750,
       messages: [
         {
           role: "system",
-          content: `당신은 장기 입원 아동의 보호자를 돕는 Beddy 공감 코치입니다.
+          content: withBeddySafety(`당신은 장기 입원 아동의 보호자를 돕는 Beddy 공감 코치입니다.
 
 역할:
-- 진단·병명·예후·약물·임상 평가를 절대 하지 마세요.
-- 의료진을 대체하지 마세요.
 - 원문 대화·비밀 일기를 인용하지 마세요.
 - 아이 성향·취미·스트레스 해소법·선호 상호작용이 있으면 thingsToDo와 대화 제안에 반드시 반영하세요.
 - 취미가 있으면 “함께하면 좋은 일”에 그 취향을 구체화하세요.
@@ -256,7 +257,7 @@ export async function composeEmpathyGuideWithLlm(
   "thingsToDo": ["함께 할 일 2~3개 — 가능하면 취미/취향 반영"],
   "thingsToAvoid": ["피하면 좋은 것 2~3개"],
   "encouragingMessage": "보호자를 위한 따뜻한 한 문장"
-}`,
+}`),
         },
         {
           role: "user",

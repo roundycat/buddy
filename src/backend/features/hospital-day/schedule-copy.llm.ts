@@ -1,4 +1,5 @@
-import { getLlmProvider } from "@/backend/shared/llm";
+import { runLlm } from "@/backend/ai/orchestrator";
+import { withBeddySafety } from "@/backend/ai/prompts/safety";
 
 /**
  * Child-facing schedule copy via LLM — gentle, non-clinical.
@@ -12,21 +13,23 @@ export async function composeChildScheduleCopy(input: {
   const note = input.note?.trim();
 
   try {
-    const llm = getLlmProvider();
     const kind = input.type === "treatment" ? "치료" : "검사";
-    const result = await llm.chat({
+    const result = await runLlm({
+      feature: "hospital-day.schedule-copy",
+      purpose: "analysis",
+      temperature: 0.45,
+      maxTokens: 320,
       messages: [
         {
           role: "system",
-          content: `당신은 병원 아이 돌봄 앱 Beddy의 아동용 안내 작가입니다.
+          content: withBeddySafety(`당신은 병원 아이 돌봄 앱 Beddy의 아동용 안내 작가입니다.
 보호자가 입력한 ${kind} 이름을 바탕으로, 어린이에게 무섭지 않게 설명해 주세요.
 
 규칙:
-- 의료 진단·처방·수치 해석 금지
 - 아프다고 협박하지 말 것
 - 쉬운 한국어, 존댓말 아닌 부드러운 반말/해요체 혼용 가능하되 따뜻하게
 - 원문 대화·비밀 금지
-- JSON만 반환: {"what":"이게 뭔지 1~2문장","why":"왜 하는지 2~3문장","notify":"알림용 짧은 한 줄"}`,
+- JSON만 반환: {"what":"이게 뭔지 1~2문장","why":"왜 하는지 2~3문장","notify":"알림용 짧은 한 줄"}`),
         },
         {
           role: "user",
@@ -37,8 +40,6 @@ export async function composeChildScheduleCopy(input: {
           }),
         },
       ],
-      temperature: 0.45,
-      maxTokens: 320,
     });
 
     const parsed = extractJson(result.content);
@@ -51,7 +52,7 @@ export async function composeChildScheduleCopy(input: {
         .slice(0, 80),
     };
   } catch (error) {
-    console.warn("[hospital-day] LLM schedule copy skipped", error);
+    console.error("[schedule-copy.llm]", error);
     return null;
   }
 }
@@ -89,13 +90,18 @@ function extractJson(raw: string): {
 }
 
 /** Prefer LLM when parent entered a real title/note rather than placeholder noise. */
-export function shouldEnrichScheduleWithLlm(title: string, note?: string): boolean {
+export function shouldEnrichScheduleWithLlm(
+  title: string,
+  note?: string
+): boolean {
   const t = title.trim();
   const n = note?.trim() ?? "";
   if (n.length >= 4) return true;
   if (t.length < 2) return false;
   if (/^(.)\1{2,}$/.test(t)) return false;
-  if (/^[ㄱ-ㅎㅏ-ㅣ\s]+$/.test(t) && t.replace(/\s/g, "").length <= 3) return false;
+  if (/^[ㄱ-ㅎㅏ-ㅣ\s]+$/.test(t) && t.replace(/\s/g, "").length <= 3) {
+    return false;
+  }
   if (/^[a-zA-Z]{1,2}$/.test(t)) return false;
   return true;
 }

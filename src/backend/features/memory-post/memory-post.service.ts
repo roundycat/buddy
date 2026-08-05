@@ -1,5 +1,7 @@
 import { createMapStore } from "@/backend/shared/persist/map-store";
-import { getLlmProvider } from "@/backend/shared/llm";
+import { runLlm } from "@/backend/ai/orchestrator";
+import { withBeddySafety } from "@/backend/ai/prompts/safety";
+import { env } from "@/backend/shared/config/env";
 import { getPersonaForUser } from "@/backend/features/persona/persona.store";
 import {
   formatMemoryForPrompt,
@@ -94,18 +96,19 @@ async function maybeCompanionLetter(userId: string): Promise<MemoryLetter | null
   };
 
   try {
-    const llm = getLlmProvider();
-    if (llm.name === "mock") return fallback;
+    if (env.llmProvider === "mock") return fallback;
 
-    const result = await llm.chat({
+    const result = await runLlm({
+      feature: "memory.post",
+      purpose: "analysis",
       temperature: 0.7,
       maxTokens: 280,
       messages: [
         {
           role: "system",
-          content: `당신은 ${companionName}입니다. 아이에게 짧은 편지를 씁니다.
-원문 대화 인용 금지. 의료 진단 금지. JSON만:
-{ "title": "짧은 제목", "body": "2~4문장" }`,
+          content: withBeddySafety(`당신은 ${companionName}입니다. 아이에게 짧은 편지를 씁니다.
+원문 대화 인용 금지. JSON만:
+{ "title": "짧은 제목", "body": "2~4문장" }`),
         },
         {
           role: "user",

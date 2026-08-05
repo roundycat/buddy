@@ -1,4 +1,6 @@
-import { getLlmProvider } from "@/backend/shared/llm";
+import { runLlm } from "@/backend/ai/orchestrator";
+import { env } from "@/backend/shared/config/env";
+import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";
 import { todayKey } from "@/backend/shared/time/date";
 import {
@@ -85,18 +87,18 @@ async function llmExtract(userMessage: string): Promise<Omit<
   EmotionAnalysisRecord,
   "id" | "userId" | "source" | "sourceRef" | "dateKey" | "createdAt"
 > | null> {
-  const provider = getLlmProvider();
-  if (provider.name === "mock") return null;
+  if (env.llmProvider === "mock") return null;
 
   try {
-    const result = await provider.chat({
+    const result = await runLlm({
+      feature: "emotion.analysis",
+      purpose: "analysis",
       temperature: 0.2,
       maxTokens: 280,
       messages: [
         {
           role: "system",
-          content: `당신은 아동·청소년 돌봄 앱 Beddy의 감정 분석기입니다.
-의료 진단·병명·처방은 절대 하지 마세요.
+          content: withBeddySafety(`당신은 아동·청소년 돌봄 앱 Beddy의 감정 분석기입니다.
 아이 메시지에서 감정만 추출해 JSON만 출력하세요.
 {
   "primaryEmotion": "한국어 감정 한 단어",
@@ -105,7 +107,7 @@ async function llmExtract(userMessage: string): Promise<Omit<
   "confidence": 0-1,
   "summary": "보호자/기록용 한 문장 (원문 인용 금지)"
 }
-emotionScore: 높을수록 따뜻·안도·긍정 쪽.`,
+emotionScore: 높을수록 따뜻·안도·긍정 쪽.`),
         },
         {
           role: "user",

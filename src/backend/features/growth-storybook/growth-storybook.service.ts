@@ -1,4 +1,6 @@
-import { getLlmProvider } from "@/backend/shared/llm";
+import { runLlm } from "@/backend/ai/orchestrator";
+import { withBeddySafety } from "@/backend/ai/prompts/safety";
+import { env } from "@/backend/shared/config/env";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";
 import { getPersonaForUser } from "@/backend/features/persona/persona.store";
 import { getGardenAccount } from "@/backend/features/emotion-garden/emotion-garden.store";
@@ -140,17 +142,18 @@ async function tryLlmCompose(input: {
   epilogueBody: string;
   gardenBody?: string;
 } | null> {
-  const provider = getLlmProvider();
-  if (provider.name === "mock") return null;
+  if (env.llmProvider === "mock") return null;
 
   try {
-    const result = await provider.chat({
+    const result = await runLlm({
+      feature: "growth.storybook",
+      purpose: "quality",
       messages: [
         {
           role: "system",
-          content: `당신은 Beddy 앱의 동화 작가입니다.
+          content: withBeddySafety(`당신은 Beddy 앱의 동화 작가입니다.
 입원 아동·청소년을 위한 희망적이고 감성적인 동화를 씁니다.
-의료·진단·공포 표현 금지. 따뜻하고 짧은 문장. JSON만 출력.`,
+공포 표현 금지. 따뜻하고 짧은 문장. JSON만 출력.`),
         },
         {
           role: "user",

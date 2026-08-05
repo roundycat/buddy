@@ -1,4 +1,6 @@
-import { getLlmProvider } from "@/backend/shared/llm";
+import { runLlm } from "@/backend/ai/orchestrator";
+import { withBeddySafety } from "@/backend/ai/prompts/safety";
+import { env } from "@/backend/shared/config/env";
 import type { ConversationMessage } from "./conversation.types";
 import {
   getConversationMemory,
@@ -74,17 +76,18 @@ async function llmUpdate(
   assistantMessage: string,
   profileSummary: string
 ): Promise<ConversationMemory | null> {
-  const provider = getLlmProvider();
-  if (provider.name === "mock") return null;
+  if (env.llmProvider === "mock") return null;
 
   try {
-    const result = await provider.chat({
+    const result = await runLlm({
+      feature: "conversation.memory",
+      purpose: "analysis",
       temperature: 0.2,
       maxTokens: 350,
       messages: [
         {
           role: "system",
-          content: `당신은 대화 메모리 추출기입니다. 사용자의 페르소나 맞춤 챗봇이 다음 대화에서 더 잘 공감하도록, 최신 한 턴에서 배울 점만 JSON으로 요약하세요.
+          content: withBeddySafety(`당신은 대화 메모리 추출기입니다. 사용자의 페르소나 맞춤 챗봇이 다음 대화에서 더 잘 공감하도록, 최신 한 턴에서 배울 점만 JSON으로 요약하세요.
 반드시 JSON만 출력하세요. 키:
 {
   "speechStyleNotes": "string",
@@ -92,7 +95,7 @@ async function llmUpdate(
   "emotionalThemes": ["string"],
   "importantFacts": ["string"]
 }
-의료 확진 라벨은 만들지 마세요. 불확실하면 빈 배열/빈 문자열을 쓰세요.`,
+불확실하면 빈 배열/빈 문자열을 쓰세요.`),
         },
         {
           role: "user",

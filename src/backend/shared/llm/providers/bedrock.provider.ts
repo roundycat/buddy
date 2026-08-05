@@ -56,11 +56,12 @@ export class BedrockLlmProvider implements LlmProvider {
         maxTokens: request.maxTokens ?? 400,
         temperature: request.temperature ?? 0.7,
       },
+      guardrailConfig: resolveGuardrail(request),
     };
   }
 
   async chat(request: LlmChatRequest): Promise<LlmChatResult> {
-    const { modelId, systemParts, conversation, inferenceConfig } =
+    const { modelId, systemParts, conversation, inferenceConfig, guardrailConfig } =
       this.buildPayload(request);
 
     const response = await this.client.send(
@@ -69,6 +70,7 @@ export class BedrockLlmProvider implements LlmProvider {
         ...(systemParts.length ? { system: systemParts } : {}),
         messages: conversation,
         inferenceConfig,
+        ...(guardrailConfig ? { guardrailConfig } : {}),
       })
     );
 
@@ -78,6 +80,21 @@ export class BedrockLlmProvider implements LlmProvider {
       .trim();
 
     if (!content) {
+      // Guardrail may block with no message text — surface blocked messaging if present
+      const blocked =
+        response.stopReason === "guardrail_intervened"
+          ? env.bedrock.guardrailId
+            ? "의료 진단이나 처방은 할 수 없어요. 궁금한 건 보호자·의료진과 함께 확인해요."
+            : null
+          : null;
+      if (blocked) {
+        return {
+          content: blocked,
+          provider: this.name,
+          model: modelId,
+          raw: response,
+        };
+      }
       throw new Error("Bedrock 응답에 text가 없습니다.");
     }
 
@@ -90,7 +107,7 @@ export class BedrockLlmProvider implements LlmProvider {
   }
 
   async *chatStream(request: LlmChatRequest): AsyncIterable<string> {
-    const { modelId, systemParts, conversation, inferenceConfig } =
+    const { modelId, systemParts, conversation, inferenceConfig, guardrailConfig } =
       this.buildPayload(request);
 
     const response = await this.client.send(
@@ -99,6 +116,7 @@ export class BedrockLlmProvider implements LlmProvider {
         ...(systemParts.length ? { system: systemParts } : {}),
         messages: conversation,
         inferenceConfig,
+        ...(guardrailConfig ? { guardrailConfig } : {}),
       })
     );
 
@@ -113,4 +131,22 @@ export class BedrockLlmProvider implements LlmProvider {
       }
     }
   }
+}
+
+function resolveGuardrail(request: LlmChatRequest) {
+  if (request.guardrail === false) return undefined;
+  if (request.guardrail) {
+    return {
+      guardrailIdentifier: request.guardrail.guardrailIdentifier,
+      guardrailVersion: request.guardrail.guardrailVersion,
+      trace: "enabled" as const,
+    };
+  }
+  const id = env.bedrock.guardrailId;
+  if (!id) return undefined;
+  return {
+    guardrailIdentifier: id,
+    guardrailVersion: env.bedrock.guardrailVersion || "DRAFT",
+    trace: "enabled" as const,
+  };
 }

@@ -99,6 +99,9 @@ export const env = {
       "BEDROCK_IMAGE_REMOVE_BG_MODEL_ID",
       "us.stability.stable-image-remove-background-v1:0"
     ),
+    /** Bedrock Guardrail (STEP 3) — applied on Converse via Orchestrator */
+    guardrailId: read("BEDROCK_GUARDRAIL_ID"),
+    guardrailVersion: read("BEDROCK_GUARDRAIL_VERSION", "DRAFT"),
     accessKeyId: read("AWS_ACCESS_KEY_ID"),
     secretAccessKey: read("AWS_SECRET_ACCESS_KEY"),
     sessionToken: read("AWS_SESSION_TOKEN"),

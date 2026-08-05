@@ -51,6 +51,13 @@ function buildCompanionRequest(
   options?: { model?: string }
 ): LlmChatRequest {
   const recentHistory = history.slice(-24);
+  const guardrail =
+    env.llmProvider === "bedrock" && env.bedrock.guardrailId
+      ? {
+          guardrailIdentifier: env.bedrock.guardrailId,
+          guardrailVersion: env.bedrock.guardrailVersion || "DRAFT",
+        }
+      : undefined;
   return {
     messages: [
       {
@@ -66,6 +73,7 @@ function buildCompanionRequest(
     temperature: BEDI_CHAT_DEFAULTS.temperature,
     maxTokens: BEDI_CHAT_DEFAULTS.maxTokens,
     ...(options?.model ? { model: options.model } : {}),
+    ...(guardrail ? { guardrail } : {}),
   };
 }
 

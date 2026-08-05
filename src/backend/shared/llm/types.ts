@@ -15,6 +15,11 @@ export interface LlmChatRequest {
   maxTokens?: number;
   /** Optional per-call model override (Bedrock chat vs quality routing) */
   model?: string;
+  /**
+   * Bedrock Guardrail. `undefined` = use env default when set.
+   * `false` = explicitly skip (rare).
+   */
+  guardrail?: { guardrailIdentifier: string; guardrailVersion: string } | false;
 }
 
 export interface LlmChatResult {
