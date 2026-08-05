@@ -1,0 +1,15 @@
+import { redirect } from "next/navigation";
+import { getSessionUser } from "@/backend/shared/http/auth";
+import { getParentTimeline } from "@/backend/features/parent/parent.service";
+import { ParentTimelineView } from "@/frontend/features/parent/timeline/ParentTimelineView";
+
+export const dynamic = "force-dynamic";
+
+export default async function GuardianTimelinePage() {
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+  if (user.role !== "guardian") redirect("/");
+
+  const data = await getParentTimeline(user.id);
+  return <ParentTimelineView data={data} />;
+}

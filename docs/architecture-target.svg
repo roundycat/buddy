@@ -1,0 +1,267 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="1300" viewBox="0 0 1900 1300" font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR','Segoe UI',sans-serif">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#EA580C"/></marker>
+    <marker id="ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1D4ED8"/></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#059669"/></marker>
+    <marker id="an" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94A3B8"/></marker>
+    <linearGradient id="gNeb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E164EA"/><stop offset="1" stop-color="#A11BA8"/></linearGradient>
+    <linearGradient id="gEnd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9CC72F"/><stop offset="1" stop-color="#5E7F10"/></linearGradient>
+    <linearGradient id="gOrb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38CBB2"/><stop offset="1" stop-color="#017A6A"/></linearGradient>
+    <linearGradient id="gCos" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4479C"/><stop offset="1" stop-color="#B60F60"/></linearGradient>
+    <linearGradient id="gMar" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#EA6376"/><stop offset="1" stop-color="#B21F35"/></linearGradient>
+    <style>
+      .bg { fill: #F7F8FA; }
+      .title { font-size: 30px; font-weight: 700; fill: #1E293B; }
+      .sub { font-size: 14.5px; fill: #5A6675; }
+      .lane { font-size: 19px; font-weight: 700; }
+      .lanes { font-size: 13px; fill: #5A6675; }
+      .h { font-size: 15px; font-weight: 700; }
+      .s { font-size: 12px; fill: #48546A; }
+      .xs { font-size: 11px; fill: #6B7787; }
+      .nb { font-size: 10px; font-weight: 700; fill: #FFFFFF; }
+      .goal { font-size: 13px; font-weight: 700; }
+      .note { font-size: 13px; fill: #334155; }
+      .bn { font-size: 13px; font-weight: 700; fill: #FFFFFF; }
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1900" height="1300"/>
+
+  <text class="title" x="46" y="54">Beddy — 이렇게 구현하세요</text>
+  <text class="sub" x="46" y="84">핵심은 경로를 둘로 쪼개는 것입니다.  아이가 기다리는 것만 즉시 처리하고, 나머지는 전날 밤에 미리 만들어 둡니다.</text>
+  <rect x="1592" y="34" width="44" height="20" rx="9" fill="#059669"/><text class="nb" x="1614" y="49" text-anchor="middle">NEW</text>
+  <text class="xs" x="1646" y="49">= 이번 주에 추가</text>
+
+  <!-- ================= ① 즉시 경로 ================= -->
+  <rect x="40" y="118" width="1820" height="312" rx="14" fill="#FFF7ED" stroke="#EA580C" stroke-width="2.6"/>
+  <text class="lane" x="66" y="152" fill="#C2410C">①  즉시 경로   ·   아이가 화면에서 기다리는 것만</text>
+  <text class="goal" x="640" y="152" fill="#EA580C">목표 — 첫 토큰 1초 이내</text>
+  <text class="lanes" x="66" y="176">LLM 호출은 응답용 1회로 제한합니다. 분석·저장은 응답을 닫은 뒤로 넘깁니다.</text>
+
+  <rect x="66" y="192" width="256" height="212" rx="10" fill="#FFFFFF" stroke="#EA580C" stroke-width="1.6"/>
+  <circle cx="90" cy="220" r="14" fill="#EA580C"/><text class="bn" x="90" y="225" text-anchor="middle">1</text>
+  <text class="h" x="114" y="225" fill="#C2410C">아이 메시지</text>
+  <text class="s" x="86" y="258">대기실 채팅창</text>
+  <text class="s" x="86" y="278">사용자 말풍선 먼저 표시</text>
+  <text class="xs" x="86" y="302">이미 구현됨 — 변경 없음</text>
+
+  <line x1="326" y1="298" x2="348" y2="298" stroke="#EA580C" stroke-width="2.2" marker-end="url(#ah)"/>
+
+  <rect x="352" y="192" width="256" height="212" rx="10" fill="#FFFFFF" stroke="#059669" stroke-width="2.4"/>
+  <circle cx="376" cy="220" r="14" fill="#EA580C"/><text class="bn" x="376" y="225" text-anchor="middle">2</text>
+  <text class="h" x="400" y="225" fill="#C2410C">컨텍스트 조립</text>
+  <rect x="548" y="206" width="44" height="19" rx="9" fill="#059669"/><text class="nb" x="570" y="220" text-anchor="middle">NEW</text>
+  <text class="s" x="372" y="258">4회 순차 조회를 병렬로</text>
+  <text class="s" x="372" y="278">메모리 전부 넣지 말고</text>
+  <text class="s" x="372" y="298">키워드 겹침 + 최근성</text>
+  <text class="s" x="372" y="318">상위 N개만 선택</text>
+  <text class="xs" x="372" y="342">검색 인덱스 없이 코드로</text>
+  <text class="xs" x="372" y="362">→ 프롬프트가 짧아져</text>
+  <text class="xs" x="372" y="380">   정확도와 속도 동시 개선</text>
+
+  <line x1="612" y1="298" x2="634" y2="298" stroke="#EA580C" stroke-width="2.2" marker-end="url(#ah)"/>
+
+  <rect x="638" y="192" width="256" height="212" rx="10" fill="#FFFFFF" stroke="#059669" stroke-width="2.4"/>
+  <circle cx="662" cy="220" r="14" fill="#EA580C"/><text class="bn" x="662" y="225" text-anchor="middle">3</text>
+  <text class="h" x="686" y="225" fill="#C2410C">Guardrails</text>
+  <rect x="834" y="206" width="44" height="19" rx="9" fill="#059669"/><text class="nb" x="856" y="220" text-anchor="middle">NEW</text>
+  <text class="s" x="658" y="258">의료 진단 · 처방 차단</text>
+  <text class="s" x="658" y="278">자해 발화 감지 경로</text>
+  <text class="s" x="658" y="298">PII 마스킹</text>
+  <text class="xs" x="658" y="322">지금은 이 규칙이 프롬프트</text>
+  <text class="xs" x="658" y="340">텍스트로 5개 파일에 흩어짐</text>
+  <text class="xs" x="658" y="364">→ 플랫폼 레벨로 올림</text>
+  <text class="xs" x="658" y="382">   프롬프트도 한 모듈로 통합</text>
+
+  <line x1="898" y1="298" x2="920" y2="298" stroke="#EA580C" stroke-width="2.2" marker-end="url(#ah)"/>
+
+  <rect x="924" y="192" width="256" height="212" rx="10" fill="#FFFFFF" stroke="#059669" stroke-width="2.4"/>
+  <circle cx="948" cy="220" r="14" fill="#EA580C"/><text class="bn" x="948" y="225" text-anchor="middle">4</text>
+  <text class="h" x="972" y="225" fill="#C2410C">Bedrock Haiku</text>
+  <rect x="1120" y="206" width="44" height="19" rx="9" fill="#059669"/><text class="nb" x="1142" y="220" text-anchor="middle">NEW</text>
+  <text class="s" x="944" y="258">Converse 스트리밍</text>
+  <text class="s" x="944" y="278">대화는 Haiku 계열로</text>
+  <text class="xs" x="944" y="302">지금은 Opus 4.6 —</text>
+  <text class="xs" x="944" y="320">최상위 티어라 가장 느림</text>
+  <text class="xs" x="944" y="344">짧은 감정 대화는</text>
+  <text class="xs" x="944" y="362">티어 차이가 체감되지 않음</text>
+  <text class="xs" x="944" y="382">품질 필요한 곳은 ②에서</text>
+
+  <line x1="1184" y1="298" x2="1206" y2="298" stroke="#EA580C" stroke-width="2.2" marker-end="url(#ah)"/>
+
+  <rect x="1210" y="192" width="256" height="212" rx="10" fill="#FFFFFF" stroke="#EA580C" stroke-width="1.6"/>
+  <circle cx="1234" cy="220" r="14" fill="#EA580C"/><text class="bn" x="1234" y="225" text-anchor="middle">5</text>
+  <text class="h" x="1258" y="225" fill="#C2410C">응답 종료</text>
+  <text class="s" x="1230" y="258">SSE 토큰 → 화면</text>
+  <text class="s" x="1230" y="278">여기서 스트림을 닫음</text>
+  <text class="xs" x="1230" y="302">지금은 done 이벤트가</text>
+  <text class="xs" x="1230" y="320">분석 2개를 기다림 →</text>
+  <text class="xs" x="1230" y="338">글이 끝났는데 입력창이</text>
+  <text class="xs" x="1230" y="356">몇 초 안 풀림</text>
+  <text class="xs" x="1230" y="380" fill="#059669">그 대기를 없애는 것이 핵심</text>
+
+  <line x1="1470" y1="298" x2="1492" y2="298" stroke="#94A3B8" stroke-width="2.2" stroke-dasharray="6 4" marker-end="url(#an)"/>
+
+  <rect x="1496" y="192" width="340" height="212" rx="10" fill="#F8FAFC" stroke="#94A3B8" stroke-width="2" stroke-dasharray="8 5"/>
+  <circle cx="1520" cy="220" r="14" fill="#94A3B8"/><text class="bn" x="1520" y="225" text-anchor="middle">6</text>
+  <text class="h" x="1544" y="225" fill="#64748B">응답 뒤에 — 아이는 기다리지 않음</text>
+  <text class="s" x="1516" y="258">대화 히스토리 저장</text>
+  <text class="s" x="1516" y="278">감정 분석 1회 (Haiku)</text>
+  <text class="xs" x="1516" y="302">메모리 추출은 여기서 제거하고</text>
+  <text class="xs" x="1516" y="320">②의 새벽 배치로 옮깁니다</text>
+  <text class="xs" x="1516" y="344">ECS 는 응답 후에도 프로세스가</text>
+  <text class="xs" x="1516" y="362">살아 있어 이 방식이 가능</text>
+  <text class="xs" x="1516" y="382">(Lambda 로 가면 깨지는 부분)</text>
+
+  <!-- ================= ② 배치 경로 ================= -->
+  <rect x="40" y="458" width="1820" height="336" rx="14" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="2.6"/>
+  <text class="lane" x="66" y="492" fill="#1D4ED8">②  배치 경로   ·   EventBridge 새벽 실행</text>
+  <rect x="560" y="476" width="44" height="19" rx="9" fill="#059669"/><text class="nb" x="582" y="490" text-anchor="middle">NEW</text>
+  <text class="goal" x="620" y="492" fill="#1D4ED8">지연 무관 — 품질 우선이라 Opus 사용</text>
+  <text class="lanes" x="66" y="516">아이가 요청할 때 만들지 않습니다. 전날 밤에 만들어 두고 즉시 경로는 읽기만 합니다.</text>
+
+  <rect x="66" y="532" width="230" height="240" rx="10" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.6"/>
+  <text class="h" x="86" y="564" fill="#1D4ED8">EventBridge</text>
+  <text class="s" x="86" y="592">매일 새벽 스케줄</text>
+  <text class="s" x="86" y="612">API Destination 으로</text>
+  <text class="s" x="86" y="632">/api/cron/* 호출</text>
+  <text class="xs" x="86" y="658">공유 시크릿 헤더로 보호</text>
+  <text class="xs" x="86" y="682">가장 빠른 배선 방법 —</text>
+  <text class="xs" x="86" y="700">Lambda 새로 만들 필요 없이</text>
+  <text class="xs" x="86" y="718">지금 컨테이너가 그대로 처리</text>
+  <text class="xs" x="86" y="748">실패 시 CloudWatch 알람</text>
+
+  <line x1="300" y1="652" x2="322" y2="652" stroke="#1D4ED8" stroke-width="2.2" marker-end="url(#ac)"/>
+
+  <rect x="326" y="532" width="470" height="74" rx="10" fill="#FFFFFF" stroke="#059669" stroke-width="2.4"/>
+  <text class="h" x="346" y="562" fill="#1D4ED8">잡 1 — 메모리 통합   (이번 주 최대 성과)</text>
+  <text class="s" x="346" y="586">하루치 대화를 Opus 로 한 번에 읽어 기억을 재작성</text>
+
+  <rect x="326" y="618" width="470" height="74" rx="10" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.6"/>
+  <text class="h" x="346" y="648" fill="#1D4ED8">잡 2 — 오늘의 모험 사전 생성</text>
+  <text class="s" x="346" y="672">전날 감정·완료 기록을 반영해 미리 구성 · 삽화까지</text>
+
+  <rect x="326" y="704" width="470" height="68" rx="10" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.6"/>
+  <text class="h" x="346" y="734" fill="#1D4ED8">잡 3 — 보호자 요약 · 하루 성찰</text>
+  <text class="s" x="346" y="757">지금 규칙 기반인 리포트를 Opus 요약으로 승급</text>
+
+  <line x1="800" y1="652" x2="822" y2="652" stroke="#1D4ED8" stroke-width="2.2" marker-end="url(#ac)"/>
+
+  <rect x="826" y="532" width="330" height="240" rx="10" fill="#FFFFFF" stroke="#059669" stroke-width="2.4"/>
+  <text class="h" x="846" y="564" fill="#1D4ED8">메모리를 2층으로</text>
+  <rect x="1088" y="546" width="44" height="19" rx="9" fill="#059669"/><text class="nb" x="1110" y="560" text-anchor="middle">NEW</text>
+  <text class="s" x="846" y="596">휘발성 — 최근 어투 · 감정 테마</text>
+  <text class="xs" x="846" y="616">상한 있음 · 매일 갱신</text>
+  <text class="s" x="846" y="646">영속 — 중요한 사실</text>
+  <text class="xs" x="846" y="666">상한 없음 · 중요도 점수 부여</text>
+  <text class="xs" x="846" y="690">“누나가 화요일마다 온다”</text>
+  <text class="xs" x="846" y="708">“주사를 무서워한다”</text>
+  <text class="xs" x="846" y="732" fill="#C7253E">지금은 12개 상한에 밀려</text>
+  <text class="xs" x="846" y="750" fill="#C7253E">오래된 기억이 조용히 사라짐</text>
+
+  <line x1="1160" y1="652" x2="1182" y2="652" stroke="#1D4ED8" stroke-width="2.2" marker-end="url(#ac)"/>
+
+  <rect x="1186" y="532" width="650" height="240" rx="10" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="1.6"/>
+  <text class="h" x="1206" y="564" fill="#1D4ED8">결과를 DynamoDB 에 저장 → 다음날 즉시 경로는 읽기만</text>
+  <text class="s" x="1206" y="596">아침에 아이가 앱을 열면 오늘의 모험이 이미 준비되어 있습니다.</text>
+  <text class="s" x="1206" y="620">보호자가 홈을 열면 요약이 이미 만들어져 있습니다.</text>
+  <text class="s" x="1206" y="644">비밀친구는 어제 나눈 이야기를 기억한 상태로 인사합니다.</text>
+  <text class="s" x="1206" y="676" fill="#059669">요청 시점 LLM 호출: 대화 1회 + (응답 후) 감정 1회</text>
+  <text class="xs" x="1206" y="700">지금은 한 턴에 3회를 전부 응답 경로에서 처리합니다.</text>
+  <text class="xs" x="1206" y="724">이 재배치만으로 체감 응답이 초 단위로 짧아지고,</text>
+  <text class="xs" x="1206" y="748">배치는 큰 모델을 써도 아이 대기 시간에 영향이 없습니다.</text>
+
+  <path d="M 1500 458 L 1500 434" fill="none" stroke="#059669" stroke-width="2.6" marker-end="url(#ag)"/>
+  <text class="xs" x="1512" y="450" fill="#059669">미리 만든 결과를 읽음</text>
+
+  <!-- ================= 데이터 · AI · 운영 ================= -->
+  <text class="lane" x="46" y="838" fill="#1E293B">받쳐주는 서비스</text>
+
+  <rect x="46" y="856" width="352" height="240" rx="12" fill="#FFFFFF" stroke="#C925D1" stroke-width="2.2"/>
+  <g transform="translate(70,878)">
+    <rect width="34" height="34" rx="7" fill="url(#gNeb)"/>
+    <ellipse cx="17" cy="10" rx="8.5" ry="3.4" fill="none" stroke="#FFFFFF" stroke-width="1.8"/>
+    <path d="M 8.5 10 V 24 C 8.5 25.9 12.3 27.4 17 27.4 C 21.7 27.4 25.5 25.9 25.5 24 V 10" fill="none" stroke="#FFFFFF" stroke-width="1.8"/>
+    <circle cx="17" cy="18" r="2.4" fill="#FFFFFF"/>
+  </g>
+  <text class="h" x="114" y="900" fill="#A11BA8">DynamoDB</text>
+  <text class="s" x="70" y="942">앱 데이터 17종 + 메모리 2층</text>
+  <text class="s" x="70" y="964">배치 결과 저장소</text>
+  <text class="xs" x="70" y="990">이번 주 유지 — 이전 없음</text>
+  <text class="xs" x="70" y="1014">Aurora 는 users 테이블 하나라</text>
+  <text class="xs" x="70" y="1032">다음 사이클에 통합 권장</text>
+  <text class="xs" x="70" y="1062" fill="#C7253E">단, SG 에서 0.0.0.0/0 회수는</text>
+  <text class="xs" x="70" y="1080" fill="#C7253E">이번 주에 (10분 작업)</text>
+
+  <rect x="418" y="856" width="352" height="240" rx="12" fill="#FFFFFF" stroke="#01A88D" stroke-width="2.2"/>
+  <g transform="translate(442,878)">
+    <rect width="34" height="34" rx="7" fill="url(#gOrb)"/>
+    <path d="M 7 12 C 11.6 9 15.4 15.2 20 12 C 23.1 9.9 25.4 11 27 12.2" fill="none" stroke="#FFFFFF" stroke-width="1.9"/>
+    <path d="M 7 19 C 11.6 16 15.4 22.2 20 19 C 23.1 16.9 25.4 18 27 19.2" fill="none" stroke="#FFFFFF" stroke-width="1.9"/>
+    <path d="M 7 26 C 11.6 23 15.4 29.2 20 26 C 23.1 23.9 25.4 25 27 26.2" fill="none" stroke="#FFFFFF" stroke-width="1.9"/>
+  </g>
+  <text class="h" x="486" y="900" fill="#0F766E">Bedrock</text>
+  <rect x="700" y="884" width="44" height="19" rx="9" fill="#059669"/><text class="nb" x="722" y="898" text-anchor="middle">NEW</text>
+  <text class="s" x="442" y="942">대화 · 감정 분석 → Haiku</text>
+  <text class="s" x="442" y="964">이야기 · 요약 · 메모리 → Opus</text>
+  <text class="s" x="442" y="986">이미지 → Stability (us-west-2)</text>
+  <text class="s" x="442" y="1012">Guardrails 를 전 호출에 적용</text>
+  <text class="xs" x="442" y="1038">모델 ID 를 용도별 환경변수로 분리</text>
+  <text class="xs" x="442" y="1062">프롬프트 캐싱 지원 여부 확인</text>
+  <text class="xs" x="442" y="1080">— 되면 페르소나 재전송 비용 절감</text>
+
+  <rect x="790" y="856" width="352" height="240" rx="12" fill="#FFFFFF" stroke="#E7157B" stroke-width="2.2"/>
+  <g transform="translate(814,878)">
+    <rect width="34" height="34" rx="7" fill="url(#gCos)"/>
+    <rect x="7" y="9" width="20" height="16" rx="2.5" fill="none" stroke="#FFFFFF" stroke-width="1.8"/>
+    <path d="M 10 19 H 13.5 L 15.6 13.5 L 18.6 23 L 21 17.5 H 24" fill="none" stroke="#FFFFFF" stroke-width="1.8"/>
+  </g>
+  <text class="h" x="858" y="900" fill="#BE185D">CloudWatch</text>
+  <rect x="1072" y="884" width="44" height="19" rx="9" fill="#059669"/><text class="nb" x="1094" y="898" text-anchor="middle">NEW</text>
+  <text class="s" x="814" y="942">기능별 Bedrock 지연 · 토큰 · 실패</text>
+  <text class="s" x="814" y="964">커스텀 메트릭 + 대시보드 1개</text>
+  <text class="s" x="814" y="986">알람 — 실패율 · p95 지연</text>
+  <text class="s" x="814" y="1008">배치 잡 실패 알림</text>
+  <text class="xs" x="814" y="1034">예외를 console.warn 으로 삼키는</text>
+  <text class="xs" x="814" y="1052">지점들을 여기로 올림</text>
+  <text class="xs" x="814" y="1080" fill="#059669">발표에서 개선 폭을 숫자로 증명</text>
+
+  <rect x="1162" y="856" width="352" height="240" rx="12" fill="#FFFFFF" stroke="#DD344C" stroke-width="2.2"/>
+  <g transform="translate(1186,878)">
+    <rect width="34" height="34" rx="7" fill="url(#gMar)"/>
+    <rect x="10" y="16" width="14" height="11" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1.8"/>
+    <path d="M 13 16 V 13 C 13 9.6 21 9.6 21 13 V 16" fill="none" stroke="#FFFFFF" stroke-width="1.8"/>
+    <circle cx="17" cy="21.5" r="1.8" fill="#FFFFFF"/>
+  </g>
+  <text class="h" x="1230" y="900" fill="#BE123C">Secrets Manager</text>
+  <rect x="1444" y="884" width="44" height="19" rx="9" fill="#059669"/><text class="nb" x="1466" y="898" text-anchor="middle">NEW</text>
+  <text class="s" x="1186" y="942">OPENAI_API_KEY</text>
+  <text class="s" x="1186" y="964">AUTH_SESSION_SECRET</text>
+  <text class="s" x="1186" y="986">PGPASSWORD</text>
+  <text class="xs" x="1186" y="1012">지금은 ECS 태스크 정의 환경변수에</text>
+  <text class="xs" x="1186" y="1030">평문으로 구워집니다</text>
+  <text class="xs" x="1186" y="1058">태스크 정의는 조회 권한만 있으면</text>
+  <text class="xs" x="1186" y="1076">누구나 읽습니다 → secrets 참조로</text>
+
+  <rect x="1534" y="856" width="326" height="240" rx="12" fill="#FFFFFF" stroke="#7AA116" stroke-width="2.2"/>
+  <g transform="translate(1558,878)">
+    <rect width="34" height="34" rx="7" fill="url(#gEnd)"/>
+    <path d="M 8 9 H 26 L 23.5 26 H 10.5 Z" fill="none" stroke="#FFFFFF" stroke-width="1.8"/>
+    <line x1="9" y1="14.5" x2="25" y2="14.5" stroke="#FFFFFF" stroke-width="1.5"/>
+  </g>
+  <text class="h" x="1602" y="900" fill="#4D7C0F">S3</text>
+  <text class="s" x="1558" y="942">아바타 · 일정 삽화 · 사진첩</text>
+  <text class="s" x="1558" y="964">배치가 만든 이미지도 여기</text>
+  <text class="xs" x="1558" y="990" fill="#C7253E">TaskRole 권한이 avatars/* 만</text>
+  <text class="xs" x="1558" y="1008" fill="#C7253E">열려 있어 사진 업로드가</text>
+  <text class="xs" x="1558" y="1026" fill="#C7253E">프로덕션에서 실패합니다</text>
+  <text class="xs" x="1558" y="1054">→ schedule-images/ · photos/</text>
+  <text class="xs" x="1558" y="1072">   프리픽스 추가 (이번 주)</text>
+
+  <!-- ================= 순서 ================= -->
+  <line x1="46" y1="1128" x2="1854" y2="1128" stroke="#DDE3EA" stroke-width="1.5"/>
+  <text class="lane" x="46" y="1162" fill="#1E293B">한 주 순서</text>
+  <text class="note" x="200" y="1162">0일 git init  ·  1일 모델 라우팅 + SSE 분리 + 병렬 조회  ·  2일 CloudWatch 계측  ·  3일 Guardrails + 프롬프트 통합</text>
+  <text class="note" x="200" y="1188">4~5일 EventBridge 배치 3종 + 메모리 2층  ·  6일 보안 (Aurora SG · Secrets · S3 권한 · 데모 비밀번호)  ·  7일 리허설</text>
+  <text class="note" x="200" y="1214" fill="#C7253E">시간이 밀리면 — 1일차와 4~5일차를 지키고, 6일차는 Aurora SG 회수(10분)와 S3 권한만 남기세요.</text>
+  <text class="xs" x="200" y="1244">이번 주에 넣지 않는 것: Cognito · OpenSearch · Aurora 이전 · SQS 워커. 각각 이유와 도입 트리거를 문서에 적어두면 심사에서 감점 대신 가점이 됩니다.</text>
+</svg>

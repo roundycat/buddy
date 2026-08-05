@@ -1,0 +1,48 @@
+{
+  "name": "bedi",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "seed:aurora": "node --env-file=.env.local scripts/seed-aurora-users.js",
+    "wipe:fresh": "node --env-file=.env.local scripts/wipe-fresh-start.js",
+    "check:bedrock": "node --env-file=.env.local scripts/check-bedrock.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock": "^3.1102.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1102.0",
+    "@aws-sdk/client-dynamodb": "^3.1102.0",
+    "@aws-sdk/client-s3": "^3.1102.0",
+    "@aws-sdk/lib-dynamodb": "^3.1102.0",
+    "bcryptjs": "^3.0.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.469.0",
+    "next": "14.2.35",
+    "pg": "^8.22.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "server-only": "^0.0.1",
+    "sharp": "^0.35.3",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20",
+    "@types/pg": "^8.20.3",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/sharp": "^0.31.1",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.35",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5"
+  }
+}

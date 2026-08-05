@@ -1,0 +1,547 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 20% 98%;
+    --foreground: 215 25% 27%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 27%;
+    --primary: 215 25% 27%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 90 18% 57%;
+    --secondary-foreground: 215 25% 27%;
+    --muted: 40 15% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 0 22% 70%;
+    --accent-foreground: 215 25% 27%;
+    --border: 214 20% 90%;
+    --input: 214 20% 90%;
+    --ring: 90 18% 57%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply text-bedi-slate antialiased;
+  }
+}
+
+@layer utilities {
+  .paper-bg {
+    background-color: #fbfaf7;
+    background-image:
+      radial-gradient(rgba(51, 65, 85, 0.025) 0.6px, transparent 0.6px),
+      linear-gradient(180deg, #fbfaf7 0%, #f7f5f1 100%);
+    background-size: 14px 14px, 100% 100%;
+  }
+
+  .paper-room {
+    min-height: calc(100vh - 4rem);
+    padding-bottom: 5rem;
+  }
+
+  .waiting-room-enter {
+    animation: waiting-fade-up 800ms ease-out both;
+  }
+
+  .persona-pebble {
+    animation: persona-breathe 3.6s ease-in-out infinite;
+    transform-origin: center bottom;
+  }
+
+  .persona-speaking {
+    animation: persona-chat-bob 1.8s ease-in-out infinite;
+    transform-origin: center bottom;
+  }
+
+  .persona-pet {
+    animation: persona-pet-wiggle 520ms ease-out both;
+    transform-origin: center bottom;
+  }
+
+  .persona-hug {
+    animation: persona-hug-squeeze 700ms ease-out both;
+    transform-origin: center bottom;
+  }
+
+  .persona-farewell {
+    animation: persona-farewell-out 1.65s ease-in forwards;
+    transform-origin: center bottom;
+  }
+
+  .persona-friend-run-in {
+    animation: persona-friend-run-in 1.15s cubic-bezier(0.22, 1, 0.36, 1) both;
+    transform-origin: center bottom;
+  }
+
+  .persona-away {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-28%) scale(0.86);
+  }
+
+  .persona-heart {
+    animation: persona-heart-float 900ms ease-out forwards;
+    pointer-events: none;
+  }
+
+  .persona-shadow {
+    animation: persona-shadow-breathe 3.6s ease-in-out infinite;
+  }
+
+  .persona-shadow-speaking {
+    animation: persona-shadow-chat 1.8s ease-in-out infinite;
+  }
+
+  .chat-sheet {
+    animation: sheet-up 280ms ease-out both;
+  }
+
+  .typing-dot {
+    animation: typing-bounce 1.1s ease-in-out infinite;
+  }
+
+  .typing-dot-2 {
+    animation-delay: 0.15s;
+  }
+
+  .onboarding-fade {
+    animation: waiting-fade-up 420ms ease-out both;
+  }
+
+  .speech-bubble {
+    position: relative;
+    border-radius: 1rem;
+    border: 1px solid rgba(51, 65, 85, 0.1);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 12px -2px rgba(51, 65, 85, 0.08);
+    animation: speech-pop 280ms ease-out both;
+  }
+
+  .speech-bubble::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -6px;
+    width: 10px;
+    height: 10px;
+    translate: -50% 0;
+    rotate: 45deg;
+    border-right: 1px solid rgba(51, 65, 85, 0.1);
+    border-bottom: 1px solid rgba(51, 65, 85, 0.1);
+    background: rgba(255, 255, 255, 0.95);
+  }
+
+  .garden-bloom {
+    animation: garden-bloom 0.55s ease-out both;
+  }
+
+  .garden-flower-rise {
+    animation: garden-rise 0.45s ease-out both;
+  }
+
+  /* —— Emotion Garden grow motion —— */
+  .garden-stem {
+    display: block;
+  }
+
+  .garden-stem-anim {
+    animation: garden-stem-grow 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .garden-bloom-head-anim {
+    animation: garden-head-bloom 1.1s cubic-bezier(0.34, 1.4, 0.64, 1) 0.55s both;
+  }
+
+  .garden-leaf-anim {
+    animation: garden-leaf-unfurl 0.7s ease-out 0.4s both;
+  }
+
+  .garden-leaf-l {
+    transform: translateX(-140%) rotate(-28deg);
+  }
+
+  .garden-leaf-r {
+    transform: translateX(40%) rotate(28deg);
+  }
+
+  .garden-soil-anim {
+    animation: garden-soil-settle 0.4s ease-out both;
+  }
+
+  .garden-flower-sway {
+    animation: garden-sway 3.6s ease-in-out infinite;
+    transform-origin: bottom center;
+  }
+
+  .garden-flower-sway-late {
+    animation: garden-sway 3.6s ease-in-out 1.4s infinite;
+    transform-origin: bottom center;
+  }
+
+  .garden-plant-grow {
+    animation: garden-plant-appear 0.35s ease-out both;
+  }
+
+  .garden-grow-stage {
+    animation: garden-bloom 0.5s ease-out both;
+  }
+}
+
+@keyframes waiting-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bedi-delivery-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bedi-fresh-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(126, 184, 212, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(126, 184, 212, 0.12);
+  }
+}
+
+.bedi-fresh-schedule {
+  animation: bedi-fresh-glow 1.4s ease-in-out 3;
+}
+
+/* Soft idle breathe — stay in place */
+@keyframes persona-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.02);
+  }
+}
+
+@keyframes persona-chat-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.2deg) scale(1);
+  }
+  35% {
+    transform: translateY(-8px) rotate(1.4deg) scale(1.03);
+  }
+  70% {
+    transform: translateY(-3px) rotate(-0.6deg) scale(1.01);
+  }
+}
+
+@keyframes persona-pet-wiggle {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translateY(-4px) rotate(-3deg) scale(1.03);
+  }
+  50% {
+    transform: translateY(-2px) rotate(3deg) scale(1.04);
+  }
+  75% {
+    transform: translateY(-5px) rotate(-2deg) scale(1.02);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes persona-hug-squeeze {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  35% {
+    transform: translateY(4px) scale(0.92);
+  }
+  65% {
+    transform: translateY(-6px) scale(1.06);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes persona-farewell-out {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1) rotate(0deg);
+  }
+  25% {
+    transform: translateX(-4%) scale(1.03) rotate(-3deg);
+  }
+  55% {
+    opacity: 1;
+    transform: translateX(-12%) scale(0.98) rotate(2deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-42%) scale(0.82) rotate(-6deg);
+  }
+}
+
+@keyframes persona-friend-run-in {
+  0% {
+    opacity: 0;
+    transform: translateX(55%) scale(0.88);
+  }
+  55% {
+    opacity: 1;
+    transform: translateX(-4%) scale(1.04);
+  }
+  78% {
+    transform: translateX(2%) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes persona-heart-float {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-36px) scale(0.85);
+  }
+}
+
+@keyframes persona-shadow-breathe {
+  0%,
+  100% {
+    transform: scaleX(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scaleX(0.82);
+    opacity: 0.35;
+  }
+}
+
+@keyframes persona-shadow-chat {
+  0%,
+  100% {
+    transform: scaleX(1);
+    opacity: 0.5;
+  }
+  35% {
+    transform: scaleX(0.75);
+    opacity: 0.3;
+  }
+  70% {
+    transform: scaleX(0.88);
+    opacity: 0.4;
+  }
+}
+
+@keyframes speech-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes chat-grow-in {
+  from {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.72);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes chat-teaser-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes typing-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+@keyframes garden-bloom {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes garden-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes garden-stem-grow {
+  0% {
+    transform: scaleY(0);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes garden-head-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.15) translateY(12px);
+    filter: blur(1px);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.12) translateY(-2px);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes garden-leaf-unfurl {
+  0% {
+    opacity: 0;
+    scale: 0.2;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes garden-soil-settle {
+  from {
+    opacity: 0;
+    transform: scaleX(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes garden-sway {
+  0%,
+  100% {
+    transform: rotate(-2.5deg);
+  }
+  50% {
+    transform: rotate(2.5deg);
+  }
+}
+
+@keyframes garden-plant-appear {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waiting-room-enter,
+  .persona-pebble,
+  .persona-speaking,
+  .persona-pet,
+  .persona-hug,
+  .persona-farewell,
+  .persona-friend-run-in,
+  .persona-heart,
+  .persona-shadow,
+  .persona-shadow-speaking,
+  .chat-sheet,
+  .typing-dot,
+  .onboarding-fade,
+  .speech-bubble,
+  .garden-bloom,
+  .garden-flower-rise,
+  .garden-stem-anim,
+  .garden-bloom-head-anim,
+  .garden-leaf-anim,
+  .garden-soil-anim,
+  .garden-flower-sway,
+  .garden-flower-sway-late,
+  .garden-plant-grow,
+  .garden-grow-stage,
+  .chat-teaser-in {
+    animation: none !important;
+    transition: none !important;
+  }
+}

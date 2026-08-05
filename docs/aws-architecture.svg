@@ -1,0 +1,319 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1820" height="1300" viewBox="0 0 1820 1300" font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR','Segoe UI',sans-serif">
+  <defs>
+    <linearGradient id="gSmile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F79640"/><stop offset="1" stop-color="#C85B10"/>
+    </linearGradient>
+    <linearGradient id="gNebula" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E164EA"/><stop offset="1" stop-color="#A11BA8"/>
+    </linearGradient>
+    <linearGradient id="gEndor" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9CC72F"/><stop offset="1" stop-color="#5E7F10"/>
+    </linearGradient>
+    <linearGradient id="gGalaxy" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#A882FF"/><stop offset="1" stop-color="#6B2BE0"/>
+    </linearGradient>
+    <linearGradient id="gCosmos" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F4479C"/><stop offset="1" stop-color="#B60F60"/>
+    </linearGradient>
+    <linearGradient id="gMars" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#EA6376"/><stop offset="1" stop-color="#B21F35"/>
+    </linearGradient>
+    <linearGradient id="gOrbit" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#38CBB2"/><stop offset="1" stop-color="#017A6A"/>
+    </linearGradient>
+    <linearGradient id="gSquid" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4A5B70"/><stop offset="1" stop-color="#1A2431"/>
+    </linearGradient>
+    <linearGradient id="gGray" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9BA7B6"/><stop offset="1" stop-color="#6B7787"/>
+    </linearGradient>
+
+    <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#5A6675"/>
+    </marker>
+
+    <style>
+      .bg { fill: #F7F8FA; }
+      .title { font-size: 29px; font-weight: 700; fill: #232F3E; }
+      .subtitle { font-size: 14px; fill: #5A6675; }
+      .card { fill: #FFFFFF; stroke-width: 2; }
+      .h { font-size: 15.5px; font-weight: 700; fill: #232F3E; }
+      .s { font-size: 12px; fill: #48546A; }
+      .xs { font-size: 11px; fill: #6B7787; }
+      .w { font-size: 11px; font-weight: 700; fill: #C7253E; }
+      .grp { fill: none; stroke-width: 2; stroke-dasharray: 9 6; }
+      .gl { font-size: 14px; font-weight: 700; letter-spacing: 0.4px; }
+      .flow { stroke: #5A6675; stroke-width: 2; fill: none; marker-end: url(#arw); }
+      .note { font-size: 13px; fill: #334155; }
+      .lg { font-size: 12px; fill: #48546A; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1820" height="1300"/>
+
+  <text class="title" x="48" y="54">Bedi — AWS 아키텍처</text>
+  <text class="subtitle" x="48" y="84">요청 경로 · 데이터 저장 · AI 호출 · 배포 파이프라인   |   코드와 배포 스크립트에서 확인한 구성</text>
+  <text class="xs" x="1462" y="52">아이콘 색상: AWS 공식 카테고리 팔레트</text>
+  <text class="xs" x="1462" y="70">awslabs/aws-icons-for-plantuml 정의 기준</text>
+  <text class="xs" x="1462" y="88">아이콘 글리프는 직접 작도 (공식 에셋 아님)</text>
+
+  <!-- ============ 사용자 ============ -->
+  <rect class="card" x="48" y="186" width="176" height="88" rx="10" stroke="#7D8998"/>
+  <g transform="translate(64,208)">
+    <rect width="44" height="44" rx="6" fill="url(#gSquid)"/>
+    <circle cx="22" cy="17" r="6" fill="#FFFFFF"/>
+    <path d="M 10 36 C 10 27 34 27 34 36 Z" fill="#FFFFFF"/>
+  </g>
+  <text class="h" x="122" y="224">사용자</text>
+  <text class="s" x="122" y="245">아동 계정</text>
+  <text class="s" x="122" y="262">보호자 계정</text>
+
+  <!-- ============ AWS Cloud ============ -->
+  <rect x="252" y="118" width="1532" height="880" rx="10" fill="none" stroke="#232F3E" stroke-width="2"/>
+  <g transform="translate(272,132)">
+    <rect width="30" height="30" rx="5" fill="url(#gSquid)"/>
+    <path d="M 8 20 C 4 20 4 14 9 14 C 9 9 17 8 19 13 C 24 12 26 20 22 20 Z" fill="#FFFFFF"/>
+  </g>
+  <text class="gl" x="312" y="152" fill="#232F3E">AWS Cloud</text>
+
+  <!-- CloudFront -->
+  <rect class="card" x="290" y="186" width="330" height="88" rx="10" stroke="#8C4FFF"/>
+  <g transform="translate(306,208)">
+    <rect width="44" height="44" rx="6" fill="url(#gGalaxy)"/>
+    <circle cx="22" cy="22" r="13" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+    <ellipse cx="22" cy="22" rx="6" ry="13" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
+    <line x1="9" y1="22" x2="35" y2="22" stroke="#FFFFFF" stroke-width="1.6"/>
+    <line x1="11.5" y1="15" x2="32.5" y2="15" stroke="#FFFFFF" stroke-width="1.3"/>
+    <line x1="11.5" y1="29" x2="32.5" y2="29" stroke="#FFFFFF" stroke-width="1.3"/>
+  </g>
+  <text class="h" x="364" y="222">Amazon CloudFront</text>
+  <text class="s" x="364" y="243">d36nmab9….cloudfront.net</text>
+  <text class="xs" x="364" y="261">앱 공개 진입점 · 생성 스크립트 없음(수동 추정)</text>
+
+  <line class="flow" x1="226" y1="230" x2="286" y2="230"/>
+
+  <!-- ============ 리전 us-east-1 ============ -->
+  <rect class="grp" x="290" y="306" width="990" height="666" rx="12" stroke="#5A6675"/>
+  <text class="gl" x="314" y="334" fill="#5A6675">리전  us-east-1</text>
+
+  <!-- VPC -->
+  <rect x="314" y="356" width="470" height="592" rx="10" fill="none" stroke="#8C4FFF" stroke-width="2"/>
+  <g transform="translate(330,368)">
+    <rect width="24" height="24" rx="4" fill="url(#gGalaxy)"/>
+    <rect x="6" y="6" width="12" height="12" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
+    <circle cx="6" cy="6" r="1.8" fill="#FFFFFF"/>
+    <circle cx="18" cy="18" r="1.8" fill="#FFFFFF"/>
+  </g>
+  <text class="gl" x="362" y="385" fill="#7C3AED">VPC (default) · 서브넷 2개</text>
+
+  <!-- ALB -->
+  <rect class="card" x="338" y="404" width="420" height="92" rx="10" stroke="#8C4FFF"/>
+  <g transform="translate(354,428)">
+    <rect width="44" height="44" rx="6" fill="url(#gGalaxy)"/>
+    <circle cx="14" cy="22" r="3.4" fill="#FFFFFF"/>
+    <line x1="17" y1="22" x2="30" y2="12" stroke="#FFFFFF" stroke-width="1.8"/>
+    <line x1="17" y1="22" x2="31" y2="22" stroke="#FFFFFF" stroke-width="1.8"/>
+    <line x1="17" y1="22" x2="30" y2="32" stroke="#FFFFFF" stroke-width="1.8"/>
+    <rect x="29" y="9" width="6" height="6" rx="1" fill="#FFFFFF"/>
+    <rect x="29" y="19" width="6" height="6" rx="1" fill="#FFFFFF"/>
+    <rect x="29" y="29" width="6" height="6" rx="1" fill="#FFFFFF"/>
+  </g>
+  <text class="h" x="412" y="440">Application Load Balancer</text>
+  <text class="s" x="412" y="462">bedi-alb · :80 → bedi-tg :3000</text>
+  <text class="xs" x="412" y="481">헬스체크 /login · idle 180s · TLS 없음</text>
+
+  <line class="flow" x1="455" y1="274" x2="455" y2="400"/>
+
+  <!-- ECS -->
+  <rect class="card" x="338" y="524" width="420" height="152" rx="10" stroke="#ED7100"/>
+  <g transform="translate(354,578)">
+    <rect width="44" height="44" rx="6" fill="url(#gSmile)"/>
+    <rect x="10" y="10" width="10" height="10" rx="1.5" fill="#FFFFFF"/>
+    <rect x="24" y="10" width="10" height="10" rx="1.5" fill="#FFFFFF"/>
+    <rect x="10" y="24" width="10" height="10" rx="1.5" fill="#FFFFFF"/>
+    <rect x="24" y="24" width="10" height="10" rx="1.5" fill="none" stroke="#FFFFFF" stroke-width="1.8"/>
+  </g>
+  <text class="h" x="412" y="556">Amazon ECS  ·  Fargate</text>
+  <text class="s" x="412" y="578">bedi-cluster / bedi-service · Task bedi</text>
+  <text class="s" x="412" y="597">1 vCPU / 2 GB · awsvpc · public IP</text>
+  <text class="s" x="412" y="616">Next.js 14 standalone 컨테이너 :3000</text>
+  <text class="xs" x="412" y="637">TaskRole BediEcsTaskRole</text>
+  <text class="w" x="412" y="658">주의 태스크 정의 환경변수에 시크릿 평문</text>
+
+  <line class="flow" x1="548" y1="496" x2="548" y2="520"/>
+
+  <!-- Aurora -->
+  <rect class="card" x="338" y="704" width="420" height="112" rx="10" stroke="#C925D1"/>
+  <g transform="translate(354,738)">
+    <rect width="44" height="44" rx="6" fill="url(#gNebula)"/>
+    <ellipse cx="22" cy="13" rx="11" ry="4.4" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+    <path d="M 11 13 V 31 C 11 33.4 15.9 35.4 22 35.4 C 28.1 35.4 33 33.4 33 31 V 13" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+    <path d="M 11 21 C 11 23.4 15.9 25.4 22 25.4 C 28.1 25.4 33 23.4 33 21" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>
+  </g>
+  <text class="h" x="412" y="736">Amazon Aurora PostgreSQL v2</text>
+  <text class="s" x="412" y="758">bedi-aurora · 15.10 · 0.5~2 ACU</text>
+  <text class="s" x="412" y="777">users 테이블 (bcrypt) — 로그인 전용</text>
+  <text class="w" x="412" y="798">주의 5432 를 0.0.0.0/0 허용 + publicly-accessible</text>
+
+  <line class="flow" x1="548" y1="676" x2="548" y2="700"/>
+
+  <text class="xs" x="340" y="846">SG  bedi-alb-sg  :80  ←  0.0.0.0/0</text>
+  <text class="xs" x="340" y="866">SG  bedi-ecs-sg  :3000  ←  ALB SG 만</text>
+  <text class="xs" x="340" y="886">SG  bedi-aurora-sg  :5432  ←  ECS SG + 0.0.0.0/0</text>
+  <text class="xs" x="340" y="906">IGW 기본 라우트 자동 보정 (Fargate ECR pull 용)</text>
+  <text class="xs" x="340" y="930">서브넷은 default VPC 의 퍼블릭 서브넷 2개 사용</text>
+
+  <!-- 리전 내 · VPC 밖 관리형 서비스 -->
+  <rect class="card" x="814" y="404" width="442" height="92" rx="10" stroke="#C925D1"/>
+  <g transform="translate(830,428)">
+    <rect width="44" height="44" rx="6" fill="url(#gNebula)"/>
+    <ellipse cx="22" cy="13" rx="11" ry="4.4" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+    <path d="M 11 13 V 31 C 11 33.4 15.9 35.4 22 35.4 C 28.1 35.4 33 33.4 33 31 V 13" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+    <circle cx="22" cy="24" r="3" fill="#FFFFFF"/>
+  </g>
+  <text class="h" x="888" y="440">Amazon DynamoDB</text>
+  <text class="s" x="888" y="462">BediApp · PAY_PER_REQUEST · pk=MAP#ns / sk=id</text>
+  <text class="xs" x="888" y="481">페르소나 · 대화 · 정원 · 소원 · 지갑 · 보호자 링크 (10개 공간)</text>
+
+  <rect class="card" x="814" y="520" width="442" height="92" rx="10" stroke="#7AA116"/>
+  <g transform="translate(830,544)">
+    <rect width="44" height="44" rx="6" fill="url(#gEndor)"/>
+    <path d="M 11 12 H 33 L 30 34 H 14 Z" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+    <line x1="12.4" y1="19" x2="31.6" y2="19" stroke="#FFFFFF" stroke-width="1.6"/>
+  </g>
+  <text class="h" x="888" y="556">Amazon S3</text>
+  <text class="s" x="888" y="578">bedi-codebuild-963701985499-us-east-1</text>
+  <text class="xs" x="888" y="597">avatars/ 아바타 PNG   ·   src/ 빌드 소스 zip (용도 혼재)</text>
+
+  <rect class="card" x="814" y="636" width="442" height="92" rx="10" stroke="#01A88D"/>
+  <g transform="translate(830,660)">
+    <rect width="44" height="44" rx="6" fill="url(#gOrbit)"/>
+    <path d="M 9 15 C 15 11 20 19 26 15 C 30 12.5 33 14 35 15.5" fill="none" stroke="#FFFFFF" stroke-width="2.2"/>
+    <path d="M 9 23 C 15 19 20 27 26 23 C 30 20.5 33 22 35 23.5" fill="none" stroke="#FFFFFF" stroke-width="2.2"/>
+    <path d="M 9 31 C 15 27 20 35 26 31 C 30 28.5 33 30 35 31.5" fill="none" stroke="#FFFFFF" stroke-width="2.2"/>
+  </g>
+  <text class="h" x="888" y="672">Amazon Bedrock  ·  대화</text>
+  <text class="s" x="888" y="694">Converse API · us.anthropic.claude-opus-4-6-v1</text>
+  <text class="xs" x="888" y="713">대화 응답 · 메모리 추출 · 보호자 요약   |   실패 시 mock 폴백</text>
+
+  <rect class="card" x="814" y="752" width="442" height="92" rx="10" stroke="#E7157B"/>
+  <g transform="translate(830,776)">
+    <rect width="44" height="44" rx="6" fill="url(#gCosmos)"/>
+    <rect x="9" y="12" width="26" height="21" rx="3" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+    <path d="M 13 25 H 17 L 19.5 19 L 23 30 L 26 24 H 31" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+  </g>
+  <text class="h" x="888" y="788">Amazon CloudWatch Logs</text>
+  <text class="s" x="888" y="810">/ecs/bedi-app · awslogs 드라이버</text>
+  <text class="xs" x="888" y="829">스트림 prefix bedi · 배포 실패 시 logs tail 로 확인</text>
+
+  <rect class="card" x="814" y="868" width="442" height="88" rx="10" stroke="#DD344C"/>
+  <g transform="translate(830,890)">
+    <rect width="44" height="44" rx="6" fill="url(#gMars)"/>
+    <rect x="13" y="21" width="18" height="14" rx="2.5" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+    <path d="M 17 21 V 17 C 17 12.6 27 12.6 27 17 V 21" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+    <circle cx="22" cy="28" r="2.2" fill="#FFFFFF"/>
+  </g>
+  <text class="h" x="888" y="902">AWS IAM  ·  역할 6개</text>
+  <text class="xs" x="888" y="923">BediEcsTaskRole — DynamoDB · Bedrock(*) · S3 avatars/*</text>
+  <text class="xs" x="888" y="941">ExecutionRole · CodeBuild 2 · AppRunner 2 (레거시)</text>
+
+  <!-- ECS → 관리형 서비스 -->
+  <line class="flow" x1="762" y1="592" x2="810" y2="452"/>
+  <line class="flow" x1="762" y1="596" x2="810" y2="568"/>
+  <line class="flow" x1="762" y1="606" x2="810" y2="684"/>
+  <line class="flow" x1="762" y1="612" x2="810" y2="800"/>
+
+  <!-- ============ 리전 us-west-2 ============ -->
+  <rect class="grp" x="1310" y="306" width="452" height="330" rx="12" stroke="#5A6675"/>
+  <text class="gl" x="1334" y="334" fill="#5A6675">리전  us-west-2</text>
+
+  <rect class="card" x="1334" y="356" width="404" height="124" rx="10" stroke="#01A88D"/>
+  <g transform="translate(1350,396)">
+    <rect width="44" height="44" rx="6" fill="url(#gOrbit)"/>
+    <path d="M 9 15 C 15 11 20 19 26 15 C 30 12.5 33 14 35 15.5" fill="none" stroke="#FFFFFF" stroke-width="2.2"/>
+    <path d="M 9 23 C 15 19 20 27 26 23 C 30 20.5 33 22 35 23.5" fill="none" stroke="#FFFFFF" stroke-width="2.2"/>
+    <path d="M 9 31 C 15 27 20 35 26 31 C 30 28.5 33 30 35 31.5" fill="none" stroke="#FFFFFF" stroke-width="2.2"/>
+  </g>
+  <text class="h" x="1408" y="388">Bedrock  ·  아바타 이미지 생성</text>
+  <text class="s" x="1408" y="410">stability.stable-image-core-v1:1</text>
+  <text class="xs" x="1408" y="429">InvokeModel · 크레용풍 동물 캐릭터 2안 생성</text>
+  <text class="xs" x="1408" y="447">실패 시 stable-image-ultra-v1:1 폴백</text>
+  <text class="xs" x="1408" y="465">us-east-1 태스크에서 리전 넘어 직접 호출</text>
+
+  <rect class="card" x="1334" y="496" width="404" height="124" rx="10" stroke="#9BA7B6"/>
+  <g transform="translate(1350,536)">
+    <rect width="44" height="44" rx="6" fill="url(#gGray)"/>
+    <path d="M 11 33 L 11 13 L 33 13 L 33 33 Z" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-dasharray="3 2.5"/>
+    <path d="M 16 27 C 19 20 25 20 28 27 Z" fill="#FFFFFF"/>
+  </g>
+  <text class="h" x="1408" y="528" fill="#6B7787">Bedrock  ·  배경 제거 (비활성)</text>
+  <text class="xs" x="1408" y="550">us.stability.stable-image-remove-background-v1:0</text>
+  <text class="xs" x="1408" y="568">us-west-2 → us-east-1 순차 재시도</text>
+  <text class="xs" x="1408" y="586">AVATAR_REMOVE_BG=false → 현재 호출 안 함</text>
+  <text class="xs" x="1408" y="604">폴백: sharp 로 로컬 매트 처리</text>
+
+  <path class="flow" d="M 1260 670 H 1288 V 418 H 1330"/>
+
+  <!-- ============ 배포 파이프라인 ============ -->
+  <rect class="grp" x="1310" y="666" width="452" height="316" rx="12" stroke="#5A6675"/>
+  <text class="gl" x="1334" y="694" fill="#5A6675">배포 파이프라인 — 로컬 Docker 불필요</text>
+
+  <rect class="card" x="1334" y="710" width="404" height="52" rx="8" stroke="#7AA116"/>
+  <g transform="translate(1346,722)">
+    <rect width="28" height="28" rx="4" fill="url(#gEndor)"/>
+    <path d="M 7 8 H 21 L 19 22 H 9 Z" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
+  </g>
+  <text class="h" x="1388" y="734">S3 소스 업로드</text>
+  <text class="xs" x="1388" y="752">로컬 tar → src/bedi-source.zip (node_modules 제외)</text>
+
+  <rect class="card" x="1334" y="780" width="404" height="52" rx="8" stroke="#C925D1"/>
+  <g transform="translate(1346,792)">
+    <rect width="28" height="28" rx="4" fill="url(#gNebula)"/>
+    <path d="M 11 8 L 6 14 L 11 20" fill="none" stroke="#FFFFFF" stroke-width="1.8"/>
+    <path d="M 17 8 L 22 14 L 17 20" fill="none" stroke="#FFFFFF" stroke-width="1.8"/>
+  </g>
+  <text class="h" x="1388" y="804">AWS CodeBuild</text>
+  <text class="xs" x="1388" y="822">bedi-app-build-east1 · privileged · buildspec.yml</text>
+
+  <rect class="card" x="1334" y="850" width="404" height="52" rx="8" stroke="#ED7100"/>
+  <g transform="translate(1346,862)">
+    <rect width="28" height="28" rx="4" fill="url(#gSmile)"/>
+    <path d="M 7 11 L 14 7 L 21 11 V 21 H 7 Z" fill="none" stroke="#FFFFFF" stroke-width="1.7"/>
+  </g>
+  <text class="h" x="1388" y="874">Amazon ECR</text>
+  <text class="xs" x="1388" y="892">bedi-app:latest · Dockerfile 3단계 standalone</text>
+
+  <rect class="card" x="1334" y="920" width="404" height="52" rx="8" stroke="#ED7100"/>
+  <g transform="translate(1346,932)">
+    <rect width="28" height="28" rx="4" fill="url(#gSmile)"/>
+    <rect x="6" y="6" width="7" height="7" rx="1" fill="#FFFFFF"/>
+    <rect x="15" y="6" width="7" height="7" rx="1" fill="#FFFFFF"/>
+    <rect x="6" y="15" width="7" height="7" rx="1" fill="#FFFFFF"/>
+    <rect x="15" y="15" width="7" height="7" rx="1" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>
+  </g>
+  <text class="h" x="1388" y="944">ECS 서비스 갱신</text>
+  <text class="xs" x="1388" y="962">update-service --force-new-deployment → /login 스모크</text>
+
+  <line class="flow" x1="1536" y1="764" x2="1536" y2="776"/>
+  <line class="flow" x1="1536" y1="834" x2="1536" y2="846"/>
+  <line class="flow" x1="1536" y1="904" x2="1536" y2="916"/>
+
+  <!-- ============ 범례 ============ -->
+  <text class="gl" x="48" y="1044" fill="#232F3E">카테고리 색상</text>
+  <rect x="196" y="1032" width="15" height="15" rx="3" fill="#ED7100"/><text class="lg" x="218" y="1044">컴퓨트 · 컨테이너</text>
+  <rect x="356" y="1032" width="15" height="15" rx="3" fill="#8C4FFF"/><text class="lg" x="378" y="1044">네트워킹 · 콘텐츠 전송</text>
+  <rect x="552" y="1032" width="15" height="15" rx="3" fill="#C925D1"/><text class="lg" x="574" y="1044">데이터베이스 · 개발자 도구</text>
+  <rect x="772" y="1032" width="15" height="15" rx="3" fill="#7AA116"/><text class="lg" x="794" y="1044">스토리지</text>
+  <rect x="880" y="1032" width="15" height="15" rx="3" fill="#01A88D"/><text class="lg" x="902" y="1044">인공지능</text>
+  <rect x="988" y="1032" width="15" height="15" rx="3" fill="#E7157B"/><text class="lg" x="1010" y="1044">관리 · 거버넌스</text>
+  <rect x="1140" y="1032" width="15" height="15" rx="3" fill="#DD344C"/><text class="lg" x="1162" y="1044">보안 · 자격 증명</text>
+
+  <!-- ============ 메모 ============ -->
+  <text class="gl" x="48" y="1102" fill="#232F3E">구성 메모</text>
+  <text class="note" x="48" y="1132">· 저장 경계 — 로그인 자격 증명만 Aurora(VPC 안), 그 밖의 앱 데이터는 전부 DynamoDB. 로컬 개발은 PERSISTENCE 미설정으로 .data/*.json 사용</text>
+  <text class="note" x="48" y="1158">· VPC 안 / 밖 — ALB · ECS 태스크 · Aurora 는 VPC 안, DynamoDB · S3 · Bedrock · CloudWatch 는 VPC 밖 관리형 엔드포인트로 호출</text>
+  <text class="note" x="48" y="1184">· 레거시 — App Runner bedi-app (us-west-2) 는 ECS 구성이 대체. 03 배포 스크립트와 AppRunner IAM 역할 2개만 남아 있음</text>
+  <text class="note" x="48" y="1210" fill="#C7253E">· 위험 3 — Aurora 인터넷 노출(5432 + public) · ECS 태스크 정의 환경변수에 시크릿 평문(OPENAI_API_KEY / PGPASSWORD / AUTH_SESSION_SECRET) · S3 버킷 용도 혼재</text>
+  <text class="note" x="48" y="1236">· 미확인 — CloudFront 배포는 생성 스크립트가 없어 수동 구성으로 추정. CloudFront → ALB 구간은 HTTP(평문)이며 ALB 에 인증서 없음</text>
+  <text class="xs" x="48" y="1268">색상 팔레트 출처: awslabs/aws-icons-for-plantuml (Apache-2.0) 의 카테고리 색상 정의. 아이콘 글리프는 이 다이어그램을 위해 직접 작도한 것으로 AWS 공식 에셋 패키지가 아닙니다.</text>
+</svg>
