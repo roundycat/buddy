@@ -2,6 +2,11 @@ import { runLlm } from "@/backend/ai/orchestrator";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { env } from "@/backend/shared/config/env";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";
+import {
+  formatKbHitsForPrompt,
+  retrieveChildSummaries,
+} from "@/backend/ai/kb/retrieve";
+import { filterBridgeHits } from "@/backend/ai/bridge/privacy-filter";
 import { getPersonaForUser } from "@/backend/features/persona/persona.store";
 import { getGardenAccount } from "@/backend/features/emotion-garden/emotion-garden.store";
 import { sealGardenStorybook } from "@/backend/features/emotion-garden/emotion-garden.service";
@@ -136,6 +141,7 @@ async function tryLlmCompose(input: {
   photoCount: number;
   memoryHighlights: string[];
   emotionThemes: string[];
+  kbHighlights?: string;
 }): Promise<{
   cover: StorybookCover;
   openingBody: string;
@@ -153,7 +159,7 @@ async function tryLlmCompose(input: {
           role: "system",
           content: withBeddySafety(`당신은 Beddy 앱의 동화 작가입니다.
 입원 아동·청소년을 위한 희망적이고 감성적인 동화를 씁니다.
-공포 표현 금지. 따뜻하고 짧은 문장. JSON만 출력.`),
+원문 대화·좌표·지역명은 쓰지 마세요. 공포 표현 금지. 따뜻하고 짧은 문장. JSON만 출력.`),
         },
         {
           role: "user",
@@ -168,6 +174,8 @@ ${input.adventureSummaries.map((s) => `- ${s}`).join("\n") || "- (아직 적음)
 사진: ${input.photoCount}장
 기억 하이라이트: ${input.memoryHighlights.join(" · ") || "없음"}
 마음 키워드: ${input.emotionThemes.join(", ") || "없음"}
+KB 요약(선택):
+${input.kbHighlights || "(없음)"}
 
 형식:
 {
@@ -315,6 +323,15 @@ export async function composeDischargeTale(
       .slice(0, 5)
       .map((e) => `${e.title}: ${e.summary}`.slice(0, 80)),
     emotionThemes: conversationMemory.emotionalThemes.slice(0, 5),
+    kbHighlights: formatKbHitsForPrompt(
+      filterBridgeHits(
+        await retrieveChildSummaries({
+          childUserId: userId,
+          query: `${childName} 병원 여정 모험 감정 소원`,
+          maxResults: 4,
+        })
+      )
+    ),
   });
 
   const cover = llm?.cover ?? ruleBasedCover(childName, companionName);

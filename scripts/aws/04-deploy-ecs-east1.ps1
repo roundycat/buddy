@@ -91,12 +91,14 @@ $taskPolicy = Join-Path $env:TEMP "bedi-ecs-task-policy.json"
 @"
 {"Version":"2012-10-17","Statement":[
 {"Effect":"Allow","Action":["dynamodb:GetItem","dynamodb:PutItem","dynamodb:UpdateItem","dynamodb:DeleteItem","dynamodb:Query","dynamodb:Scan","dynamodb:DescribeTable","dynamodb:TransactWriteItems","dynamodb:TransactGetItems","dynamodb:ConditionCheckItem"],"Resource":"arn:aws:dynamodb:${Region}:${Account}:table/BediApp"},
-{"Effect":"Allow","Action":["bedrock:InvokeModel","bedrock:InvokeModelWithResponseStream","bedrock:Converse","bedrock:ConverseStream","bedrock:ApplyGuardrail"],"Resource":"*"},
+{"Effect":"Allow","Action":["bedrock:InvokeModel","bedrock:InvokeModelWithResponseStream","bedrock:Converse","bedrock:ConverseStream","bedrock:ApplyGuardrail","bedrock:Retrieve","bedrock:RetrieveAndGenerate"],"Resource":"*"},
 {"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:DeleteObject"],"Resource":[
   "arn:aws:s3:::${Bucket}/avatars/*",
   "arn:aws:s3:::${Bucket}/schedule-images/*",
-  "arn:aws:s3:::${Bucket}/photos/*"
+  "arn:aws:s3:::${Bucket}/photos/*",
+  "arn:aws:s3:::${Bucket}/kb-summaries/*"
 ]},
+{"Effect":"Allow","Action":["s3:ListBucket"],"Resource":"arn:aws:s3:::${Bucket}","Condition":{"StringLike":{"s3:prefix":["kb-summaries/*"]}}},
 {"Effect":"Allow","Action":["cloudwatch:PutMetricData"],"Resource":"*","Condition":{"StringEquals":{"cloudwatch:namespace":"Beddy"}}}
 ]}
 "@ | Set-Content $taskPolicy -Encoding ascii
@@ -265,6 +267,7 @@ $envList = @(
   @{ name = "BEDROCK_MODEL_ID_QUALITY"; value = (Get-EnvVal "BEDROCK_MODEL_ID_QUALITY" (Get-EnvVal "BEDROCK_MODEL_ID" "us.anthropic.claude-opus-4-6-v1")) },
   @{ name = "BEDROCK_GUARDRAIL_ID"; value = (Get-EnvVal "BEDROCK_GUARDRAIL_ID" "") },
   @{ name = "BEDROCK_GUARDRAIL_VERSION"; value = (Get-EnvVal "BEDROCK_GUARDRAIL_VERSION" "1") },
+  @{ name = "BEDROCK_KB_ID"; value = (Get-EnvVal "BEDROCK_KB_ID" "") },
   @{ name = "BEDROCK_IMAGE_MODEL_ID"; value = (Get-EnvVal "BEDROCK_IMAGE_MODEL_ID" "stability.stable-image-core-v1:1") },
   @{ name = "BEDROCK_IMAGE_REGION"; value = (Get-EnvVal "BEDROCK_IMAGE_REGION" "us-west-2") },
   @{ name = "BEDROCK_IMAGE_REMOVE_BG_MODEL_ID"; value = (Get-EnvVal "BEDROCK_IMAGE_REMOVE_BG_MODEL_ID" "us.stability.stable-image-remove-background-v1:0") },

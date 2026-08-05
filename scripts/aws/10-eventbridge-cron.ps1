@@ -16,6 +16,9 @@ function Get-EnvVal([string]$key, [string]$fallback = "") {
 }
 
 $AppUrl = Get-EnvVal "NEXT_PUBLIC_APP_URL" "https://d36nmab92hbhe2.cloudfront.net"
+if (-not $AppUrl -or $AppUrl -match "localhost") {
+  $AppUrl = "https://d36nmab92hbhe2.cloudfront.net"
+}
 $AppUrl = $AppUrl.TrimEnd("/")
 $CronUrl = "$AppUrl/api/cron/daily"
 
@@ -46,7 +49,8 @@ Write-Host "CronUrl=$CronUrl"
 
 # Enable DynamoDB TTL attribute `ttl` on BediApp (coarse locations etc.)
 $Table = "BediApp"
-$ttlDesc = & $aws dynamodb describe-time-to-live --table-name $Table --region $Region --query "TimeToLiveDescription.TimeToLiveStatus" --output text 2>$null
+$ttlDesc = cmd /c "`"$aws`" dynamodb describe-time-to-live --table-name $Table --region $Region --query TimeToLiveDescription.TimeToLiveStatus --output text 2>nul"
+$ttlDesc = ($ttlDesc | Out-String).Trim()
 if ($ttlDesc -ne "ENABLED" -and $ttlDesc -ne "ENABLING") {
   & $aws dynamodb update-time-to-live --table-name $Table --region $Region `
     --time-to-live-specification "Enabled=true,AttributeName=ttl" | Out-Null
@@ -56,7 +60,11 @@ if ($ttlDesc -ne "ENABLED" -and $ttlDesc -ne "ENABLING") {
 }
 
 # Connection (API key header)
-$connArn = (& $aws events describe-connection --name $ConnName --region $Region --query ConnectionArn --output text 2>$null)
+$connArn = ""
+cmd /c "`"$aws`" events describe-connection --name $ConnName --region $Region >nul 2>&1"
+if ($LASTEXITCODE -eq 0) {
+  $connArn = (& $aws events describe-connection --name $ConnName --region $Region --query ConnectionArn --output text).Trim()
+}
 if (-not $connArn -or $connArn -eq "None") {
   $connArn = (& $aws events create-connection `
     --name $ConnName `
@@ -75,7 +83,11 @@ if (-not $connArn -or $connArn -eq "None") {
 }
 
 # API Destination
-$destArn = (& $aws events describe-api-destination --name $DestName --region $Region --query ApiDestinationArn --output text 2>$null)
+$destArn = ""
+cmd /c "`"$aws`" events describe-api-destination --name $DestName --region $Region >nul 2>&1"
+if ($LASTEXITCODE -eq 0) {
+  $destArn = (& $aws events describe-api-destination --name $DestName --region $Region --query ApiDestinationArn --output text).Trim()
+}
 if (-not $destArn -or $destArn -eq "None") {
   $destArn = (& $aws events create-api-destination `
     --name $DestName `

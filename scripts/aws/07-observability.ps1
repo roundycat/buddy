@@ -19,7 +19,7 @@ $Bucket = "bedi-codebuild-$Account-$Region"
 {"Version":"2012-10-17","Statement":[
 {"Effect":"Allow","Action":["dynamodb:GetItem","dynamodb:PutItem","dynamodb:UpdateItem","dynamodb:DeleteItem","dynamodb:Query","dynamodb:Scan","dynamodb:DescribeTable"],"Resource":"arn:aws:dynamodb:${Region}:${Account}:table/BediApp"},
 {"Effect":"Allow","Action":["bedrock:InvokeModel","bedrock:InvokeModelWithResponseStream","bedrock:Converse","bedrock:ConverseStream"],"Resource":"*"},
-{"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:DeleteObject"],"Resource":["arn:aws:s3:::${Bucket}/avatars/*","arn:aws:s3:::${Bucket}/schedule-images/*","arn:aws:s3:::${Bucket}/photos/*"]},
+{"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:DeleteObject"],"Resource":["arn:aws:s3:::${Bucket}/avatars/*","arn:aws:s3:::${Bucket}/schedule-images/*","arn:aws:s3:::${Bucket}/photos/*","arn:aws:s3:::${Bucket}/kb-summaries/*"]},
 {"Effect":"Allow","Action":["cloudwatch:PutMetricData"],"Resource":"*","Condition":{"StringEquals":{"cloudwatch:namespace":"Beddy"}}}
 ]}
 "@ | Set-Content $taskPolicy -Encoding ascii

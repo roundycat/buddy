@@ -35,6 +35,12 @@ import {
 } from "./parent-empathy-guide.llm";
 import { listScheduleForChild } from "@/backend/features/hospital-day/hospital-day.store";
 import { autoCompleteDueScheduleItems } from "@/backend/features/hospital-day/hospital-day.service";
+import {
+  formatKbHitsForPrompt,
+  kbSourceLabels,
+  retrieveChildSummaries,
+} from "@/backend/ai/kb/retrieve";
+import { filterBridgeHits } from "@/backend/ai/bridge/privacy-filter";
 import type {
   ParentCalendarDay,
   ParentCalendarMark,
@@ -1006,6 +1012,14 @@ export async function askParentReport(
         .map((f) => MOOD_OPTIONS.find((o) => o.id === f.mood)?.label ?? "기록")
     : [];
 
+  const kbHits = filterBridgeHits(
+    await retrieveChildSummaries({
+      childUserId: childId,
+      query: q,
+      maxResults: 5,
+    })
+  );
+
   const context = {
     childName: link.childName,
     hospitalDay: link.persona?.dayCount ?? 1,
@@ -1026,6 +1040,7 @@ export async function askParentReport(
           .map((p) => p.dayStory?.narrative?.slice(0, 48))
           .filter((v): v is string => Boolean(v))
       : [],
+    kbSummaries: formatKbHitsForPrompt(kbHits),
   };
 
   const sources: string[] = [];
@@ -1036,6 +1051,9 @@ export async function askParentReport(
   if (wishes.wishes.length) sources.push("소원 나무");
   if (weeklyMoods.length) sources.push("주간 감정 흐름");
   if (context.recentDayStoryTitles.length) sources.push("하루 이야기");
+  for (const label of kbSourceLabels(kbHits)) {
+    if (!sources.includes(label)) sources.push(label);
+  }
 
   const llmAnswer = await composeReportAnswerWithLlm(q, context);
   const fallback = composeReportAnswer({
@@ -1078,6 +1096,7 @@ async function composeReportAnswerWithLlm(
     adventureHeadline: string | null;
     wishCount: number;
     recentDayStoryTitles: string[];
+    kbSummaries: string;
   }
 ): Promise<string | null> {
   try {
@@ -1090,9 +1109,10 @@ async function composeReportAnswerWithLlm(
           content: withBeddySafety(`당신은 병원 아이 돌봄 앱 Beddy의 보호자용 AI 어시스턴트입니다.
 
 역할:
-- 연결된 아이의 요약 데이터만 보고, 보호자 질문에 따뜻하고 구체적으로 답합니다.
+- 연결된 아이의 요약 데이터와 지식 검색(KB) 요약만 보고, 보호자 질문에 따뜻하고 구체적으로 답합니다.
 - 아이와 베디의 원문 대화·비밀 일기는 절대 인용하거나 재구성하지 않습니다.
-- 주어진 요약(감정, 모험, 학습 메모리 요약, 소원, 하루 이야기 제목)만 근거로 씁니다.
+- 주어진 요약(감정, 모험, 학습 메모리 요약, 소원, 하루 이야기 제목, KB 요약)만 근거로 씁니다.
+- 좌표·지역명·정확한 위치는 언급하지 마세요.
 - 데이터가 부족하면 솔직히 말하고, 같은 문장을 반복하지 마세요.
 - 2~5문장, 한국어, 존댓말. 과장하거나 확정적으로 단정하지 마세요.`),
         },
@@ -1101,7 +1121,10 @@ async function composeReportAnswerWithLlm(
           content: `보호자 질문: ${question}
 
 아이 요약 컨텍스트(JSON):
-${JSON.stringify(context, null, 2)}
+${JSON.stringify({ ...context, kbSummaries: undefined }, null, 2)}
+
+KB 검색 요약(프라이버시 필터 통과):
+${context.kbSummaries}
 
 위 요약만으로 답변하세요. 원문 대화는 없습니다.`,
         },

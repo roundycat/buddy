@@ -102,6 +102,8 @@ export const env = {
     /** Bedrock Guardrail (STEP 3) — applied on Converse via Orchestrator */
     guardrailId: read("BEDROCK_GUARDRAIL_ID"),
     guardrailVersion: read("BEDROCK_GUARDRAIL_VERSION", "DRAFT"),
+    /** Bedrock Knowledge Base id (STEP 6) — summaries only */
+    knowledgeBaseId: read("BEDROCK_KB_ID"),
     accessKeyId: read("AWS_ACCESS_KEY_ID"),
     secretAccessKey: read("AWS_SECRET_ACCESS_KEY"),
     sessionToken: read("AWS_SESSION_TOKEN"),

@@ -6,6 +6,7 @@ import { listGuardianUserIds } from "@/backend/features/guardian-link/guardian-l
 import { consolidateMemoryForUser } from "./memory-consolidate.job";
 import { prepareMissionsForUser } from "./mission-prep.job";
 import { prepareParentSummaryForGuardian } from "./parent-summary.job";
+import { indexKbSummariesForUser } from "./kb-index.job";
 import { observeAgentRun } from "@/backend/ai/orchestrator";
 
 export type DailyBatchResult = {
@@ -13,6 +14,7 @@ export type DailyBatchResult = {
   memory: { ok: number; fail: number };
   missions: { ok: number; fail: number; created: number };
   parent: { ok: number; fail: number };
+  kbIndex: { ok: number; fail: number; docs: number };
 };
 
 async function listChildUserIds(): Promise<string[]> {
@@ -56,6 +58,15 @@ export async function runDailyBatch(
       else parent.fail += 1;
     }
 
-    return { dateKey, memory, missions, parent };
+    const kbIndex = { ok: 0, fail: 0, docs: 0 };
+    for (const userId of childIds) {
+      const r = await indexKbSummariesForUser(userId, dateKey);
+      if (r.ok) {
+        kbIndex.ok += 1;
+        kbIndex.docs += r.docs;
+      } else kbIndex.fail += 1;
+    }
+
+    return { dateKey, memory, missions, parent, kbIndex };
   });
 }
