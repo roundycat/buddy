@@ -253,7 +253,6 @@ $SecretArn = (Get-Content (Join-Path $PSScriptRoot "last-secret-arn.txt") -Error
 if (-not $SecretArn) {
   throw "Missing scripts/aws/last-secret-arn.txt — run 08-secrets.ps1 first"
 }
-$pgHost = Get-EnvVal "PGHOST" ""
 $cfUrl = Get-EnvVal "NEXT_PUBLIC_APP_URL" ""
 $appUrl = if ($cfUrl -and $cfUrl -notmatch "localhost") { $cfUrl } else { "https://d36nmab92hbhe2.cloudfront.net" }
 $envList = @(
@@ -276,18 +275,12 @@ $envList = @(
   @{ name = "AVATAR_S3_REGION"; value = $Region },
   @{ name = "AUTH_PROVIDER"; value = (Get-EnvVal "AUTH_PROVIDER" "dynamodb") },
   @{ name = "NEXT_PUBLIC_APP_URL"; value = $appUrl },
-  @{ name = "PGHOST"; value = $pgHost },
-  @{ name = "PGPORT"; value = (Get-EnvVal "PGPORT" "5432") },
-  @{ name = "PGDATABASE"; value = (Get-EnvVal "PGDATABASE" "bedi") },
-  @{ name = "PGUSER"; value = (Get-EnvVal "PGUSER" "bediadmin") },
-  @{ name = "PGSSL"; value = "true" },
   @{ name = "PORT"; value = "3000" },
   @{ name = "HOSTNAME"; value = "0.0.0.0" }
 )
 
 $secretList = @(
   @{ name = "AUTH_SESSION_SECRET"; valueFrom = "${SecretArn}:AUTH_SESSION_SECRET::" },
-  @{ name = "PGPASSWORD"; valueFrom = "${SecretArn}:PGPASSWORD::" },
   @{ name = "CRON_SECRET"; valueFrom = "${SecretArn}:CRON_SECRET::" }
 )
 
