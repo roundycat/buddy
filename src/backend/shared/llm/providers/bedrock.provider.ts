@@ -32,7 +32,7 @@ export class BedrockLlmProvider implements LlmProvider {
   }
 
   private buildPayload(request: LlmChatRequest) {
-    const modelId = env.bedrock.modelId;
+    const modelId = request.model?.trim() || env.bedrock.modelId;
     const systemParts = request.messages
       .filter((m) => m.role === "system")
       .map((m) => ({ text: m.content }));

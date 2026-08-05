@@ -15,7 +15,8 @@ export class OpenAiLlmProvider implements LlmProvider {
   readonly name = "openai";
 
   async chat(request: LlmChatRequest): Promise<LlmChatResult> {
-    const { apiKey, baseUrl, model } = env.openai;
+    const { apiKey, baseUrl, model: defaultModel } = env.openai;
+    const model = request.model?.trim() || defaultModel;
 
     if (!apiKey) {
       throw new Error("OPENAI_API_KEY가 설정되지 않았습니다.");
@@ -65,7 +66,8 @@ export class OpenAiLlmProvider implements LlmProvider {
   }
 
   async *chatStream(request: LlmChatRequest): AsyncIterable<string> {
-    const { apiKey, baseUrl, model } = env.openai;
+    const { apiKey, baseUrl, model: defaultModel } = env.openai;
+    const model = request.model?.trim() || defaultModel;
     if (!apiKey) {
       throw new Error("OPENAI_API_KEY가 설정되지 않았습니다.");
     }

@@ -4,65 +4,26 @@ import type {
   SendMessageResponse,
 } from "./conversation.types";
 import {
-  chatWithCompanion,
-  getLlmStatus,
-  streamWithCompanion,
-} from "@/backend/shared/llm";
-import {
-  formatCompanionCharacterForPrompt,
-  formatSelfForPrompt,
-  getPersonaForUser,
-} from "@/backend/features/persona/persona.store";
-import {
   appendConversationMessages,
-  formatMemoryForPrompt,
   getConversationHistory,
   getConversationMemory,
 } from "./conversation.store";
 import { learnFromTurn } from "./memory.service";
-import { formatWishesForPrompt } from "@/backend/features/wish-tree/wish-tree.service";
 import { analyzeChatEmotion } from "@/backend/features/emotion-analysis/emotion.service";
+import { resolveChildCompanionContext } from "./child-context.service";
+import {
+  companionChat,
+  resolveModelForPurpose,
+  streamCompanionChat,
+} from "@/backend/ai/orchestrator";
+import { env } from "@/backend/shared/config/env";
 
 /**
  * Conversation Service
  *
  * Persona-grounded chat + continuous learning + emotion analysis.
+ * Immediate path: one Bedrock chat call. Persist/analysis run after SSE done.
  */
-
-async function resolveCompanionContext(userId?: string) {
-  const persona = userId ? await getPersonaForUser(userId) : undefined;
-  const hasPersona = Boolean(persona?.setupCompleted && persona.profile);
-  const characterSheet = formatCompanionCharacterForPrompt(persona);
-  const selfSummary = formatSelfForPrompt(persona?.self);
-  const profileSummary = [characterSheet, selfSummary].join("\n\n");
-
-  const storedHistory = userId ? await getConversationHistory(userId) : [];
-
-  const memory = userId ? await getConversationMemory(userId) : undefined;
-
-  return {
-    persona,
-    hasPersona,
-    characterSheet,
-    selfSummary,
-    profileSummary,
-    storedHistory,
-    memory,
-    companion: {
-      name: persona?.name,
-      tone: persona?.tone,
-      callName: persona?.callName || "너",
-      styleKey: persona?.interaction,
-      energyKey: persona?.energy,
-      companionVoice: persona?.companionMessage,
-      characterSheet,
-      selfSummary,
-      memorySummary: memory ? formatMemoryForPrompt(memory) : undefined,
-      wishSummary: userId ? await formatWishesForPrompt(userId) : undefined,
-      hasPersona,
-    },
-  };
-}
 
 async function persistTurn(params: {
   userId: string;
@@ -88,16 +49,27 @@ async function persistTurn(params: {
       userMessage: params.userMessage.content,
       messageId: params.userMessage.id,
     }).catch((error) => {
-      console.warn("[conversation] emotion analysis skipped", error);
+      console.error("[conversation] emotion analysis failed", error);
     }),
   ]);
+}
+
+function schedulePersistTurn(params: {
+  userId: string;
+  userMessage: ConversationMessage;
+  reply: ConversationMessage;
+  profileSummary: string;
+}) {
+  void persistTurn(params).catch((error) => {
+    console.error("[conversation] persistTurn failed", error);
+  });
 }
 
 export async function sendMessage(
   request: SendMessageRequest
 ): Promise<SendMessageResponse> {
   const userId = request.userId;
-  const ctx = await resolveCompanionContext(userId);
+  const ctx = await resolveChildCompanionContext(userId);
 
   const clientHistory = (request.history ?? [])
     .filter((m) => m.role === "user" || m.role === "assistant")
@@ -108,7 +80,7 @@ export async function sendMessage(
       ? ctx.storedHistory.map(({ role, content }) => ({ role, content }))
       : clientHistory;
 
-  const llm = await chatWithCompanion(
+  const llm = await companionChat(
     request.message,
     historyForLlm,
     ctx.companion
@@ -134,7 +106,7 @@ export async function sendMessage(
   };
 
   if (userId) {
-    await persistTurn({
+    schedulePersistTurn({
       userId,
       userMessage,
       reply,
@@ -146,7 +118,8 @@ export async function sendMessage(
 }
 
 /**
- * Stream assistant tokens; persists full reply when the stream ends.
+ * Stream assistant tokens; yields `done` before persist/analysis so the
+ * child input unlocks immediately (ECS keeps the process alive afterward).
  */
 export async function* streamMessage(
   request: SendMessageRequest
@@ -157,7 +130,9 @@ export async function* streamMessage(
   unknown
 > {
   const userId = request.userId;
-  const ctx = await resolveCompanionContext(userId);
+  const ctxStarted = Date.now();
+  const ctx = await resolveChildCompanionContext(userId);
+  const ctxMs = Date.now() - ctxStarted;
 
   const clientHistory = (request.history ?? [])
     .filter((m) => m.role === "user" || m.role === "assistant")
@@ -168,17 +143,25 @@ export async function* streamMessage(
       ? ctx.storedHistory.map(({ role, content }) => ({ role, content }))
       : clientHistory;
 
-  const status = getLlmStatus();
+  const chatModel = resolveModelForPurpose("chat");
   let full = "";
+  let firstTokenMs: number | null = null;
+  const streamStarted = Date.now();
 
-  for await (const token of streamWithCompanion(
+  for await (const token of streamCompanionChat(
     request.message,
     historyForLlm,
     ctx.companion
   )) {
+    if (firstTokenMs === null) firstTokenMs = Date.now() - streamStarted;
     full += token;
     yield { type: "token", text: token };
   }
+
+  const streamMs = Date.now() - streamStarted;
+  console.info(
+    `[conversation:timing] ctxMs=${ctxMs} firstTokenMs=${firstTokenMs ?? -1} streamMs=${streamMs} model=${chatModel}`
+  );
 
   const now = new Date().toISOString();
   const userMessage: ConversationMessage = {
@@ -194,21 +177,22 @@ export async function* streamMessage(
     content: full.trim() || "응, 여기 있을게.",
     createdAt: new Date().toISOString(),
     meta: {
-      provider: status.provider,
-      model: status.model,
+      provider: env.llmProvider,
+      model: chatModel,
     },
   };
 
+  // Unlock the child UI before memory/emotion LLM work.
+  yield { type: "done", reply };
+
   if (userId) {
-    await persistTurn({
+    schedulePersistTurn({
       userId,
       userMessage,
       reply,
       profileSummary: ctx.profileSummary,
     });
   }
-
-  yield { type: "done", reply };
 }
 
 export async function listConversation(userId: string) {

@@ -252,6 +252,8 @@ $envList = @(
   @{ name = "LLM_PROVIDER"; value = (Get-EnvVal "LLM_PROVIDER" "bedrock") },
   @{ name = "LLM_FALLBACK_TO_MOCK"; value = (Get-EnvVal "LLM_FALLBACK_TO_MOCK" "true") },
   @{ name = "BEDROCK_MODEL_ID"; value = (Get-EnvVal "BEDROCK_MODEL_ID" "us.anthropic.claude-haiku-4-5-20251001-v1:0") },
+  @{ name = "BEDROCK_MODEL_ID_CHAT"; value = (Get-EnvVal "BEDROCK_MODEL_ID_CHAT" "us.anthropic.claude-haiku-4-5-20251001-v1:0") },
+  @{ name = "BEDROCK_MODEL_ID_QUALITY"; value = (Get-EnvVal "BEDROCK_MODEL_ID_QUALITY" (Get-EnvVal "BEDROCK_MODEL_ID" "us.anthropic.claude-opus-4-6-v1")) },
   @{ name = "BEDROCK_IMAGE_MODEL_ID"; value = (Get-EnvVal "BEDROCK_IMAGE_MODEL_ID" "stability.stable-image-core-v1:1") },
   @{ name = "BEDROCK_IMAGE_REGION"; value = (Get-EnvVal "BEDROCK_IMAGE_REGION" "us-west-2") },
   @{ name = "BEDROCK_IMAGE_REMOVE_BG_MODEL_ID"; value = (Get-EnvVal "BEDROCK_IMAGE_REMOVE_BG_MODEL_ID" "us.stability.stable-image-remove-background-v1:0") },

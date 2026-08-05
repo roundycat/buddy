@@ -68,9 +68,26 @@ export const env = {
 
   bedrock: {
     region: read("AWS_REGION", "us-east-1"),
+    /**
+     * Legacy single model id (compat). Prefer chatModelId / qualityModelId.
+     * Default stays Haiku; existing .env may still point at Opus.
+     */
     modelId: read(
       "BEDROCK_MODEL_ID",
       "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+    ),
+    /** Immediate path (child chat / light analysis) — speed first */
+    chatModelId: read(
+      "BEDROCK_MODEL_ID_CHAT",
+      "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+    ),
+    /** Batch / quality path — defaults to legacy BEDROCK_MODEL_ID */
+    qualityModelId: read(
+      "BEDROCK_MODEL_ID_QUALITY",
+      read(
+        "BEDROCK_MODEL_ID",
+        "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+      )
     ),
     /** Stability image models currently available in us-west-2 for this account */
     imageModelId: read(

@@ -13,6 +13,8 @@ export interface LlmChatRequest {
   messages: LlmMessage[];
   temperature?: number;
   maxTokens?: number;
+  /** Optional per-call model override (Bedrock chat vs quality routing) */
+  model?: string;
 }
 
 export interface LlmChatResult {

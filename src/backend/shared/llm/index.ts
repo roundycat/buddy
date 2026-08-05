@@ -47,7 +47,8 @@ export function resetLlmProviderCache() {
 function buildCompanionRequest(
   userMessage: string,
   history: Array<{ role: "user" | "assistant"; content: string }> = [],
-  companion?: CompanionPromptContext
+  companion?: CompanionPromptContext,
+  options?: { model?: string }
 ): LlmChatRequest {
   const recentHistory = history.slice(-24);
   return {
@@ -64,16 +65,23 @@ function buildCompanionRequest(
     ],
     temperature: BEDI_CHAT_DEFAULTS.temperature,
     maxTokens: BEDI_CHAT_DEFAULTS.maxTokens,
+    ...(options?.model ? { model: options.model } : {}),
   };
 }
 
 export async function chatWithCompanion(
   userMessage: string,
   history: Array<{ role: "user" | "assistant"; content: string }> = [],
-  companion?: CompanionPromptContext
+  companion?: CompanionPromptContext,
+  options?: { model?: string }
 ): Promise<LlmChatResult> {
   const provider = getLlmProvider();
-  const request = buildCompanionRequest(userMessage, history, companion);
+  const request = buildCompanionRequest(
+    userMessage,
+    history,
+    companion,
+    options
+  );
 
   try {
     return await provider.chat(request);
@@ -93,10 +101,16 @@ export async function chatWithCompanion(
 export async function* streamWithCompanion(
   userMessage: string,
   history: Array<{ role: "user" | "assistant"; content: string }> = [],
-  companion?: CompanionPromptContext
+  companion?: CompanionPromptContext,
+  options?: { model?: string }
 ): AsyncIterable<string> {
   const provider = getLlmProvider();
-  const request = buildCompanionRequest(userMessage, history, companion);
+  const request = buildCompanionRequest(
+    userMessage,
+    history,
+    companion,
+    options
+  );
 
   try {
     if (provider.chatStream) {
@@ -132,6 +146,10 @@ export function getLlmStatus() {
         : provider === "bedrock"
           ? env.bedrock.modelId
           : "mock-rules",
+    chatModel:
+      provider === "bedrock" ? env.bedrock.chatModelId : undefined,
+    qualityModel:
+      provider === "bedrock" ? env.bedrock.qualityModelId : undefined,
     openaiBaseUrl: provider === "openai" ? env.openai.baseUrl : undefined,
     bedrockRegion: provider === "bedrock" ? env.bedrock.region : undefined,
   };
