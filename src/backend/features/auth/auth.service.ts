@@ -6,13 +6,6 @@ import type {
 } from "./auth.types";
 import { createSessionToken, verifySessionToken } from "./auth.session";
 import { env } from "@/backend/shared/config/env";
-import { isAuroraConfigured } from "@/backend/shared/db/postgres";
-import {
-  createUser,
-  findUserByEmail,
-  toAuthUser,
-  verifyPassword,
-} from "./auth.users.repo";
 import {
   createDynamoUser,
   dynamoProfileToAuthUser,
@@ -24,11 +17,12 @@ import { passwordValidationMessage } from "@/shared/auth/password";
 /**
  * Auth Service
  *
- * Prefer DynamoDB users (AUTH_PROVIDER=dynamodb).
- * Aurora kept for rollback until demo week ends.
+ * DynamoDB users (AUTH_PROVIDER=dynamodb | auto).
  * mock only when AUTH_PROVIDER=mock (blocked in production).
  */
 
+// 계정 목록이 seed-dynamo-users.js / wipe-fresh-start.js 와 중복이다.
+// 하나를 바꾸면 나머지도 바꿔야 한다. 데모 후 공유 상수로 통합 예정.
 /** Demo accounts — mock path only. Passwords rotated STEP 5-4. */
 const MOCK_USERS: Array<
   AuthUser & { password: string; role?: "child" | "guardian" }
@@ -84,24 +78,25 @@ function assertMockNotUsedInProduction() {
   }
 }
 
+const INVALID_CREDENTIALS = "이메일 또는 비밀번호가 올바르지 않습니다.";
+
+/**
+ * The client always gets the same message; the log separates the two causes so a
+ * production 401 can be told apart from a missing account without guessing.
+ */
+function rejectLogin(reason: "no_account" | "bad_password", store: string): never {
+  console.warn(`[auth] login rejected (${store}): ${reason}`);
+  throw new AuthError(INVALID_CREDENTIALS, 401);
+}
+
 async function loginWithDynamo(request: LoginRequest): Promise<LoginResult> {
   const email = request.email.trim().toLowerCase();
   const row = await findDynamoUserByEmail(email);
-  if (!row || !(await verifyDynamoPassword(request.password, row.passwordHash))) {
-    throw new AuthError("이메일 또는 비밀번호가 올바르지 않습니다.", 401);
+  if (!row) rejectLogin("no_account", "dynamodb");
+  if (!(await verifyDynamoPassword(request.password, row.passwordHash))) {
+    rejectLogin("bad_password", "dynamodb");
   }
   const user = dynamoProfileToAuthUser(row);
-  const token = await createSessionToken(user);
-  return { user, token };
-}
-
-async function loginWithAurora(request: LoginRequest): Promise<LoginResult> {
-  const email = request.email.trim().toLowerCase();
-  const row = await findUserByEmail(email);
-  if (!row || !(await verifyPassword(request.password, row.password_hash))) {
-    throw new AuthError("이메일 또는 비밀번호가 올바르지 않습니다.", 401);
-  }
-  const user = toAuthUser(row);
   const token = await createSessionToken(user);
   return { user, token };
 }
@@ -124,19 +119,6 @@ export async function login(request: LoginRequest): Promise<LoginResult> {
     }
   }
 
-  if (env.authProvider === "aurora") {
-    if (!isAuroraConfigured()) {
-      throw new AuthError("데이터베이스 로그인에 실패했습니다.", 503);
-    }
-    try {
-      return await loginWithAurora(request);
-    } catch (error) {
-      if (error instanceof AuthError) throw error;
-      console.error("[auth] Aurora login failed:", error);
-      throw new AuthError("데이터베이스 로그인에 실패했습니다.", 503);
-    }
-  }
-
   if (env.authProvider === "mock") {
     assertMockNotUsedInProduction();
     const found = MOCK_USERS.find(
@@ -155,18 +137,11 @@ export async function login(request: LoginRequest): Promise<LoginResult> {
     return { user, token };
   }
 
-  // Legacy auto: prefer DynamoDB table presence via try, then Aurora, never silent mock in prod
+  // Legacy auto: DynamoDB first → production 503 / development mock
   try {
     return await loginWithDynamo(request);
   } catch (error) {
     if (error instanceof AuthError && error.status === 401) throw error;
-  }
-  if (isAuroraConfigured()) {
-    try {
-      return await loginWithAurora(request);
-    } catch (error) {
-      if (error instanceof AuthError) throw error;
-    }
   }
   if (process.env.NODE_ENV === "production") {
     throw new AuthError("인증 저장소에 연결할 수 없습니다.", 503);
@@ -217,70 +192,31 @@ export async function signup(request: SignupRequest): Promise<LoginResult> {
     throw new AuthError("이름은 20자 이내로 입력해 주세요.", 400);
   }
 
-  const useDynamo =
-    env.authProvider === "dynamodb" ||
-    env.authProvider === "auto" ||
-    (env.authProvider !== "aurora" && env.authProvider !== "mock");
-
-  if (env.authProvider === "aurora") {
-    if (!isAuroraConfigured()) {
-      throw new AuthError(
-        "회원가입은 데이터베이스 연결이 필요합니다. 잠시 후 다시 시도해 주세요.",
-        503
-      );
-    }
-    const existing = await findUserByEmail(email);
-    if (existing) {
-      throw new AuthError("이미 가입된 이메일입니다.", 409);
-    }
-    try {
-      const user = await createUser({
-        id: `user-${crypto.randomUUID()}`,
-        email,
-        name,
-        role,
-        password,
-      });
-      const token = await createSessionToken(user);
-      return { user, token };
-    } catch (error) {
-      if (error instanceof Error && error.message === "DUPLICATE_EMAIL") {
-        throw new AuthError("이미 가입된 이메일입니다.", 409);
-      }
-      console.error("[auth] signup failed:", error);
-      throw new AuthError("회원가입에 실패했습니다.", 500);
-    }
-  }
-
   if (env.authProvider === "mock") {
     throw new AuthError("mock 모드에서는 회원가입을 지원하지 않습니다.", 503);
   }
 
-  if (useDynamo) {
-    const existing = await findDynamoUserByEmail(email);
-    if (existing) {
+  const existing = await findDynamoUserByEmail(email);
+  if (existing) {
+    throw new AuthError("이미 가입된 이메일입니다.", 409);
+  }
+  try {
+    const user = await createDynamoUser({
+      id: `user-${crypto.randomUUID()}`,
+      email,
+      name,
+      role,
+      password,
+    });
+    const token = await createSessionToken(user);
+    return { user, token };
+  } catch (error) {
+    if (error instanceof Error && error.message === "DUPLICATE_EMAIL") {
       throw new AuthError("이미 가입된 이메일입니다.", 409);
     }
-    try {
-      const user = await createDynamoUser({
-        id: `user-${crypto.randomUUID()}`,
-        email,
-        name,
-        role,
-        password,
-      });
-      const token = await createSessionToken(user);
-      return { user, token };
-    } catch (error) {
-      if (error instanceof Error && error.message === "DUPLICATE_EMAIL") {
-        throw new AuthError("이미 가입된 이메일입니다.", 409);
-      }
-      console.error("[auth] DynamoDB signup failed:", error);
-      throw new AuthError("회원가입에 실패했습니다.", 500);
-    }
+    console.error("[auth] DynamoDB signup failed:", error);
+    throw new AuthError("회원가입에 실패했습니다.", 500);
   }
-
-  throw new AuthError("회원가입을 처리할 수 없습니다.", 503);
 }
 
 export { createSessionToken, verifySessionToken, MOCK_USERS };

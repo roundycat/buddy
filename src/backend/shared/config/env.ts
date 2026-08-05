@@ -5,7 +5,7 @@
 
 export type LlmProviderName = "mock" | "bedrock";
 export type PersistenceMode = "json" | "dynamodb";
-export type AuthProviderName = "dynamodb" | "aurora" | "mock" | "auto";
+export type AuthProviderName = "dynamodb" | "mock" | "auto";
 
 function read(key: string, fallback = ""): string {
   return (process.env[key] ?? fallback).trim();
@@ -15,11 +15,6 @@ function readBool(key: string, fallback = false): boolean {
   const value = read(key).toLowerCase();
   if (!value) return fallback;
   return value === "1" || value === "true" || value === "yes";
-}
-
-function readInt(key: string, fallback: number): number {
-  const n = Number.parseInt(read(key), 10);
-  return Number.isFinite(n) ? n : fallback;
 }
 
 export const env = {
@@ -36,20 +31,9 @@ export const env = {
     region: read("AWS_REGION", "us-east-1"),
   },
 
-  /** aurora | dynamodb | mock — login credential store (no silent auto→mock in prod) */
+  /** dynamodb | mock | auto — login credential store (no silent auto→mock in prod) */
   authProvider: (read("AUTH_PROVIDER", "dynamodb") ||
     "dynamodb") as AuthProviderName,
-
-  /** Aurora PostgreSQL (RDS) */
-  database: {
-    url: read("DATABASE_URL"),
-    host: read("PGHOST") || read("DB_HOST"),
-    port: readInt("PGPORT", readInt("DB_PORT", 5432)),
-    name: read("PGDATABASE") || read("DB_NAME", "bedi"),
-    user: read("PGUSER") || read("DB_USER", "bediadmin"),
-    password: read("PGPASSWORD") || read("DB_PASSWORD"),
-    ssl: readBool("PGSSL", true),
-  },
 
   /** mock | bedrock */
   llmProvider: (read("LLM_PROVIDER", "mock") || "mock") as LlmProviderName,
@@ -90,7 +74,7 @@ export const env = {
       "BEDROCK_IMAGE_REMOVE_BG_MODEL_ID",
       "us.stability.stable-image-remove-background-v1:0"
     ),
-    /** Bedrock Guardrail (STEP 3) — applied on Converse via Orchestrator */
+    /** Bedrock Guardrail (STEP 3) — applied on Converse via the LLM Gateway */
     guardrailId: read("BEDROCK_GUARDRAIL_ID"),
     guardrailVersion: read("BEDROCK_GUARDRAIL_VERSION", "DRAFT"),
     /** Bedrock Knowledge Base id (STEP 6) — summaries only */

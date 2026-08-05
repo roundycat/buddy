@@ -7,10 +7,7 @@ import { clearAdventurePacksForUser } from "@/backend/features/adventure-quest/a
 import { clearMemoryEventsForUser } from "@/backend/features/memory-timeline/memory-timeline.store";
 import { clearWishTreeForUser } from "@/backend/features/wish-tree/wish-tree.store";
 import { clearGuardianDataForUser } from "@/backend/features/guardian-link/guardian-link.store";
-import { env } from "@/backend/shared/config/env";
-import { isAuroraConfigured } from "@/backend/shared/db/postgres";
 import type { AuthUser } from "./auth.types";
-import { deleteUserById } from "./auth.users.repo";
 import { deleteDynamoUser } from "./auth.users.dynamo.repo";
 
 /**
@@ -29,15 +26,5 @@ export async function deleteAccount(user: AuthUser): Promise<void> {
     clearGuardianDataForUser(user.id),
   ]);
 
-  if (env.authProvider === "dynamodb" || env.authProvider === "auto") {
-    await deleteDynamoUser(user.id);
-    return;
-  }
-
-  const preferAurora =
-    env.authProvider === "aurora" && isAuroraConfigured();
-
-  if (preferAurora) {
-    await deleteUserById(user.id);
-  }
+  await deleteDynamoUser(user.id);
 }
