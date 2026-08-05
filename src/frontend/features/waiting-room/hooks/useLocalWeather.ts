@@ -6,12 +6,31 @@ export interface LocalWeather {
   emoji: string;
   label: string;
   tempC: number;
-  place?: string;
+}
+
+async function fetchFallbackWeather(): Promise<LocalWeather | null> {
+  try {
+    const res = await fetch("/api/weather");
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      emoji?: string;
+      label?: string;
+      tempC?: number | null;
+    };
+    return {
+      emoji: data.emoji || "🌤️",
+      label: data.label || "날씨",
+      tempC: typeof data.tempC === "number" ? data.tempC : 0,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
  * Geolocation → Beddy server weather API (coarse coords only).
  * External weather providers see ECS IP, not the child's device.
+ * If location is denied, falls back to GET /api/weather (hospital default).
  */
 export function useLocalWeather() {
   const [weather, setWeather] = useState<LocalWeather | null>(null);
@@ -20,9 +39,25 @@ export function useLocalWeather() {
   >("idle");
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function applyFallback() {
+      const fallback = await fetchFallbackWeather();
+      if (cancelled) return;
+      if (fallback) {
+        setWeather(fallback);
+        setStatus("ready");
+      } else {
+        setStatus("denied");
+      }
+    }
+
     if (typeof window === "undefined" || !navigator.geolocation) {
-      setStatus("denied");
-      return;
+      setStatus("loading");
+      void applyFallback();
+      return () => {
+        cancelled = true;
+      };
     }
 
     setStatus("loading");
@@ -43,6 +78,7 @@ export function useLocalWeather() {
               label?: string;
               tempC?: number | null;
             };
+            if (cancelled) return;
             setWeather({
               emoji: data.emoji || "🌤️",
               label: data.label || "날씨",
@@ -50,17 +86,23 @@ export function useLocalWeather() {
             });
             setStatus("ready");
           } catch {
-            setStatus("error");
+            if (!cancelled) await applyFallback();
           }
         })();
       },
-      () => setStatus("denied"),
+      () => {
+        void applyFallback();
+      },
       {
         enableHighAccuracy: false,
         timeout: 12000,
         maximumAge: 10 * 60 * 1000,
       }
     );
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { weather, status };

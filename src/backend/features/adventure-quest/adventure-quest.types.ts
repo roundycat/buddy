@@ -27,6 +27,8 @@ export interface AdventureContextFactors {
     code: "sunny" | "rainy" | "cloudy";
     label: string;
     emoji: string;
+    tempC?: number;
+    source?: "forecast" | "fallback";
   };
   ward: {
     outdoorOk: boolean;
@@ -113,6 +115,21 @@ export interface MissionPlan {
   questKinds: AdventureQuestKind[];
   /** Whether recent history tool should run */
   needsRecentHistory: boolean;
+  /**
+   * Whether to call lookupEmotionalGuidance.
+   * True when emotional-support principles should shape today's quests.
+   */
+  needsGuidanceDocs: boolean;
+  /** Preferred guidance tags for the tool (optional) */
+  guidanceTags?: string[];
+  /**
+   * How the plan was produced.
+   * "tool-use" = the model picked tools through the Converse tool API.
+   * "prompt" = single JSON planning call. "rules" = no LLM.
+   */
+  plannedBy?: "tool-use" | "prompt" | "rules";
+  /** Tools the model actually chose to call, in order */
+  toolCalls?: string[];
 }
 
 export interface AdventureDayPack {

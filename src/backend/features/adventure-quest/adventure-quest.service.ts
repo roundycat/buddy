@@ -78,6 +78,8 @@ async function fetchAdventureWeather(
     code: snap.code,
     label: snap.label,
     emoji: snap.emoji,
+    ...(typeof snap.tempC === "number" ? { tempC: snap.tempC } : {}),
+    source: snap.source,
   };
 }
 

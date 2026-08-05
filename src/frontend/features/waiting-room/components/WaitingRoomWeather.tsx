@@ -33,10 +33,7 @@ export function WaitingRoomWeather() {
   }
 
   return (
-    <p className="mt-2 text-[12px] tracking-wide text-bedi-slate/50">
-      {weather.place ? (
-        <span className="text-bedi-slate/40">{weather.place} · </span>
-      ) : null}
+    <p className="mt-2 text-[12px] tracking-wide text-bedi-slate/55">
       <span aria-hidden>{weather.emoji}</span> {weather.label}
       <span className="tabular-nums text-bedi-slate/55">
         {" "}
