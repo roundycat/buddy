@@ -9,7 +9,7 @@
 ![AI](https://img.shields.io/badge/AI-LLM%20%2B%20Agent%20%2B%20RAG-8A2BE2)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-**AWS 해커톤 수상 프로젝트** · 비임상(진단·처방 금지) · Guardrail + Bridge 프라이버시
+**2026 강원 LRS 공유대학 AWS 해커톤 대상 프로젝트** · 비임상(진단·처방 금지) · Guardrail + Bridge 프라이버시
 
 ![시스템 파이프라인](docs/architecture/pipeline-user-to-discharge.png)
 
@@ -70,15 +70,16 @@
 ```
 [Auth Role: child | guardian]
         │
-        ├──────────────────── child ────────────────────┐
-        │                                               │
-        ▼                                               ▼
-  Persona(설문→템플릿)                          실시간 채팅 경로
-  · energy / interaction                         · Haiku + Bedrock Guardrail
-  · 동물 키워드 매칭 → 아바타                    · SSE 토큰 스트림
-        │                                        · 위기 시 crisis 이벤트 + 도움 UI
-        ▼                                               │
-  경험 축적 (정원·소원·미션·대화 메모리) ───────────────┘
+        ├──────────── child ──────────────┐
+        │                                 │
+        │                                 │
+        ▼                                 ▼
+  Persona(설문→템플릿)              실시간 채팅 경로
+  · energy / interaction           · Haiku + Bedrock Guardrail
+  · 동물 키워드 매칭 → 아바타        · SSE 토큰 스트림
+        │                          · 위기 시 crisis 이벤트 + 도움 UI
+        ▼                                │
+  경험 축적 (정원·소원·미션·대화 메모리) ───┘
         │
         ▼
  ═══════════════ Dawn (KST ~05:00) ═══════════════
