@@ -16,22 +16,8 @@ import {
   UserX,
 } from "lucide-react";
 import { GuardianInviteCard } from "@/frontend/features/guardian/components/GuardianInviteCard";
+import { useAuthActions } from "@/frontend/shared/hooks/useAuthActions";
 import { cn } from "@/frontend/shared/lib/utils";
-
-const SOFT_TIPS = [
-  {
-    id: "n1",
-    title: "오늘의 작은 모험",
-    body: "오늘 할 수 있는 가벼운 미션이 준비되어 있어요.",
-    href: "/adventure",
-  },
-  {
-    id: "n2",
-    title: "감정 정원",
-    body: "오늘 기분을 꽃으로 남겨 볼까요?",
-    href: "/garden",
-  },
-] as const;
 
 const menuItemClass =
   "flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] text-bedi-slate/75 transition-colors hover:bg-bedi-slate/[0.04] disabled:opacity-50";
@@ -56,19 +42,25 @@ function MenuSection({
 export function TopBrandBar({
   balance: initialBalance,
   showBack = true,
+  notificationCount = 0,
+  onOpenNotifications,
 }: {
   balance?: number;
   /** false on main waiting room only */
   showBack?: boolean;
+  /** Pending child-facing notifications. */
+  notificationCount?: number;
+  /** Opens the shared notification center. Other pages return to it on home. */
+  onOpenNotifications?: () => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { logout: logoutSession, deleteAccount: deleteAccountSession, resetPersona } =
+    useAuthActions();
   const [open, setOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [balance, setBalance] = useState(initialBalance ?? 0);
-  const [unread, setUnread] = useState(true);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -100,13 +92,12 @@ export function TopBrandBar({
   }, []);
 
   useEffect(() => {
-    if (!open && !inviteOpen && !notifOpen) return;
+    if (!open && !inviteOpen) return;
 
     function onPointerDown(event: MouseEvent) {
       if (!menuRef.current?.contains(event.target as Node)) {
         setOpen(false);
         setInviteOpen(false);
-        setNotifOpen(false);
       }
     }
 
@@ -114,7 +105,6 @@ export function TopBrandBar({
       if (event.key === "Escape") {
         setOpen(false);
         setInviteOpen(false);
-        setNotifOpen(false);
       }
     }
 
@@ -124,7 +114,7 @@ export function TopBrandBar({
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open, inviteOpen, notifOpen]);
+  }, [open, inviteOpen]);
 
   async function goOnboarding() {
     if (busy) return;
@@ -134,10 +124,9 @@ export function TopBrandBar({
     if (!ok) return;
     setBusy(true);
     try {
-      await fetch("/api/dev/reset-persona", { method: "POST" });
+      await resetPersona();
       setOpen(false);
       setInviteOpen(false);
-      setNotifOpen(false);
       router.replace("/onboarding");
       router.refresh();
     } finally {
@@ -148,7 +137,6 @@ export function TopBrandBar({
   function goRedrawAvatar() {
     setOpen(false);
     setInviteOpen(false);
-    setNotifOpen(false);
     // Always land on waiting room so the redraw UI is visible
     if (pathname === "/") {
       // Defer so the menu unmounts first, then WaitingRoom can show progress
@@ -164,12 +152,9 @@ export function TopBrandBar({
     if (busy) return;
     setBusy(true);
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
       setOpen(false);
       setInviteOpen(false);
-      setNotifOpen(false);
-      router.replace("/login");
-      router.refresh();
+      await logoutSession();
     } finally {
       setBusy(false);
     }
@@ -183,16 +168,9 @@ export function TopBrandBar({
     if (!ok) return;
     setBusy(true);
     try {
-      const res = await fetch("/api/auth/delete-account", { method: "POST" });
-      if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(data.error ?? "회원 탈퇴에 실패했습니다.");
-      }
       setOpen(false);
       setInviteOpen(false);
-      setNotifOpen(false);
-      router.replace("/login");
-      router.refresh();
+      await deleteAccountSession();
     } catch (err) {
       window.alert(err instanceof Error ? err.message : "회원 탈퇴에 실패했습니다.");
     } finally {
@@ -210,7 +188,7 @@ export function TopBrandBar({
 
   return (
     <header className="relative z-40 px-5 pt-4">
-      <div className="mx-auto flex max-w-lg items-center justify-between">
+      <div className="mx-auto flex max-w-lg items-center justify-between md:max-w-2xl">
         <div className="flex min-w-[4.5rem] items-center gap-1.5 text-bedi-slate/50">
           {showBack ? (
             <button
@@ -253,21 +231,27 @@ export function TopBrandBar({
           <button
             type="button"
             onClick={() => {
-              setNotifOpen((v) => !v);
               setOpen(false);
               setInviteOpen(false);
-              setUnread(false);
+              if (onOpenNotifications) {
+                onOpenNotifications();
+              } else {
+                router.push("/?notifications=1");
+              }
             }}
-            aria-label="알림"
-            aria-expanded={notifOpen}
-              className="relative flex h-11 w-11 items-center justify-center rounded-full text-bedi-slate/40 transition-colors hover:bg-bedi-slate/5 hover:text-bedi-slate/70"
+            aria-label={
+              notificationCount > 0 ? `알림 ${notificationCount}개` : "알림"
+            }
+            className="relative flex h-11 w-11 items-center justify-center rounded-full text-bedi-slate/40 transition-colors hover:bg-bedi-slate/5 hover:text-bedi-slate/70"
           >
             <Bell className="h-4 w-4" strokeWidth={1.5} />
-            {unread ? (
+            {notificationCount > 0 ? (
               <span
-                className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-bedi-rose"
+                className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-bedi-rose px-1 text-[9px] font-bold text-white"
                 aria-hidden
-              />
+              >
+                {notificationCount > 9 ? "9+" : notificationCount}
+              </span>
             ) : null}
           </button>
 
@@ -276,7 +260,6 @@ export function TopBrandBar({
             onClick={() => {
               setOpen((v) => !v);
               setInviteOpen(false);
-              setNotifOpen(false);
             }}
             aria-label="설정"
             aria-expanded={open || inviteOpen}
@@ -284,30 +267,6 @@ export function TopBrandBar({
           >
             <Settings className="h-4 w-4" strokeWidth={1.5} />
           </button>
-
-          {notifOpen ? (
-            <div className="absolute right-0 top-full z-40 mt-2 w-64 overflow-hidden rounded-2xl border border-bedi-slate/10 bg-white/95 py-2 shadow-soft backdrop-blur-sm">
-              <p className="px-3.5 pb-1.5 text-[11px] tracking-wide text-bedi-slate/40">
-                알림
-              </p>
-              <ul className="divide-y divide-bedi-slate/5">
-                {SOFT_TIPS.map((n) => (
-                  <li key={n.id}>
-                    <Link
-                      href={n.href}
-                      onClick={() => setNotifOpen(false)}
-                      className="block px-3.5 py-2.5 text-left transition-colors hover:bg-bedi-slate/[0.04]"
-                    >
-                      <p className="text-[13px] text-bedi-slate/80">{n.title}</p>
-                      <p className="mt-0.5 text-[11px] leading-relaxed text-bedi-slate/45">
-                        {n.body}
-                      </p>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
 
           {open ? (
             <div className="absolute right-0 top-full z-40 mt-2 w-56 overflow-hidden rounded-2xl border border-bedi-slate/10 bg-white/95 py-1 shadow-soft backdrop-blur-sm">

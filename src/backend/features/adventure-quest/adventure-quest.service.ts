@@ -1,4 +1,8 @@
-import { getPersonaForUser } from "@/backend/features/persona/persona.store";
+import {
+  getChildName,
+  getPersonaForUser,
+} from "@/backend/features/persona/persona.store";
+import { fillNamePlaceholdersDeep } from "@/backend/ai/orchestrator";
 import { getHospitalDay } from "@/backend/features/hospital-day/hospital-day.service";
 import { getGardenAccount } from "@/backend/features/emotion-garden/emotion-garden.store";
 import { MOOD_OPTIONS } from "@/backend/features/emotion-garden/emotion-garden.service";
@@ -268,18 +272,22 @@ export async function getAdventureQuest(
   );
   const completedCount = quests.filter((q) => q.status === "done").length;
 
-  return {
-    scene: pack.scene,
-    headline: pack.headline,
-    dateLabel: "오늘의 작은 모험",
-    companionNote: pack.companionNote,
-    factors: pack.factors,
-    context: pack.context,
-    quests,
-    dayStory: pack.dayStory ?? null,
-    completedCount,
-    allComplete: completedCount === quests.length && quests.length > 0,
-  };
+  // Packs written before placeholder scrubbing existed are still on disk.
+  return fillNamePlaceholdersDeep(
+    {
+      scene: pack.scene,
+      headline: pack.headline,
+      dateLabel: "오늘의 작은 모험",
+      companionNote: pack.companionNote,
+      factors: pack.factors,
+      context: pack.context,
+      quests,
+      dayStory: pack.dayStory ?? null,
+      completedCount,
+      allComplete: completedCount === quests.length && quests.length > 0,
+    },
+    await getChildName(userId)
+  );
 }
 
 export async function updateAdventureProgress(

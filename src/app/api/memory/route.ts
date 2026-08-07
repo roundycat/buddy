@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { getMemoryTimeline } from "@/backend/features/memory-timeline/memory-timeline.service";
 import { getSessionUser } from "@/backend/shared/http/auth";
+import { withApiGuard } from "@/backend/shared/http/route";
 
 export const dynamic = "force-dynamic";
 
@@ -8,15 +8,8 @@ export const dynamic = "force-dynamic";
  * API Bridge: AI Memory Timeline
  */
 export async function GET() {
-  try {
+  return withApiGuard(async () => {
     const user = await getSessionUser();
-    const data = await getMemoryTimeline(user?.id);
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error("[api/memory]", error);
-    return NextResponse.json(
-      { error: "기억 타임라인을 불러올 수 없습니다." },
-      { status: 500 }
-    );
-  }
+    return getMemoryTimeline(user?.id);
+  }, "기억 타임라인을 불러올 수 없습니다.", "[api/memory]");
 }

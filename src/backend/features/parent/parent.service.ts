@@ -15,7 +15,7 @@ import { listDayStoriesForUser } from "@/backend/features/adventure-quest/advent
 import { getMemoryTimeline } from "@/backend/features/memory-timeline/memory-timeline.service";
 import { resolveLinkedChildUserId } from "@/backend/features/guardian-link/guardian-link.service";
 import { hasLedgerRef } from "@/backend/features/wallet/wallet.store";
-import { runLlm } from "@/backend/ai/llm-gateway";
+import { runLlm } from "@/backend/ai/orchestrator";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { env } from "@/backend/shared/config/env";
 import {
@@ -35,6 +35,8 @@ import {
 } from "./parent-empathy-guide.llm";
 import { listScheduleForChild } from "@/backend/features/hospital-day/hospital-day.store";
 import { autoCompleteDueScheduleItems } from "@/backend/features/hospital-day/hospital-day.service";
+import { listParentChildMedia } from "./parent-media.service";
+import { getActiveChildSafetyAlert } from "@/backend/features/safety/safety-alert.store";
 import {
   formatKbHitsForPrompt,
   kbSourceLabels,
@@ -47,6 +49,7 @@ import type {
   ParentEmotionOverview,
   ParentEmpathyGuide,
   ParentHomeDashboard,
+  ParentMediaItem,
   ParentMemoryHighlight,
   ParentMoodTone,
   ParentProfileResponse,
@@ -118,16 +121,18 @@ export async function getParentHome(
       emotion: null,
       adventures: [],
       memories: [],
+      media: [],
       dailySummary: null,
       careSuggestions: [],
       empathyGuide: null,
+      safetyAlert: null,
       updatedLabel: "연결 전",
     };
   }
 
   const childId = link.childUserId;
   const day = todayKey();
-  const [garden, memory, wishes, adventure, settings, scheduleItems] =
+  const [garden, memory, wishes, adventure, settings, scheduleItems, safetyAlert] =
     await Promise.all([
       getGardenAccount(childId),
       getConversationMemory(childId),
@@ -135,6 +140,7 @@ export async function getParentHome(
       getAdventureQuest(childId),
       getParentSettings(guardianUserId),
       listScheduleForChild(childId, day).catch(() => []),
+      getActiveChildSafetyAlert(childId),
     ]);
 
   const todayMood = todayMoodFromGarden(garden.flowers);
@@ -172,6 +178,10 @@ export async function getParentHome(
         themes,
         dayStory: adventure.dayStory?.narrative?.slice(0, 40) ?? null,
       })
+    : [];
+
+  const media: ParentMediaItem[] = settings.privacy.shareMemoryHighlights
+    ? await listParentChildMedia(childId)
     : [];
 
   const summaryInput = {
@@ -240,6 +250,7 @@ export async function getParentHome(
       : null,
     adventures,
     memories: memoryHighlights,
+    media,
     dailySummary: dailySummaryText,
     careSuggestions: settings.notifications.careTips
       ? buildCareSuggestions({
@@ -249,6 +260,14 @@ export async function getParentHome(
         })
       : [],
     empathyGuide,
+    safetyAlert: safetyAlert
+      ? {
+          id: safetyAlert.id,
+          level: safetyAlert.level,
+          summary: safetyAlert.summary,
+          createdAt: safetyAlert.createdAt,
+        }
+      : null,
     updatedLabel: day,
   };
 }
@@ -391,6 +410,7 @@ async function composeTodayMessageWithLlm(
     const result = await runLlm({
       feature: "parent.today-summary",
       purpose: "quality",
+      childName: input.childName,
       temperature: 0.5,
       maxTokens: 180,
       messages: [
@@ -447,6 +467,7 @@ async function composeDailySummaryWithLlm(
     const result = await runLlm({
       feature: "parent.daily-summary",
       purpose: "quality",
+      childName: input.childName,
       temperature: 0.45,
       maxTokens: 320,
       messages: [
@@ -913,8 +934,8 @@ export async function getParentTimeline(
           ? `${daySchedules[0].type === "exam" ? "검사" : "치료"} · ${daySchedules[0].title}`
           : `${link.childName}의 ${hospitalDay}일째 이야기`),
       reflection:
-        story?.dayStory?.narrative?.slice(0, 180) ??
-        dayEvents[0]?.summary ??
+        story?.dayStory?.narrative?.trim() ||
+        dayEvents[0]?.summary?.trim() ||
         (daySchedules.length
           ? `이날은 ${daySchedules.map((s) => s.title).join(", ")} 일정이 있었어요.`
           : "그날의 작은 순간들이 차곡차곡 쌓였어요."),
@@ -1101,6 +1122,7 @@ async function composeReportAnswerWithLlm(
     const result = await runLlm({
       feature: "rag.guardian.generate",
       purpose: "quality",
+      childName: context.childName,
       messages: [
         {
           role: "system",

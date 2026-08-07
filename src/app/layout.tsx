@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR, Plus_Jakarta_Sans } from "next/font/google";
 import { DevJumpButtons } from "@/frontend/shared/components/DevJumpButtons";
+import { MotionProvider } from "@/frontend/shared/components/MotionProvider";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -56,7 +57,7 @@ export default function RootLayout({
       <body
         className={`${plusJakarta.variable} ${notoSansKr.variable} paper-bg font-sans min-h-screen`}
       >
-        {children}
+        <MotionProvider>{children}</MotionProvider>
         <DevJumpButtons />
       </body>
     </html>

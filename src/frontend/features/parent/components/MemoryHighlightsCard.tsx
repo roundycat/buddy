@@ -1,6 +1,6 @@
 import { Images } from "lucide-react";
 import { ParentCard } from "@/frontend/features/parent/components/ParentUi";
-import type { ParentMemoryHighlight } from "@/backend/features/parent/parent.types";
+import type { ParentMemoryHighlight } from "@/frontend/shared/types/parent";
 
 export function MemoryHighlightsCard({
   memories,

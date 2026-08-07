@@ -34,14 +34,14 @@ function createClient(region: string) {
 }
 
 /** Prefer fast Core; fall back to Ultra if Core unavailable. */
-function imageModelCandidates(): string[] {
-  const preferred = env.bedrock.imageModelId;
+function imageModelCandidates(preferred?: string): string[] {
   const fallbacks = [
     preferred,
+    env.bedrock.imageModelId,
     "stability.stable-image-core-v1:1",
     "stability.stable-image-ultra-v1:1",
   ];
-  return Array.from(new Set(fallbacks.filter(Boolean)));
+  return Array.from(new Set(fallbacks.filter(Boolean) as string[]));
 }
 
 function styleGuideModelCandidates(): string[] {
@@ -62,10 +62,19 @@ function parseImagePayload(body: Uint8Array): Buffer {
   const json = JSON.parse(Buffer.from(body).toString("utf8")) as {
     images?: string[];
     image?: string;
+    finish_reasons?: unknown;
+    finishReason?: unknown;
   };
   const b64 = json.images?.[0] || json.image;
   if (!b64) {
-    throw new Error("Bedrock image response had no image payload.");
+    // Stability returns HTTP 200 with an empty payload when its safety filter
+    // rejects the prompt, so the reason only shows up here.
+    const reason = json.finish_reasons ?? json.finishReason;
+    throw new Error(
+      reason
+        ? `Bedrock image response had no image payload (${JSON.stringify(reason)}).`
+        : "Bedrock image response had no image payload."
+    );
   }
   return Buffer.from(b64, "base64");
 }
@@ -186,13 +195,14 @@ async function invokeStabilityTextToImage(input: {
   negativePrompt: string;
   seed?: number;
   aspectRatio?: "1:1" | "16:9" | "3:2";
+  modelId?: string;
 }): Promise<{ bytes: Buffer; model: string }> {
   const region = env.bedrock.imageRegion;
   const client = createClient(region);
   const seed = normalizeSeed(input.seed);
   let lastError: unknown;
 
-  for (const modelId of imageModelCandidates()) {
+  for (const modelId of imageModelCandidates(input.modelId)) {
     try {
       const response = await client.send(
         new InvokeModelCommand({
@@ -236,6 +246,8 @@ export async function generateStabilityPng(input: {
   negativePrompt: string;
   seed?: number;
   aspectRatio?: "1:1" | "16:9" | "3:2";
+  /** Overrides the configured default; other models stay as fallbacks. */
+  modelId?: string;
 }): Promise<{ bytes: Buffer; model: string }> {
   return invokeStabilityTextToImage(input);
 }

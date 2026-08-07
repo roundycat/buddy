@@ -1,5 +1,5 @@
 import "server-only";
-import { runLlm } from "@/backend/ai/llm-gateway";
+import { runLlm } from "@/backend/ai/orchestrator";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { env } from "@/backend/shared/config/env";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";
@@ -61,6 +61,7 @@ export async function consolidateMemoryForUser(
     const result = await runLlm({
       feature: "batch.memory-consolidate",
       purpose: "quality",
+      childName: persona?.self?.nickname?.trim(),
       temperature: 0.3,
       maxTokens: 900,
       messages: [

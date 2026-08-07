@@ -38,8 +38,15 @@ export const env = {
   /** mock | bedrock */
   llmProvider: (read("LLM_PROVIDER", "mock") || "mock") as LlmProviderName,
 
-  /** Fallback to mock when LLM call fails */
-  llmFallbackToMock: readBool("LLM_FALLBACK_TO_MOCK", true),
+  /**
+   * Fallback to mock when LLM call fails.
+   * Local default: true (dev ergonomics).
+   * Production default: false (never silently fake answers for real users).
+   */
+  llmFallbackToMock: readBool(
+    "LLM_FALLBACK_TO_MOCK",
+    process.env.NODE_ENV !== "production"
+  ),
 
   bedrock: {
     region: read("AWS_REGION", "us-east-1"),

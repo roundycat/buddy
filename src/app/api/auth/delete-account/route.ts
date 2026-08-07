@@ -9,7 +9,7 @@ import { clearAuthCookies } from "@/backend/shared/http/cookies";
 export const dynamic = "force-dynamic";
 
 /**
- * API Bridge: Delete account — wipe user data, Aurora row, clear cookies.
+ * API Bridge: Delete account — wipe user data, DynamoDB auth row, clear cookies.
  */
 export async function POST() {
   try {

@@ -4,7 +4,7 @@ import { ParentCard } from "@/frontend/features/parent/components/ParentUi";
 import type {
   ParentEmotionOverview,
   ParentMoodTone,
-} from "@/backend/features/parent/parent.types";
+} from "@/frontend/shared/types/parent";
 
 const toneFill: Record<ParentMoodTone, string> = {
   warm: "#E8B86D",

@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { getTimeline } from "@/backend/features/timeline/timeline.service";
 import { getSessionUser } from "@/backend/shared/http/auth";
+import { withApiGuard } from "@/backend/shared/http/route";
 
 export const dynamic = "force-dynamic";
 
@@ -9,15 +9,8 @@ export const dynamic = "force-dynamic";
  * Frontend calls this route — never imports backend services directly.
  */
 export async function GET() {
-  try {
+  return withApiGuard(async () => {
     const user = await getSessionUser();
-    const data = await getTimeline(user?.id);
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error("[api/timeline]", error);
-    return NextResponse.json(
-      { error: "타임라인 데이터를 불러올 수 없습니다." },
-      { status: 500 }
-    );
-  }
+    return getTimeline(user?.id);
+  }, "타임라인 데이터를 불러올 수 없습니다.", "[api/timeline]");
 }

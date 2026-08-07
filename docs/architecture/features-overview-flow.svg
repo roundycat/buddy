@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" font-family="Malgun Gothic, Apple SD Gothic Neo, Noto Sans KR, Segoe UI, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5A6675"/></marker>
+    <marker id="at" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#0F766E"/></marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#BE185D"/></marker>
+    <style>
+      .bg { fill: #FFFFFF; }
+      .title { font-size: 36px; font-weight: 700; fill: #16202E; }
+      .sub { font-size: 16px; fill: #5A6675; }
+      .lab { font-size: 12px; font-weight: 700; fill: #9BA7B6; letter-spacing: 1px; }
+      .h1 { font-size: 18px; font-weight: 700; fill: #16202E; }
+      .h2 { font-size: 15px; font-weight: 700; }
+      .cs { font-size: 13px; fill: #48546A; }
+      .cx { font-size: 12px; fill: #7A8699; }
+      .ln { fill: none; stroke-width: 2.3; }
+    </style>
+  </defs>
+  <rect class="bg" width="1920" height="1080"/>
+
+  <text class="title" x="48" y="58">Beddy 핵심 기능 — 간략 흐름</text>
+  <text class="sub" x="48" y="90">아이 경험(정원·소원·이야기책 통합) → 새벽 준비 → 보호자 요약</text>
+
+  <!-- Left -->
+  <rect x="60" y="150" width="520" height="760" rx="16" fill="#F0FDFA" stroke="#0F766E" stroke-width="2.5"/>
+  <text class="lab" x="82" y="182">CHILD</text>
+  <text class="h1" x="82" y="210">아이 앱</text>
+
+  <rect x="82" y="240" width="476" height="120" rx="12" fill="#FFF" stroke="#0F766E" stroke-width="1.8"/>
+  <text class="h2" x="104" y="274" fill="#0F766E">채팅</text>
+  <text class="cs" x="104" y="300">Guardrail + Haiku SSE</text>
+  <text class="cx" x="104" y="324">응답 후 저장 (Agent 아님)</text>
+
+  <rect x="82" y="380" width="476" height="150" rx="12" fill="#FFF" stroke="#0F766E" stroke-width="1.8"/>
+  <text class="h2" x="104" y="414" fill="#0F766E">아이 경험 (통합)</text>
+  <text class="cs" x="104" y="440">감정 정원 + 소원 나무 + 이야기책</text>
+  <text class="cs" x="104" y="464">+ 사진/그림 + 병원 일정</text>
+  <text class="cx" x="104" y="490">상태: DynamoDB / 미디어: S3</text>
+
+  <rect x="82" y="550" width="476" height="150" rx="12" fill="#FFF7ED" stroke="#C2410C" stroke-width="2"/>
+  <text class="h2" x="104" y="584" fill="#C2410C">오늘의 모험 (유일한 Agent)</text>
+  <text class="cs" x="104" y="610">tool-use로 계획 → 미션 3개 생성/검증</text>
+  <text class="cx" x="104" y="634">실패 시 규칙 폴백</text>
+
+  <rect x="82" y="720" width="476" height="150" rx="12" fill="#FEF2F2" stroke="#BE123C" stroke-width="2"/>
+  <text class="h2" x="104" y="754" fill="#BE123C">프라이버시</text>
+  <text class="cs" x="104" y="780">채팅 원문은 보호자에게 직접 전달 안 함</text>
+  <text class="cx" x="104" y="804">요약/집계만 넘어감</text>
+
+  <!-- Center -->
+  <rect x="700" y="220" width="520" height="620" rx="16" fill="#FFF7ED" stroke="#C2410C" stroke-width="2.5"/>
+  <text class="lab" x="722" y="252">DAWN BATCH (05:00 KST)</text>
+  <text class="h1" x="722" y="280">새벽 준비 파이프라인</text>
+
+  <rect x="722" y="310" width="476" height="70" rx="10" fill="#FFF" stroke="#C2410C"/>
+  <text class="h2" x="744" y="352" fill="#C2410C">1) memory / emotion / story 정리</text>
+  <rect x="722" y="400" width="476" height="70" rx="10" fill="#FFF" stroke="#C2410C"/>
+  <text class="h2" x="744" y="442" fill="#C2410C">2) mission Agent 실행</text>
+  <rect x="722" y="490" width="476" height="70" rx="10" fill="#FFF" stroke="#C2410C"/>
+  <text class="h2" x="744" y="532" fill="#C2410C">3) 보호자 메시지/공감 가이드 준비</text>
+  <rect x="722" y="580" width="476" height="70" rx="10" fill="#FFF" stroke="#C2410C"/>
+  <text class="h2" x="744" y="622" fill="#C2410C">4) KB 요약 문서 5종 인덱싱</text>
+
+  <rect x="722" y="680" width="476" height="130" rx="12" fill="#FFEDD5" stroke="#C2410C"/>
+  <text class="h2" x="744" y="714" fill="#9A3412">산출물</text>
+  <text class="cs" x="744" y="740">아이: 오늘의 모험</text>
+  <text class="cs" x="744" y="764">보호자: 홈 요약 + RAG용 KB 문서</text>
+
+  <!-- Right -->
+  <rect x="1340" y="150" width="520" height="760" rx="16" fill="#FDF2F8" stroke="#BE185D" stroke-width="2.5"/>
+  <text class="lab" x="1362" y="182">PARENT</text>
+  <text class="h1" x="1362" y="210">보호자 앱 (요약만)</text>
+
+  <rect x="1362" y="240" width="476" height="120" rx="12" fill="#FFF" stroke="#BE185D" stroke-width="1.8"/>
+  <text class="h2" x="1384" y="274" fill="#BE185D">홈/기록/일정/편지</text>
+  <text class="cs" x="1384" y="300">하루 메시지 · 공감 가이드 · 캘린더</text>
+  <text class="cx" x="1384" y="324">privacy 토글로 노출 범위 제어</text>
+
+  <rect x="1362" y="380" width="476" height="220" rx="12" fill="#FFF" stroke="#6B2BE0" stroke-width="2"/>
+  <text class="h2" x="1384" y="414" fill="#6B2BE0">보호자 RAG (Agent 아님)</text>
+  <text class="cs" x="1384" y="440">질문 → KB 검색 → Bridge 필터 → 요약 답변</text>
+  <text class="cx" x="1384" y="464">문서: memory / emotion / mission / timeline / interests</text>
+  <text class="cx" x="1384" y="488">경로: kb-summaries/{childId}/</text>
+  <text class="cx" x="1384" y="512">원문 문서/채팅 그대로 표시하지 않음</text>
+
+  <rect x="1362" y="620" width="476" height="120" rx="12" fill="#FEF2F2" stroke="#BE123C" stroke-width="2"/>
+  <text class="h2" x="1384" y="654" fill="#BE123C">항상 차단</text>
+  <text class="cs" x="1384" y="680">채팅 원문 · 일기 원문 · GPS · 타 아동 데이터</text>
+
+  <rect x="1362" y="760" width="476" height="120" rx="12" fill="#FFF" stroke="#5A6675"/>
+  <text class="h2" x="1384" y="794" fill="#334155">한 줄 요약</text>
+  <text class="cs" x="1384" y="820">아이 경험은 풍부하게, 보호자 전달은 요약만</text>
+  <text class="cx" x="1384" y="844">경계는 Bridge가 담당</text>
+
+  <!-- arrows -->
+  <path class="ln" d="M 580 470 L 700 470" stroke="#5A6675" marker-end="url(#a)"/>
+  <text class="cx" x="602" y="452">아이 활동 데이터</text>
+  <path class="ln" d="M 1220 520 L 1340 520" stroke="#0F766E" marker-end="url(#at)"/>
+  <text class="cx" x="1244" y="502" fill="#0F766E">요약/KB</text>
+  <path class="ln" d="M 1220 740 L 1340 300" stroke="#BE185D" marker-end="url(#ap)"/>
+  <text class="cx" x="1224" y="330" fill="#BE185D">홈 메시지</text>
+</svg>

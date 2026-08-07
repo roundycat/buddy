@@ -4,6 +4,7 @@ import {
   getWishTree,
   removeWish,
 } from "@/backend/features/wish-tree/wish-tree.service";
+import { isWishKind } from "@/backend/features/wish-tree/wish-tree.leaves";
 import type { WishHorizon } from "@/backend/features/wish-tree/wish-tree.types";
 import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/route";
 
@@ -11,7 +12,7 @@ export async function GET() {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
     return getWishTree(user.id);
-  }, "소원 나무를 불러오지 못했어요.", "[api/wish GET]");
+  }, "마음 나무를 불러오지 못했어요.", "[api/wish GET]");
 }
 
 export async function POST(request: Request) {
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
     const body = await readJsonBody<{
       text?: string;
       horizon?: WishHorizon;
+      kind?: string;
     }>(request);
     const text = typeof body?.text === "string" ? body.text : "";
     const horizon =
@@ -28,9 +30,10 @@ export async function POST(request: Request) {
       body?.horizon === "anytime"
         ? body.horizon
         : "anytime";
+    const kind = isWishKind(body?.kind) ? body.kind : undefined;
 
-    return addWish(user.id, text, horizon);
-  }, "소원을 걸지 못했어요.", "[api/wish POST]");
+    return addWish(user.id, text, horizon, kind);
+  }, "잎을 걸지 못했어요.", "[api/wish POST]");
 }
 
 export async function DELETE(request: Request) {
@@ -39,9 +42,9 @@ export async function DELETE(request: Request) {
     const body = await readJsonBody<{ wishId?: string }>(request);
     const wishId = typeof body?.wishId === "string" ? body.wishId : "";
     if (!wishId) {
-      throw new HttpError("소원 ID가 필요해요.", 400);
+      throw new HttpError("잎 ID가 필요해요.", 400);
     }
 
     return removeWish(user.id, wishId);
-  }, "소원을 내리지 못했어요.", "[api/wish DELETE]");
+  }, "잎을 내리지 못했어요.", "[api/wish DELETE]");
 }

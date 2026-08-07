@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { SendHorizontal, Sparkles } from "lucide-react";
 import { ParentShell } from "@/frontend/features/parent/components/ParentShell";
-import { EmptyState } from "@/frontend/features/parent/components/ParentUi";
+import { EmptyState, ErrorState } from "@/frontend/features/parent/components/ParentUi";
 import { cn } from "@/frontend/shared/lib/utils";
 import type {
   ParentReportAnswer,
@@ -226,9 +226,7 @@ export function ParentReportView({
             </div>
           ) : null}
 
-          {error ? (
-            <p className="text-center text-[11px] text-bedi-rose">{error}</p>
-          ) : null}
+          {error ? <ErrorState message={error} /> : null}
 
           <div ref={bottomRef} />
         </div>

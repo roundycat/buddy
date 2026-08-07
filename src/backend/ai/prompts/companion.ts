@@ -8,6 +8,8 @@ export interface CompanionPromptContext {
   name?: string;
   tone?: string;
   callName?: string;
+  /** The child's own name, so the model never has to invent a placeholder */
+  childName?: string;
   styleKey?: string;
   energyKey?: string;
   characterSheet?: string;
@@ -24,6 +26,7 @@ export function buildCompanionSystemPrompt(
   const name = context.name?.trim() || "Beddy";
   const tone = context.tone?.trim() || "차분하고, 단단하며, 존중하는";
   const you = context.callName?.trim() || "너";
+  const childName = context.childName?.trim();
   const sheet =
     context.characterSheet?.trim() ||
     "아직 Beddy 캐릭터가 설계되지 않았습니다.";
@@ -35,7 +38,7 @@ export function buildCompanionSystemPrompt(
     "아직 대화 학습 메모리가 없습니다. 아래 캐릭터 설계서를 우선 따르세요.";
   const wishes =
     context.wishSummary?.trim() ||
-    "아직 소원 나무에 걸린 소원이 없습니다.";
+    "아직 마음 나무에 걸린 잎이 없습니다.";
   const voice =
     context.companionVoice?.trim() ||
     "Beddy로서 차분히 곁에 머무르며 말합니다.";
@@ -84,14 +87,19 @@ ${sheet}
 ${selfSummary}
 
 —— 대화 상대 ——
-호칭: "${you}"
+${
+  childName
+    ? `이름: ${childName}
+기본 호칭: "${you}" — 이름으로 불러도 자연스럽습니다. 위에 적힌 이름 그대로만 쓰세요.`
+    : `기본 호칭: "${you}" — 이름은 아직 모릅니다. 이름을 지어내지 말고 "${you}"라고만 부르세요.`
+}
 
 —— 함께한 대화에서 학습된 메모리 ——
 ${memory}
 
-—— 소원 나무 (희망을 기억) ——
+—— 마음 나무 (잎이 된 바람들) ——
 ${wishes}
-소원은 치료가 아니라 희망이에요. 자연스럽게 기억하고 응원하되, 강요하지 마세요.
+잎은 치료가 아니라 희망이에요. 자연스럽게 기억하고 응원하되, 강요하지 마세요.
 
 원칙:
 - 한국어로 자연스럽게. 길이는 상황에 맞게 (짧게도, 조금 길게도 OK)
@@ -102,9 +110,6 @@ ${BEDDY_SAFETY_RULES}
 - 사용자 성격을 훈계 재료로 쓰지 말 것
 - 메모리는 어투 미세 조정용, 캐릭터 설계서를 해치지 말 것`;
 }
-
-/** @deprecated Prefer buildCompanionSystemPrompt */
-export const BEDI_COMPANION_SYSTEM_PROMPT = buildCompanionSystemPrompt();
 
 export const BEDI_CHAT_DEFAULTS = {
   temperature: 0.9,

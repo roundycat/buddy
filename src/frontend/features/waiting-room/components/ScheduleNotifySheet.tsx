@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Stethoscope, Syringe, X } from "lucide-react";
+import { CalendarDays, Stethoscope, Syringe, X } from "lucide-react";
 import { cn } from "@/frontend/shared/lib/utils";
+import { useDialogDismiss } from "@/frontend/shared/hooks/useDialogDismiss";
 
 export interface ScheduleNotifyItem {
   id: string;
   title: string;
   time?: string;
   type?: "exam" | "treatment" | string;
+  /** Message written by the guardian when sharing this schedule. */
+  notifyText?: string;
   explanation?: string;
   /** LLM: 이게 뭐예요? */
   whatText?: string;
@@ -36,6 +39,24 @@ function typeMeta(type?: string) {
     fallbackWhy:
       "지금 몸이 어떤지 알아보기 위한 시간이에요. 긴장되면 베디에게 말해도 괜찮아요.",
   };
+}
+
+function scheduleAlertLabel(item: ScheduleNotifyItem): string {
+  if (!item.time) return "보호자가 보낸 일정";
+  const match = item.time.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return "보호자가 보낸 일정";
+
+  const now = new Date();
+  const targetMinutes = Number(match[1]) * 60 + Number(match[2]);
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const until = targetMinutes - nowMinutes;
+  const kind = item.type === "treatment" ? "치료" : "검사";
+
+  if (until >= 0 && until <= 60) {
+    if (until < 5) return `곧 ${kind} 시간이에요`;
+    return `${kind}까지 ${until}분 남았어요`;
+  }
+  return "보호자가 보낸 일정";
 }
 
 export function ScheduleItemImage({
@@ -146,6 +167,8 @@ export function ScheduleNotifySheet({
   onClose: () => void;
   items: ScheduleNotifyItem[];
 }) {
+  useDialogDismiss(open, onClose);
+
   if (!open) return null;
 
   return (
@@ -163,21 +186,24 @@ export function ScheduleNotifySheet({
         )}
         role="dialog"
         aria-modal="true"
-        aria-label="병원 일정 알림"
+        aria-label="알림 모아보기"
       >
         <div className="flex items-center justify-between px-5 pb-2 pt-4">
           <div>
             <p className="text-[11px] tracking-wide text-bedi-softBlueDeep/70">
-              알림
+              오늘의 알림
             </p>
             <h2 className="mt-0.5 text-lg font-semibold text-bedi-slate">
-              보호자가 알려 준 일정
+              알림 모아보기
             </h2>
+            <p className="mt-0.5 text-[11px] text-bedi-slate/40">
+              보호자가 보낸 소식과 검사·치료 전 알림이에요
+            </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-bedi-slate/45"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-bedi-slate/45 transition-transform duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bedi-sage/40"
             aria-label="닫기"
           >
             <X className="h-4 w-4" />
@@ -186,9 +212,17 @@ export function ScheduleNotifySheet({
 
         <div className="overflow-y-auto px-5 pb-6 pt-2">
           {items.length === 0 ? (
-            <p className="py-8 text-center text-sm text-bedi-slate/45">
-              지금은 알려 준 일정이 없어요
-            </p>
+            <div className="py-8 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-bedi-mist text-bedi-softBlueDeep/60">
+                <CalendarDays className="h-5 w-5" strokeWidth={1.5} />
+              </div>
+              <p className="mt-3 text-sm text-bedi-slate/55">
+                지금은 새 알림이 없어요
+              </p>
+              <p className="mt-1 text-[11px] text-bedi-slate/35">
+                다가오는 일정은 달력에서 미리 볼 수 있어요
+              </p>
+            </div>
           ) : (
             <ul className="space-y-3">
               {items.map((item) => {
@@ -204,16 +238,30 @@ export function ScheduleNotifySheet({
                         <Icon className="h-5 w-5" strokeWidth={1.75} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[11px] text-bedi-slate/40">
-                          {meta.label}
-                          {item.time ? ` · ${item.time}` : ""}
-                          {item.done ? " · 끝났어요" : ""}
+                        <p className="text-[11px] font-medium text-bedi-softBlueDeep/75">
+                          {scheduleAlertLabel(item)}
                         </p>
                         <p className="mt-0.5 text-[15px] font-semibold text-bedi-slate">
                           {item.title}
                         </p>
+                        <p className="mt-0.5 text-[11px] text-bedi-slate/40">
+                          {meta.label}
+                          {item.time ? ` · ${item.time}` : ""}
+                          {item.done ? " · 끝났어요" : ""}
+                        </p>
                       </div>
                     </div>
+
+                    {item.notifyText?.trim() ? (
+                      <div className="mt-3 rounded-xl border border-bedi-softBlue/15 bg-bedi-mist/55 px-3.5 py-3">
+                        <p className="text-[10px] font-semibold tracking-wide text-bedi-softBlueDeep/70">
+                          보호자가 보낸 말
+                        </p>
+                        <p className="mt-1 text-sm leading-relaxed text-bedi-slate/75">
+                          {item.notifyText.trim()}
+                        </p>
+                      </div>
+                    ) : null}
 
                     <ScheduleItemImage
                       itemId={item.id}
@@ -254,7 +302,7 @@ export function ScheduleNotifySheet({
             href="/hospital"
             className="mt-4 flex h-11 items-center justify-center rounded-xl bg-bedi-softBlueDeep text-sm font-medium text-white"
           >
-            일정 전체 보기
+            전체 일정 달력 보기
           </a>
           <p className="mt-2 text-center text-[11px] text-bedi-slate/35">
             무섭지 않아요. 천천히 알아가면 돼요.

@@ -1,5 +1,8 @@
 import { todayKey } from "@/backend/shared/time/date";
 import { resolveLinkedChildUserId } from "@/backend/features/guardian-link/guardian-link.service";
+import { getChildName } from "@/backend/features/persona/persona.store";
+import { fillNamePlaceholdersDeep } from "@/backend/ai/orchestrator";
+import { DomainError } from "@/backend/shared/http/domain-error";
 import {
   deleteScheduleItem,
   getScheduleItem,
@@ -225,17 +228,19 @@ export async function getHospitalDay(
         ? "오늘은 특별한 병원 일정이 아직 없어요. 쉬는 것도 괜찮은 하루예요."
         : "이 날에는 아직 알려 준 일정이 없어요. 쉬는 날도 괜찮아요.";
 
-  return {
-    dateLabel:
-      dateKey === todayKey()
-        ? "오늘"
-        : formatDayLabel(dateKey),
-    companionNote,
-    items,
-    parentItemCount: parentItems.length,
-    freshDeliveries,
-    dateKey,
-  };
+  // Copy written before placeholder scrubbing existed is still on disk.
+  return fillNamePlaceholdersDeep(
+    {
+      dateLabel:
+        dateKey === todayKey() ? "오늘" : formatDayLabel(dateKey),
+      companionNote,
+      items,
+      parentItemCount: parentItems.length,
+      freshDeliveries,
+      dateKey,
+    },
+    await getChildName(userId)
+  );
 }
 
 function formatDayLabel(dateKey: string): string {
@@ -436,24 +441,26 @@ export async function createParentScheduleItems(
 ): Promise<HospitalDayItem[]> {
   const childUserId = await resolveLinkedChildUserId(guardianUserId);
   if (!childUserId) {
-    throw new Error("먼저 아이와 연결해 주세요.");
+    throw new DomainError("먼저 아이와 연결해 주세요.");
   }
 
   const title = input.title.trim();
-  if (!title) throw new Error("일정 이름을 입력해 주세요.");
-  if (title.length > 40) throw new Error("일정 이름은 40자 이내로 입력해 주세요.");
+  if (!title) throw new DomainError("일정 이름을 입력해 주세요.");
+  if (title.length > 40) {
+    throw new DomainError("일정 이름은 40자 이내로 입력해 주세요.");
+  }
 
   const type = input.type === "treatment" ? "treatment" : "exam";
   const dateKey = input.dateKey?.trim() || todayKey();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
-    throw new Error("날짜 형식이 올바르지 않아요. 예: 2026-08-04");
+    throw new DomainError("날짜 형식이 올바르지 않아요. 예: 2026-08-04");
   }
 
   let time: string | undefined;
   if (input.time?.trim()) {
     const m = /^(\d{1,2}):(\d{2})$/.exec(input.time.trim());
     if (!m) {
-      throw new Error("시간은 HH:MM 형식으로 입력해 주세요. 예: 14:30");
+      throw new DomainError("시간은 HH:MM 형식으로 입력해 주세요. 예: 14:30");
     }
     time = `${String(Number(m[1])).padStart(2, "0")}:${m[2]}`;
   }
@@ -488,6 +495,7 @@ export async function createParentScheduleItems(
       type,
       title,
       note: input.note,
+      childName: await getChildName(childUserId),
     });
     if (llmCopy) {
       whatText = llmCopy.what;
@@ -545,11 +553,11 @@ export async function duplicateParentScheduleItem(
 ): Promise<HospitalDayItem> {
   const existing = await getScheduleItem(itemId);
   if (!existing || existing.source !== "parent") {
-    throw new Error("일정을 찾을 수 없어요.");
+    throw new DomainError("일정을 찾을 수 없어요.", "NOT_FOUND");
   }
   const childUserId = await resolveLinkedChildUserId(guardianUserId);
   if (!childUserId || childUserId !== existing.childUserId) {
-    throw new Error("이 일정을 복제할 수 없어요.");
+    throw new DomainError("이 일정을 복제할 수 없어요.", "FORBIDDEN");
   }
 
   return createParentScheduleItem(guardianUserId, {
@@ -572,13 +580,13 @@ export async function updateParentScheduleItem(
 ): Promise<HospitalDayItem> {
   const existing = await getScheduleItem(itemId);
   if (!existing || existing.source !== "parent") {
-    throw new Error("일정을 찾을 수 없어요.");
+    throw new DomainError("일정을 찾을 수 없어요.", "NOT_FOUND");
   }
   if (existing.createdByGuardianId !== guardianUserId) {
     // Allow any linked guardian of this child
     const childUserId = await resolveLinkedChildUserId(guardianUserId);
     if (!childUserId || childUserId !== existing.childUserId) {
-      throw new Error("이 일정을 수정할 수 없어요.");
+      throw new DomainError("이 일정을 수정할 수 없어요.", "FORBIDDEN");
     }
   }
 
@@ -596,7 +604,7 @@ export async function updateParentScheduleItem(
         : existing.time;
 
   if (time && !/^\d{1,2}:\d{2}$/.test(time)) {
-    throw new Error("시간은 HH:MM 형식으로 입력해 주세요. 예: 14:30");
+    throw new DomainError("시간은 HH:MM 형식으로 입력해 주세요. 예: 14:30");
   }
 
   const titleOrTypeChanged =
@@ -632,6 +640,7 @@ export async function updateParentScheduleItem(
         type,
         title,
         note: noteForCopy,
+        childName: await getChildName(existing.childUserId),
       });
       if (llmCopy) {
         whatText = llmCopy.what;
@@ -682,11 +691,11 @@ export async function deleteParentScheduleItem(
 ): Promise<void> {
   const existing = await getScheduleItem(itemId);
   if (!existing || existing.source !== "parent") {
-    throw new Error("일정을 찾을 수 없어요.");
+    throw new DomainError("일정을 찾을 수 없어요.", "NOT_FOUND");
   }
   const childUserId = await resolveLinkedChildUserId(guardianUserId);
   if (!childUserId || childUserId !== existing.childUserId) {
-    throw new Error("이 일정을 삭제할 수 없어요.");
+    throw new DomainError("이 일정을 삭제할 수 없어요.", "FORBIDDEN");
   }
   await deleteScheduleItem(itemId);
 }
@@ -699,7 +708,7 @@ export async function markHospitalItemDone(
 ): Promise<HospitalDayItem> {
   const existing = await getScheduleItem(itemId);
   if (!existing || existing.childUserId !== childUserId) {
-    throw new Error("일정을 찾을 수 없어요.");
+    throw new DomainError("일정을 찾을 수 없어요.", "NOT_FOUND");
   }
   return saveScheduleItem({
     ...existing,

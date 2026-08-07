@@ -1,8 +1,9 @@
-import { runLlm } from "@/backend/ai/llm-gateway";
+import { runLlm } from "@/backend/ai/orchestrator";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { env } from "@/backend/shared/config/env";
 import { appendMemoryEvent } from "@/backend/features/memory-timeline/memory-timeline.store";
 import { hasLedgerRef } from "@/backend/features/wallet/wallet.store";
+import { getChildName } from "@/backend/features/persona/persona.store";
 import {
   getAdventurePack,
   saveAdventurePack,
@@ -42,7 +43,10 @@ function ruleBasedNarrative(pack: AdventureDayPack): string {
   return `${weatherLine} ${middle} 오늘의 작은 모험도 성공!`;
 }
 
-async function generateNarrative(pack: AdventureDayPack): Promise<string> {
+async function generateNarrative(
+  pack: AdventureDayPack,
+  childName?: string
+): Promise<string> {
   if (env.llmProvider === "mock") {
     return ruleBasedNarrative(pack);
   }
@@ -51,6 +55,7 @@ async function generateNarrative(pack: AdventureDayPack): Promise<string> {
     const result = await runLlm({
       feature: "adventure.story",
       purpose: "analysis",
+      childName,
       messages: [
         {
           role: "system",
@@ -100,7 +105,7 @@ export async function maybeComposeDayStory(
   const allDone = claimFlags.every(Boolean);
   if (!allDone) return null;
 
-  const narrative = await generateNarrative(pack);
+  const narrative = await generateNarrative(pack, await getChildName(userId));
   const memoryEventId = `adv-${userId}-${date}`;
   const createdAt = new Date().toISOString();
 

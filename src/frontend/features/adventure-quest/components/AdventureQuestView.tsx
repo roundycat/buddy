@@ -14,7 +14,7 @@ import type {
   AdventureQuestItem,
   AdventureQuestKind,
   AdventureQuestResponse,
-} from "@/backend/features/adventure-quest/adventure-quest.types";
+} from "@/frontend/shared/types/adventure-quest";
 
 interface AdventureQuestViewProps {
   initial: AdventureQuestResponse;
@@ -232,7 +232,7 @@ export function AdventureQuestView({ initial }: AdventureQuestViewProps) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="feature-enter space-y-5">
       <div className="rounded-2xl border border-bedi-slate/8 bg-white/85 px-5 py-5 shadow-softer">
         <p className="text-[11px] tracking-wide text-bedi-sage">
           {data.dateLabel}
@@ -372,7 +372,7 @@ export function AdventureQuestView({ initial }: AdventureQuestViewProps) {
                             type="button"
                             disabled={busyId === quest.id}
                             onClick={() => void saveNote(quest)}
-                            className="rounded-lg border border-bedi-slate/10 px-3 py-1.5 text-xs text-bedi-slate/70 hover:bg-bedi-slate/5 disabled:opacity-50"
+                            className="press-soft min-h-11 rounded-lg border border-bedi-slate/10 px-3.5 text-xs text-bedi-slate/70 hover:bg-bedi-slate/5 disabled:opacity-50"
                           >
                             기록 저장
                           </button>
@@ -382,7 +382,7 @@ export function AdventureQuestView({ initial }: AdventureQuestViewProps) {
                             onClick={() =>
                               fileRefs.current[quest.id]?.click()
                             }
-                            className="inline-flex items-center gap-1 rounded-lg border border-bedi-slate/10 px-3 py-1.5 text-xs text-bedi-slate/70 hover:bg-bedi-slate/5 disabled:opacity-50"
+                            className="press-soft inline-flex min-h-11 items-center gap-1 rounded-lg border border-bedi-slate/10 px-3.5 text-xs text-bedi-slate/70 hover:bg-bedi-slate/5 disabled:opacity-50"
                           >
                             <Camera className="h-3.5 w-3.5" strokeWidth={1.75} />
                             사진도 올리기
@@ -397,7 +397,7 @@ export function AdventureQuestView({ initial }: AdventureQuestViewProps) {
                           type="button"
                           disabled={busyId === quest.id}
                           onClick={() => fileRefs.current[quest.id]?.click()}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-bedi-sage/25 bg-bedi-sage/10 px-3 py-1.5 text-xs font-medium text-bedi-sage hover:bg-bedi-sage/15 disabled:opacity-50"
+                          className="press-soft inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-bedi-sage/25 bg-bedi-sage/10 px-3.5 text-xs font-medium text-bedi-sage hover:bg-bedi-sage/15 disabled:opacity-50"
                         >
                           <Camera className="h-3.5 w-3.5" strokeWidth={1.75} />
                           {busyId === quest.id
@@ -459,7 +459,7 @@ export function AdventureQuestView({ initial }: AdventureQuestViewProps) {
                             claimingId === quest.id || !quest.readyToClaim
                           }
                           onClick={() => void claim(quest)}
-                          className="shrink-0 rounded-lg bg-bedi-slate px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-bedi-slate/90 disabled:opacity-40"
+                          className="press-soft min-h-11 shrink-0 rounded-lg bg-bedi-slate px-3.5 text-xs font-medium text-white hover:bg-bedi-slate/90 disabled:opacity-40"
                         >
                           {claimingId === quest.id
                             ? "받는 중…"

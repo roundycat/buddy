@@ -42,7 +42,7 @@ function buildCompanionRequest(
   userMessage: string,
   history: Array<{ role: "user" | "assistant"; content: string }> = [],
   companion?: CompanionPromptContext,
-  options?: { model?: string }
+  options?: { model?: string; systemAddendum?: string }
 ): LlmChatRequest {
   const recentHistory = history.slice(-24);
   const guardrail =
@@ -52,11 +52,15 @@ function buildCompanionRequest(
           guardrailVersion: env.bedrock.guardrailVersion || "DRAFT",
         }
       : undefined;
+  const baseSystem = buildCompanionSystemPrompt(companion);
+  const system = options?.systemAddendum?.trim()
+    ? `${baseSystem}\n\n${options.systemAddendum.trim()}`
+    : baseSystem;
   return {
     messages: [
       {
         role: "system",
-        content: buildCompanionSystemPrompt(companion),
+        content: system,
       },
       ...recentHistory.map((h) => ({
         role: h.role as "user" | "assistant",
@@ -75,7 +79,7 @@ export async function chatWithCompanion(
   userMessage: string,
   history: Array<{ role: "user" | "assistant"; content: string }> = [],
   companion?: CompanionPromptContext,
-  options?: { model?: string }
+  options?: { model?: string; systemAddendum?: string }
 ): Promise<LlmChatResult> {
   const provider = getLlmProvider();
   const request = buildCompanionRequest(
@@ -104,7 +108,7 @@ export async function* streamWithCompanion(
   userMessage: string,
   history: Array<{ role: "user" | "assistant"; content: string }> = [],
   companion?: CompanionPromptContext,
-  options?: { model?: string }
+  options?: { model?: string; systemAddendum?: string }
 ): AsyncIterable<string> {
   const provider = getLlmProvider();
   const request = buildCompanionRequest(

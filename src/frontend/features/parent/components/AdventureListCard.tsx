@@ -1,7 +1,7 @@
 import { Check, ListChecks } from "lucide-react";
 import { ParentCard } from "@/frontend/features/parent/components/ParentUi";
 import { cn } from "@/frontend/shared/lib/utils";
-import type { ParentAdventureItem } from "@/backend/features/parent/parent.types";
+import type { ParentAdventureItem } from "@/frontend/shared/types/parent";
 
 export function AdventureListCard({
   adventures,

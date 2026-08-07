@@ -7,11 +7,48 @@ import {
 import { readScheduleImage, saveScheduleImage } from "./schedule-image.store";
 import {
   SCHEDULE_IMAGE_PROMPT_VERSION,
+  buildScheduleComicFallbackPrompt,
   buildScheduleComicPrompt,
 } from "./schedule-image.prompt";
 import type { HospitalDayItem } from "./hospital-day.types";
 
 const generating = new Set<string>();
+
+/** Core collapses the 2x2 grid into stray panels; only Ultra holds the layout. */
+const COMIC_MODEL_ID = "stability.stable-image-ultra-v1:1";
+
+/**
+ * Stability answers HTTP 200 with an empty payload when its safety filter
+ * rejects a prompt, and it does so intermittently for the same clinical text.
+ */
+function isPromptFiltered(error: unknown): boolean {
+  return (
+    error instanceof Error && error.message.includes("no image payload")
+  );
+}
+
+async function drawComic(item: HospitalDayItem, seed: number) {
+  const detailed = buildScheduleComicPrompt(item);
+  try {
+    return await generateStabilityPng({
+      ...detailed,
+      seed,
+      aspectRatio: "1:1",
+      modelId: COMIC_MODEL_ID,
+    });
+  } catch (error) {
+    if (!isPromptFiltered(error)) throw error;
+    console.warn(
+      `[schedule-image] prompt filtered for ${item.id}, retrying generic comic`
+    );
+    return generateStabilityPng({
+      ...buildScheduleComicFallbackPrompt(),
+      seed,
+      aspectRatio: "1:1",
+      modelId: COMIC_MODEL_ID,
+    });
+  }
+}
 
 function publicImageUrl(itemId: string, stamp?: number) {
   const v = stamp ?? Date.now();
@@ -70,18 +107,12 @@ export async function ensureScheduleImage(
   await saveScheduleItem(pending);
 
   try {
-    const { prompt, negativePrompt } = buildScheduleComicPrompt(existing);
     const seed =
       Math.abs(
         Array.from(itemId).reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
       ) % 4294967296;
 
-    const generated = await generateStabilityPng({
-      prompt,
-      negativePrompt,
-      seed,
-      aspectRatio: "1:1",
-    });
+    const generated = await drawComic(existing, seed);
 
     await saveScheduleImage(itemId, generated.bytes);
     const ready: HospitalDayItem = {

@@ -7,6 +7,11 @@ import { clearAdventurePacksForUser } from "@/backend/features/adventure-quest/a
 import { clearMemoryEventsForUser } from "@/backend/features/memory-timeline/memory-timeline.store";
 import { clearWishTreeForUser } from "@/backend/features/wish-tree/wish-tree.store";
 import { clearGuardianDataForUser } from "@/backend/features/guardian-link/guardian-link.store";
+import { clearDiaryForUser } from "@/backend/features/picture-diary/picture-diary.store";
+import { clearDischargeTale } from "@/backend/features/growth-storybook/growth-storybook.store";
+import { clearStorybookParentLetter } from "@/backend/features/growth-storybook/storybook-parent-letter.store";
+import { clearStorybookIllustrations } from "@/backend/features/growth-storybook/storybook-illustration.service";
+import { clearMemoryLetters } from "@/backend/features/memory-post/memory-post.store";
 import type { AuthUser } from "./auth.types";
 import { deleteDynamoUser } from "./auth.users.dynamo.repo";
 
@@ -14,6 +19,8 @@ import { deleteDynamoUser } from "./auth.users.dynamo.repo";
  * Wipe app data + auth user row for account deletion.
  */
 export async function deleteAccount(user: AuthUser): Promise<void> {
+  // Illustration IDs live in the sealed tale, so remove their blobs first.
+  await clearStorybookIllustrations(user.id);
   await Promise.all([
     clearPersonaForUser(user.id),
     deleteAvatarImage(user.id),
@@ -24,6 +31,10 @@ export async function deleteAccount(user: AuthUser): Promise<void> {
     clearMemoryEventsForUser(user.id),
     clearWishTreeForUser(user.id),
     clearGuardianDataForUser(user.id),
+    clearDiaryForUser(user.id),
+    clearDischargeTale(user.id),
+    clearStorybookParentLetter(user.id),
+    clearMemoryLetters(user.id),
   ]);
 
   await deleteDynamoUser(user.id);

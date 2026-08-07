@@ -11,12 +11,15 @@ import {
 } from "@/frontend/features/parent/components/EmotionOverviewCard";
 import { AdventureListCard } from "@/frontend/features/parent/components/AdventureListCard";
 import { MemoryHighlightsCard } from "@/frontend/features/parent/components/MemoryHighlightsCard";
+import { ChildMediaGalleryCard } from "@/frontend/features/parent/components/ChildMediaGalleryCard";
 import {
   CareSuggestionCard,
   DailySummaryCard,
 } from "@/frontend/features/parent/components/SummaryCareCards";
 import { GuardianLinkForm } from "@/frontend/features/guardian/components/GuardianLinkForm";
 import { ParentSchedulePanel } from "@/frontend/features/parent/components/ParentSchedulePanel";
+import { StorybookLetterCard } from "@/frontend/features/parent/components/StorybookLetterCard";
+import { SafetyAlertCard } from "@/frontend/features/parent/components/SafetyAlertCard";
 import type { ParentHomeDashboard } from "@/frontend/features/parent/types";
 
 export function ParentHomeView({ data }: { data: ParentHomeDashboard }) {
@@ -53,6 +56,13 @@ export function ParentHomeView({ data }: { data: ParentHomeDashboard }) {
       </header>
 
       <div className="flex flex-col gap-5">
+        {data.safetyAlert ? (
+          <section>
+            <ParentSectionLabel>안전 알림</ParentSectionLabel>
+            <SafetyAlertCard alert={data.safetyAlert} />
+          </section>
+        ) : null}
+
         {data.empathyGuide ? (
           <section>
             <ParentSectionLabel>오늘의 공감 가이드</ParentSectionLabel>
@@ -97,8 +107,17 @@ export function ParentHomeView({ data }: { data: ParentHomeDashboard }) {
         )}
 
         <section>
+          <ParentSectionLabel>아이 사진 · 그림</ParentSectionLabel>
+          <ChildMediaGalleryCard media={data.media ?? []} />
+        </section>
+
+        <section>
           <ParentSectionLabel>최근 기억</ParentSectionLabel>
           <MemoryHighlightsCard memories={data.memories} />
+        </section>
+
+        <section>
+          <StorybookLetterCard />
         </section>
 
         <p className="pb-1 text-center text-[11px] leading-relaxed text-slate-400">

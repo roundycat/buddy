@@ -1,0 +1,195 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1120" viewBox="0 0 1920 1120" font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR','Segoe UI',sans-serif">
+  <defs>
+    <linearGradient id="gOrb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38CBB2"/><stop offset="1" stop-color="#017A6A"/></linearGradient>
+    <linearGradient id="gSmi" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F79640"/><stop offset="1" stop-color="#C85B10"/></linearGradient>
+    <linearGradient id="gGal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A882FF"/><stop offset="1" stop-color="#6B2BE0"/></linearGradient>
+    <linearGradient id="gCos" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4479C"/><stop offset="1" stop-color="#B60F60"/></linearGradient>
+    <style>
+      .bg { fill: #FFFFFF; }
+      .title { font-size: 33px; font-weight: 700; fill: #16202E; }
+      .sub { font-size: 14.5px; fill: #5A6675; }
+      .lg { font-size: 12.5px; fill: #5A6675; }
+      .lane { font-size: 21px; font-weight: 700; }
+      .badge { font-size: 12px; font-weight: 700; fill: #FFFFFF; letter-spacing: 1.2px; }
+      .who { font-size: 12.5px; fill: #48546A; }
+      .st { font-size: 13.5px; font-weight: 700; fill: #16202E; }
+      .sd { font-size: 11.5px; fill: #5A6675; }
+      .sm { font-size: 11.5px; fill: #48546A; font-family: 'Consolas','Courier New',monospace; }
+      .bh { font-size: 16.5px; font-weight: 700; }
+      .bt { font-size: 12.5px; fill: #48546A; }
+      .bm { font-size: 12px; fill: #16202E; font-family: 'Consolas','Courier New',monospace; }
+      .warn { font-size: 12.5px; font-weight: 700; fill: #C7253E; }
+      .ok { font-size: 12px; font-weight: 700; fill: #0F766E; }
+      .foot { font-size: 12px; fill: #7A8699; }
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1920" height="1120"/>
+
+  <text class="title" x="44" y="52">Beddy — AI 구성 3분류 : LLM · Agent · RAG</text>
+  <text class="sub" x="44" y="80">각 능력이 무엇을 판단하고 무엇을 판단하지 않는지   ·   2026-08-05 코드 기준, 전부 구현 완료</text>
+
+  <rect x="1352" y="34" width="524" height="54" rx="10" fill="#F0FDFA" stroke="#0F766E" stroke-width="1.8"/>
+  <text class="ok" x="1372" y="56">Bedrock Guardrail  opr7cxjd4txo  v1</text>
+  <text class="lg" x="1372" y="76">모든 Converse · Tool Use 호출에 게이트웨이가 자동 부착</text>
+
+  <!-- ============ LANE 1 : LLM ============ -->
+  <rect x="44" y="112" width="592" height="56" rx="12" fill="#F0FDFA" stroke="#0E7490" stroke-width="2.6"/>
+  <rect x="62" y="126" width="52" height="26" rx="6" fill="#0E7490"/>
+  <text class="badge" x="72" y="144">LLM</text>
+  <text class="lane" x="128" y="148" fill="#0E7490">LLM 직접 호출</text>
+
+  <rect x="44" y="176" width="592" height="44" rx="9" fill="#FFFFFF" stroke="#A5D8DC" stroke-width="1.6"/>
+  <text class="who" x="62" y="195">판단 주체 없음. 프롬프트 + 히스토리 → LLM 1회 → 출력</text>
+  <text class="sd" x="62" y="212">검색 없음 · 도구 없음 · 검증 없음 · 루프 없음</text>
+
+  <rect x="44" y="230" width="592" height="46" rx="9" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.8"/>
+  <text class="st" x="62" y="250">1 · 요청</text>
+  <text class="sd" x="62" y="267">아이 메시지 또는 배치 트리거</text>
+
+  <rect x="44" y="284" width="592" height="46" rx="9" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.8"/>
+  <text class="st" x="62" y="304">2 · 프롬프트 조립</text>
+  <text class="sd" x="62" y="321">페르소나 · 히스토리 · withBeddySafety() — 코드가 고정 조립</text>
+
+  <rect x="44" y="338" width="592" height="46" rx="9" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.8"/>
+  <text class="st" x="62" y="358">3 · Bedrock 호출 1회</text>
+  <text class="sm" x="62" y="375">runLlm()  ·  Converse / ConverseStream</text>
+
+  <rect x="44" y="392" width="592" height="46" rx="9" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.8"/>
+  <text class="st" x="62" y="412">4 · 응답</text>
+  <text class="sd" x="62" y="429">대화는 SSE 토큰 스트리밍 · 나머지는 JSON 파싱</text>
+
+  <rect x="44" y="446" width="592" height="46" rx="9" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.8"/>
+  <text class="st" x="62" y="466">5 · 응답 후 백그라운드</text>
+  <text class="sd" x="62" y="483">대화 저장 · 감정 분석 — SSE done 을 먼저 닫은 뒤 실행</text>
+
+  <rect x="44" y="508" width="592" height="278" rx="11" fill="#F8FAFC" stroke="#0E7490" stroke-width="2"/>
+  <text class="bh" x="62" y="536" fill="#0E7490">호출 지점 12</text>
+  <text class="sd" x="62" y="558">purpose chat — Haiku 4.5 · 스트리밍</text>
+  <text class="sm" x="62" y="577">conversation.chat</text>
+  <text class="sd" x="62" y="601">purpose analysis — Haiku 4.5 · 구조화 JSON</text>
+  <text class="sm" x="62" y="620">emotion.analysis · adventure.story</text>
+  <text class="sm" x="62" y="639">hospital-day.schedule-copy · memory.post</text>
+  <text class="sm" x="62" y="658">companion.status · conversation.context</text>
+  <text class="sd" x="62" y="682">purpose quality — Opus 4.6 · 품질·배치</text>
+  <text class="sm" x="62" y="701">batch.memory-consolidate · growth.journal</text>
+  <text class="sm" x="62" y="720">growth.storybook · parent.empathy</text>
+  <text class="sm" x="62" y="739">parent.today-summary · parent.daily-summary</text>
+  <text class="warn" x="62" y="766">이 12개는 Agent 도 RAG 도 아니다</text>
+
+  <!-- ============ LANE 2 : AGENT ============ -->
+  <rect x="664" y="112" width="592" height="56" rx="12" fill="#FFF7ED" stroke="#C2410C" stroke-width="2.6"/>
+  <rect x="682" y="126" width="62" height="26" rx="6" fill="#C2410C"/>
+  <text class="badge" x="692" y="144">AGENT</text>
+  <text class="lane" x="758" y="148" fill="#C2410C">AI Agent — 오늘의 미션</text>
+
+  <rect x="664" y="176" width="592" height="44" rx="9" fill="#FFFFFF" stroke="#F0C9A8" stroke-width="1.6"/>
+  <text class="who" x="682" y="195">Bedrock Tool Use — 무엇을 조회할지 모델이 결정한다</text>
+  <text class="sd" x="682" y="212">새벽 배치 경로라 지연이 무관 → 판단 단계를 넣을 수 있음 · 예산 12초</text>
+
+  <rect x="664" y="230" width="592" height="46" rx="9" fill="#FFFFFF" stroke="#C2410C" stroke-width="1.8"/>
+  <text class="st" x="682" y="250">1 · 컨텍스트 7종 병렬 수집</text>
+  <text class="sd" x="682" y="267">페르소나 · 병원일정 · 감정정원 · 메모리 · 보호자수 · 감정 · 날씨</text>
+
+  <rect x="664" y="284" width="592" height="72" rx="9" fill="#FFF7ED" stroke="#C2410C" stroke-width="2.4"/>
+  <text class="st" x="682" y="304">2 · toolConfig 전달 → 모델이 도구 선택</text>
+  <text class="sm" x="682" y="323">runLlmWithTools()  ·  stopReason: "tool_use"</text>
+  <text class="sd" x="682" y="342">호출할 도구와 인자가 아이 상황에 따라 달라진다 · 반복 상한 4턴</text>
+
+  <rect x="664" y="364" width="592" height="66" rx="9" fill="#FFFFFF" stroke="#C2410C" stroke-width="1.8"/>
+  <text class="st" x="682" y="384">도구 ①  lookup_emotional_guidance</text>
+  <text class="sd" x="682" y="402">논문 근거 카드 15장 검색 · tags 7종에서 선택</text>
+  <text class="sm" x="682" y="420">treatment_anxiety · low_energy · isolation · self_expression …</text>
+
+  <rect x="664" y="438" width="592" height="52" rx="9" fill="#FFFFFF" stroke="#C2410C" stroke-width="1.8"/>
+  <text class="st" x="682" y="458">도구 ②  list_recent_quest_titles</text>
+  <text class="sd" x="682" y="476">최근 N일 미션 제목 조회 — 중복이 우려될 때만 호출</text>
+
+  <rect x="664" y="498" width="592" height="58" rx="9" fill="#FFF7ED" stroke="#C2410C" stroke-width="2.4"/>
+  <text class="st" x="682" y="518">도구 ③  submit_mission_plan   (종결)</text>
+  <text class="sd" x="682" y="536">JSON Schema 강제 — scene · reasoning · focusSignals · avoid · questKinds</text>
+  <text class="sd" x="682" y="552">자유 텍스트 파싱이 아니다</text>
+
+  <rect x="664" y="564" width="592" height="46" rx="9" fill="#FFFFFF" stroke="#C2410C" stroke-width="1.8"/>
+  <text class="st" x="682" y="584">3 · 미션 3개 생성</text>
+  <text class="sm" x="682" y="601">agent.mission.generate  ·  Opus 4.6</text>
+
+  <rect x="664" y="618" width="592" height="66" rx="9" fill="#FFFFFF" stroke="#C2410C" stroke-width="1.8"/>
+  <text class="st" x="682" y="638">4 · 폴백 3단</text>
+  <text class="sd" x="682" y="656">Tool Use 실패 → 단일 호출 LLM → 규칙 기반 buildRuleBasedPack()</text>
+  <text class="sm" x="682" y="674">generatedBy 로 어느 경로였는지 구분</text>
+
+  <rect x="664" y="696" width="592" height="90" rx="11" fill="#FFF7ED" stroke="#C2410C" stroke-width="2"/>
+  <text class="bh" x="682" y="722" fill="#C2410C">LLM 호출 지점 2  +  파이프라인 계측 1</text>
+  <text class="sm" x="682" y="744">agent.mission.plan  ·  Haiku 4.5  ·  도구 선택 턴</text>
+  <text class="sm" x="682" y="762">agent.mission.generate  ·  Opus 4.6      agent.mission  ·  계측</text>
+  <text class="warn" x="682" y="780">시스템에서 Tool Use Agent 는 이것 하나뿐이다</text>
+
+  <!-- ============ LANE 3 : RAG ============ -->
+  <rect x="1284" y="112" width="592" height="56" rx="12" fill="#F5F1FF" stroke="#6B2BE0" stroke-width="2.6"/>
+  <rect x="1302" y="126" width="48" height="26" rx="6" fill="#6B2BE0"/>
+  <text class="badge" x="1312" y="144">RAG</text>
+  <text class="lane" x="1364" y="148" fill="#6B2BE0">RAG — 보호자 인사이트</text>
+
+  <rect x="1284" y="176" width="592" height="44" rx="9" fill="#FFFFFF" stroke="#C9B8F5" stroke-width="1.6"/>
+  <text class="who" x="1302" y="195">과거 요약을 검색해 근거로 쓴다. 도구 선택 루프 없음</text>
+  <text class="sd" x="1302" y="212">코드 주석: Not an Agent — no tool-selection loop · 예산 3.5초</text>
+
+  <rect x="1284" y="230" width="592" height="56" rx="9" fill="#FFFFFF" stroke="#6B2BE0" stroke-width="1.8"/>
+  <text class="st" x="1302" y="250">1 · 질의 재작성 — LLM</text>
+  <text class="sm" x="1302" y="268">rag.guardian.plan-queries  ·  Haiku 4.5</text>
+  <text class="sd" x="1302" y="282">보호자 질문 1개 → 검색 질의 2~3개 · 실패 시 원문 사용</text>
+
+  <rect x="1284" y="294" width="592" height="52" rx="9" fill="#FFFFFF" stroke="#6B2BE0" stroke-width="1.8"/>
+  <text class="st" x="1302" y="314">2 · Knowledge Bases 병렬 검색</text>
+  <text class="sm" x="1302" y="332">Promise.all · KB GREBZFCNYP · 벡터 스토어 S3 Vectors</text>
+
+  <rect x="1284" y="354" width="592" height="52" rx="9" fill="#FFFFFF" stroke="#6B2BE0" stroke-width="1.8"/>
+  <text class="st" x="1302" y="374">3 · 소유자 경로 필터 + 중복 제거</text>
+  <text class="sm" x="1302" y="392">kb-summaries/{childUserId}/ 밖의 히트는 전부 폐기</text>
+
+  <rect x="1284" y="414" width="592" height="52" rx="9" fill="#FFFFFF" stroke="#6B2BE0" stroke-width="1.8"/>
+  <text class="st" x="1302" y="434">4 · 프라이버시 필터</text>
+  <text class="sd" x="1302" y="452">filterBridgeHits() — 원문 대화 · 좌표 패턴 탐지 후 폐기</text>
+
+  <rect x="1284" y="474" width="592" height="56" rx="9" fill="#FFFFFF" stroke="#6B2BE0" stroke-width="1.8"/>
+  <text class="st" x="1302" y="494">5 · 충분성 판정 + 재검색 1회</text>
+  <text class="sm" x="1302" y="512">MIN_TOP_SCORE = 0.15 미달 → 명사만 추출해 완화</text>
+  <text class="sd" x="1302" y="526">완화는 LLM 없이 한다 — 보호자 대기 시간을 늘리지 않기 위해</text>
+
+  <rect x="1284" y="538" width="592" height="52" rx="9" fill="#FFFFFF" stroke="#6B2BE0" stroke-width="1.8"/>
+  <text class="st" x="1302" y="558">6 · 요약만 주입해 생성</text>
+  <text class="sm" x="1302" y="576">rag.guardian.generate  ·  Opus 4.6  ·  근거 라벨 동반 반환</text>
+
+  <rect x="1284" y="598" width="592" height="188" rx="11" fill="#F5F1FF" stroke="#6B2BE0" stroke-width="2"/>
+  <text class="bh" x="1302" y="624" fill="#6B2BE0">소비처 2곳</text>
+  <text class="sm" x="1302" y="648">parent.report</text>
+  <text class="sd" x="1302" y="665">보호자 질문이 질의 재작성 대상</text>
+  <text class="sm" x="1302" y="690">growth.storybook</text>
+  <text class="sd" x="1302" y="707">질의가 고정 템플릿 — 재작성 불필요</text>
+  <text class="sd" x="1302" y="731">계측: RagLatencyMs · RagStepLatencyMs</text>
+  <text class="sd" x="1302" y="748">RagQueryRewrites · RagRetries · KbCrossChildDrops</text>
+  <text class="warn" x="1302" y="774">보호자 화면은 Agent 가 아니라 RAG 다</text>
+
+  <!-- ============ BOTTOM ============ -->
+  <rect x="44" y="810" width="900" height="164" rx="12" fill="#F8FAFC" stroke="#5A6675" stroke-width="2.2"/>
+  <text class="bh" x="64" y="838" fill="#334155">LLM Gateway — 배관 · AI 능력 아님</text>
+  <text class="bm" x="64" y="862">backend/ai/llm-gateway.ts   runLlm() · runLlmWithTools()</text>
+  <text class="bt" x="64" y="884">위 세 레인의 모든 LLM 호출이 이 한 곳을 지난다. purpose → 모델 ID 매핑, Guardrail 부착, 계측.</text>
+  <text class="warn" x="64" y="906">코드 주석: NOT a central decision layer — 어느 능력이 요청을 처리할지 결정하지 않는다</text>
+  <text class="bt" x="64" y="928">purpose 와 feature 를 정하는 주체는 호출자다. 판단하지 않고 매핑과 측정만 한다.</text>
+  <text class="bt" x="64" y="950">효과 — getLlmProvider() 우회 호출 0건이라 Guardrail 누락이 구조적으로 불가능하다.</text>
+
+  <rect x="976" y="810" width="900" height="164" rx="12" fill="#FFFFFF" stroke="#C7253E" stroke-width="2.2" stroke-dasharray="7 5"/>
+  <text class="bh" x="996" y="838" fill="#C7253E">프라이버시 경계 — AI 아님</text>
+  <text class="bm" x="996" y="862">backend/ai/bridge/privacy-filter.ts</text>
+  <text class="bt" x="996" y="884">정규식 2개. 원문 대화 마커와 좌표 패턴을 탐지해 폐기한다. LLM 을 쓰지 않는다.</text>
+  <text class="bt" x="996" y="906">RAG 4단계에서 호출되며, 아이 공간 → 보호자 공간의 유일한 통과 지점이다.</text>
+  <text class="warn" x="996" y="928">보호자 응답에도 검색 색인에도 대화 원문은 들어가지 않는다</text>
+  <text class="bt" x="996" y="950">middleware.ts 가 쿠키 role 로 두 공간을 하드 분리한다. 판정이 결정론적이다.</text>
+
+  <text class="foot" x="44" y="1006">AI 능력은 3개다. LLM 직접 호출 1 · Agent 1 · RAG 1.  배관과 경계는 능력으로 세지 않는다.</text>
+  <text class="foot" x="44" y="1028">Agent 와 RAG 는 CloudWatch 메트릭이 AgentLatencyMs / RagLatencyMs 로 갈린다. 대시보드에서 분리되어 보이는 것이 분류의 증거다.</text>
+  <text class="foot" x="44" y="1050">Agent 12초 · RAG 3.5초 예산. 아이 대화 즉시 경로에는 도구를 일부러 넣지 않았다 — 거기서는 첫 토큰까지의 시간이 전부다.</text>
+  <text class="foot" x="44" y="1072">인증은 DynamoDB 단일 경로다. Aurora 는 제거됐고 src 내 흔적 0건.</text>
+  <text class="foot" x="44" y="1094">모델 ID · Guardrail ID · KB ID · 도구 이름 · 메트릭 이름은 코드에서 확인한 실제 값이다.</text>
+</svg>

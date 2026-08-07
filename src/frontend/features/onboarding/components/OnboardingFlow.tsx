@@ -32,6 +32,7 @@ import {
 import { getOnboardingNextAction } from "@/frontend/features/onboarding/lib/onboarding-navigation";
 import { buildOnboardingSummary } from "@/frontend/features/onboarding/lib/onboarding-summary";
 import { fetchAvatarChoices } from "@/frontend/features/persona/lib/fetch-avatar-choices";
+import { selectAvatarChoice } from "@/frontend/features/persona/lib/select-avatar";
 
 const fieldClass =
   "h-11 w-full rounded-xl border border-bedi-slate/10 bg-white px-3.5 text-sm text-bedi-slate outline-none transition-colors placeholder:text-bedi-slate/30 focus:border-bedi-sage/50";
@@ -316,7 +317,7 @@ function FriendComingProgress({
   nickname: string;
   phase: CreatePhase;
 }) {
-  const friend = formatNameWithI(nickname || "Beddy");
+  const friend = (nickname || "Beddy").trim() || "Beddy";
   const isEntering = phase === "entering";
   const activeIndex = isEntering
     ? CREATE_PHASE_STEPS.length - 1
@@ -373,7 +374,7 @@ function FriendComingProgress({
       </div>
 
       <h1 className="mt-6 text-xl font-semibold text-bedi-slate">
-        {friend} 오는 중이에요
+        {friend}이(가) 오는 중이에요
       </h1>
       <p className="mt-2 max-w-xs text-sm leading-relaxed text-bedi-slate/50">
         {isEntering
@@ -613,15 +614,7 @@ export function OnboardingFlow({
     setCreatePhase("entering");
     setError(null);
     try {
-      const res = await fetch("/api/persona/avatar/select", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ candidateId: pickedAvatarId }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error ?? "선택한 그림을 저장하지 못했어요.");
-      }
+      await selectAvatarChoice(pickedAvatarId);
       window.location.assign("/");
     } catch (err) {
       setError(

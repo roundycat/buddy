@@ -1,9 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Send, X } from "lucide-react";
+import { Phone, Send, Siren, Stethoscope, UserRound, X } from "lucide-react";
 import { cn } from "@/frontend/shared/lib/utils";
-import type { ConversationMessageDto } from "@/frontend/shared/types/api";
+import type {
+  ConversationCrisisDto,
+  ConversationMessageDto,
+} from "@/frontend/shared/types/api";
 
 const SUGGESTIONS = [
   "오늘 조금 피곤해요",
@@ -21,6 +24,23 @@ export interface CompanionChatSheetProps {
   loaded: boolean;
   onSend: (text: string) => Promise<void> | Promise<boolean>;
   onSpeakingChange?: (speaking: boolean) => void;
+  crisis?: ConversationCrisisDto | null;
+  onDismissCrisis?: () => void;
+}
+
+function actionIcon(id: string) {
+  switch (id) {
+    case "notify_guardian":
+      return UserRound;
+    case "notify_nurse":
+      return Stethoscope;
+    case "counseling":
+      return Phone;
+    case "emergency":
+      return Siren;
+    default:
+      return Phone;
+  }
 }
 
 export function CompanionChatSheet({
@@ -32,8 +52,11 @@ export function CompanionChatSheet({
   loaded,
   onSend,
   onSpeakingChange,
+  crisis,
+  onDismissCrisis,
 }: CompanionChatSheetProps) {
   const [input, setInput] = useState("");
+  const [actionNote, setActionNote] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -61,11 +84,15 @@ export function CompanionChatSheet({
     if (open) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, pending, open, loaded]);
+  }, [messages, pending, open, loaded, crisis, actionNote]);
 
   useEffect(() => {
     onSpeakingChange?.(pending);
   }, [pending, onSpeakingChange]);
+
+  useEffect(() => {
+    if (crisis) setActionNote(null);
+  }, [crisis]);
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -73,6 +100,26 @@ export function CompanionChatSheet({
     if (!text || pending) return;
     setInput("");
     void onSend(text);
+  }
+
+  function handleAction(action: ConversationCrisisDto["actions"][number]) {
+    if (action.href) {
+      window.location.href = action.href;
+      return;
+    }
+    if (action.id === "notify_guardian") {
+      setActionNote(
+        "보호자에게 안전 알림을 보냈어요. 옆에 계신 엄마·아빠·보호자에게도 지금 마음이 힘들다고 말해 주세요."
+      );
+      return;
+    }
+    if (action.id === "notify_nurse") {
+      setActionNote(
+        "병실·복도에 있는 간호사 선생님께 가서 “지금 기분이 많이 힘들어요. 도와주세요”라고 말해 주세요."
+      );
+      return;
+    }
+    setActionNote(action.hint);
   }
 
   if (!open) return null;
@@ -136,6 +183,52 @@ export function CompanionChatSheet({
               </div>
             );
           })}
+
+          {crisis ? (
+            <div
+              className="rounded-2xl border border-rose-200/70 bg-rose-50/80 px-4 py-3"
+              role="region"
+              aria-label="도움 받기"
+            >
+              <p className="text-sm leading-relaxed text-bedi-slate">
+                {crisis.empathyHint}
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-bedi-slate/70">
+                이런 마음은 혼자 견디지 않아도 괜찮아. 지금 엄마, 아빠, 보호자나
+                간호사 선생님께 이야기해 보자.
+              </p>
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {crisis.actions.map((action) => {
+                  const Icon = actionIcon(action.id);
+                  return (
+                    <button
+                      key={action.id}
+                      type="button"
+                      onClick={() => handleAction(action)}
+                      className="flex min-h-11 items-center gap-2 rounded-xl border border-bedi-slate/10 bg-white px-3 py-2.5 text-left text-xs font-medium text-bedi-slate transition-colors hover:border-bedi-sage/40"
+                    >
+                      <Icon className="h-3.5 w-3.5 shrink-0 text-bedi-slate/50" />
+                      <span>{action.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {actionNote ? (
+                <p className="mt-3 text-xs leading-relaxed text-bedi-slate/75">
+                  {actionNote}
+                </p>
+              ) : null}
+              {onDismissCrisis ? (
+                <button
+                  type="button"
+                  onClick={onDismissCrisis}
+                  className="mt-3 text-[11px] text-bedi-slate/45 underline-offset-2 hover:underline"
+                >
+                  도움 안내 접기
+                </button>
+              ) : null}
+            </div>
+          ) : null}
 
           {pending && (
             <div className="flex justify-start" aria-live="polite">

@@ -1,8 +1,11 @@
 import { createMapStore } from "@/backend/shared/persist/map-store";
-import { runLlm } from "@/backend/ai/llm-gateway";
+import { fillNamePlaceholdersDeep, runLlm } from "@/backend/ai/orchestrator";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { env } from "@/backend/shared/config/env";
-import { getPersonaForUser } from "@/backend/features/persona/persona.store";
+import {
+  getChildName,
+  getPersonaForUser,
+} from "@/backend/features/persona/persona.store";
 import {
   formatMemoryForPrompt,
   getConversationMemory,
@@ -101,6 +104,7 @@ async function maybeCompanionLetter(userId: string): Promise<MemoryLetter | null
     const result = await runLlm({
       feature: "memory.post",
       purpose: "analysis",
+      childName,
       temperature: 0.7,
       maxTokens: 280,
       messages: [
@@ -181,6 +185,10 @@ export async function getMemoryPost(
       ...letters.filter((l) => l.id !== companionLetter.id),
     ];
   }
+
+  // Letters written before placeholder scrubbing existed are still on disk.
+  const childName = await getChildName(userId);
+  letters = fillNamePlaceholdersDeep(letters, childName);
 
   await saveLetters(userId, letters);
 

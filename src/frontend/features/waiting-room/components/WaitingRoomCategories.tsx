@@ -2,21 +2,20 @@
 
 import Link from "next/link";
 import {
-  AlertCircle,
   BookHeart,
   CalendarDays,
   Compass,
   Flower2,
   HeartHandshake,
   Mail,
+  Palette,
   TreeDeciduous,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/frontend/shared/lib/utils";
 
 interface CategoryItem {
-  href?: string;
-  onClick?: () => void;
+  href: string;
   label: string;
   short: string;
   icon: LucideIcon;
@@ -24,7 +23,7 @@ interface CategoryItem {
   accent?: boolean;
 }
 
-/** Left rail — daily grow / play + schedule */
+/** Left rail — child-led daily grow / play */
 const leftCategories: CategoryItem[] = [
   {
     href: "/adventure",
@@ -40,15 +39,15 @@ const leftCategories: CategoryItem[] = [
   },
   {
     href: "/wish",
-    label: "소원 나무 (Wish Tree)",
+    label: "마음 나무 (Wish Tree)",
     short: "소원",
     icon: TreeDeciduous,
   },
   {
-    href: "/hospital",
-    label: "병원 일정",
-    short: "일정",
-    icon: CalendarDays,
+    href: "/diary",
+    label: "그림 일기 — 그림·사진으로 남기기",
+    short: "일기",
+    icon: Palette,
   },
 ];
 
@@ -102,25 +101,10 @@ function CategoryRail({
           </>
         );
 
-        if (item.onClick) {
-          return (
-            <button
-              key={item.short}
-              type="button"
-              aria-label={item.label}
-              title={item.label}
-              onClick={item.onClick}
-              className="group flex flex-col items-center gap-0.5"
-            >
-              {inner}
-            </button>
-          );
-        }
-
         return (
           <Link
             key={item.href}
-            href={item.href!}
+            href={item.href}
             aria-label={item.label}
             title={item.label}
             className="group flex flex-col items-center gap-0.5"
@@ -139,24 +123,19 @@ function CategoryRail({
  */
 export function WaitingRoomCategories({
   scheduleCount = 0,
-  onOpenSchedule,
 }: {
+  /** Today's pending schedules — highlights the rail entry. */
   scheduleCount?: number;
-  onOpenSchedule?: () => void;
 }) {
   const rightCategories: CategoryItem[] = [
-    ...(onOpenSchedule
-      ? [
-          {
-            onClick: onOpenSchedule,
-            label: "보호자가 알려 준 일정 알림",
-            short: "알림",
-            icon: AlertCircle,
-            badge: scheduleCount > 0 ? scheduleCount : undefined,
-            accent: scheduleCount > 0,
-          } satisfies CategoryItem,
-        ]
-      : []),
+    {
+      href: "/hospital",
+      label: "병원 일정",
+      short: "일정",
+      icon: CalendarDays,
+      badge: scheduleCount > 0 ? scheduleCount : undefined,
+      accent: scheduleCount > 0,
+    },
     {
       href: "/memory",
       label: "기억",

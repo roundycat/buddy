@@ -6,7 +6,7 @@ import Link from "next/link";
 import type {
   MemoryLetter,
   MemoryLetterKind,
-} from "@/backend/features/memory-post/memory-post.types";
+} from "@/frontend/shared/types/memory-post";
 import { completeAdventureQuest } from "@/frontend/features/adventure-quest/lib/complete-adventure-quest";
 
 const kindHint: Record<MemoryLetterKind, string> = {

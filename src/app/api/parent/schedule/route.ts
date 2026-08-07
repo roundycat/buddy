@@ -82,27 +82,20 @@ export async function POST(request: Request) {
       throw new HttpError("일정 이름을 입력해 주세요.", 400);
     }
 
-    try {
-      const items = await createParentScheduleItems(user.id, {
-        type,
-        title,
-        time,
-        note,
-        dateKey,
-        templateId,
-        colorTag,
-        repeatRule,
-        repeatWeekdays,
-        repeatCount,
-        reminderMinutes,
-        reminderEnabled,
-      });
-      return { item: items[0], items, count: items.length };
-    } catch (error) {
-      throw new HttpError(
-        error instanceof Error ? error.message : "일정을 저장하지 못했어요.",
-        400
-      );
-    }
+    const items = await createParentScheduleItems(user.id, {
+      type,
+      title,
+      time,
+      note,
+      dateKey,
+      templateId,
+      colorTag,
+      repeatRule,
+      repeatWeekdays,
+      repeatCount,
+      reminderMinutes,
+      reminderEnabled,
+    });
+    return { item: items[0], items, count: items.length };
   }, "일정을 저장하지 못했어요.", "[api/parent/schedule POST]");
 }

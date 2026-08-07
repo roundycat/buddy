@@ -19,7 +19,7 @@ export default async function TodayPage() {
   const { medications } = timelineData;
 
   return (
-    <div className="paper-room mx-auto max-w-lg px-5 pb-8 pt-2">
+    <div className="paper-room mx-auto max-w-lg px-5  pt-2 md:max-w-2xl md:px-8">
       <TopBrandBar />
 
       <div className="mt-8 mb-6 text-center">

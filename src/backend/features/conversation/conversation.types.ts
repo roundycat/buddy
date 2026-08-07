@@ -22,6 +22,18 @@ export interface SendMessageRequest {
   userId?: string;
 }
 
+export interface ConversationCrisisPayload {
+  level: "elevated" | "urgent" | string;
+  empathyHint: string;
+  actions: Array<{
+    id: string;
+    label: string;
+    href?: string;
+    hint: string;
+  }>;
+}
+
 export interface SendMessageResponse {
   reply: ConversationMessage;
+  crisis?: ConversationCrisisPayload;
 }

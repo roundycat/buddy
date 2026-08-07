@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ParentCard } from "@/frontend/features/parent/components/ParentUi";
+import {
+  ErrorState,
+  ParentCard,
+} from "@/frontend/features/parent/components/ParentUi";
 import { cn } from "@/frontend/shared/lib/utils";
 import type { ParentProfileResponse } from "@/frontend/features/parent/types";
 
@@ -251,8 +254,8 @@ export function ParentProfileSettings({
             }}
           />
           <SettingRow
-            title="기억 하이라이트"
-            description="하루의 짧은 하이라이트만 모아 보여 줘요"
+            title="기억 · 사진 · 그림"
+            description="하이라이트와 아이가 올린 사진·그림 일기를 보여 줘요"
             checked={privacy.shareMemoryHighlights}
             disabled={saving}
             onChange={(shareMemoryHighlights) => {
@@ -269,9 +272,9 @@ export function ParentProfileSettings({
         </div>
 
         {error ? (
-          <p className="mt-3 rounded-xl bg-bedi-rose/10 px-3 py-2 text-[12px] text-bedi-rose">
-            {error}
-          </p>
+          <div className="mt-3">
+            <ErrorState message={error} />
+          </div>
         ) : null}
       </ParentCard>
     </>

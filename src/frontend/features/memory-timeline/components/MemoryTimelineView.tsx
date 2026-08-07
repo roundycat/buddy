@@ -1,5 +1,6 @@
 import type { MemoryEventDto } from "@/frontend/shared/types/api";
 import { formatKoreanMonthDay } from "@/frontend/shared/lib/date";
+import { SoftEmptyState } from "@/frontend/shared/components/ChildUi";
 import { PhotoAlbumSection } from "@/frontend/features/photo-album/components/PhotoAlbumSection";
 
 const typeHint: Record<MemoryEventDto["type"], string> = {
@@ -25,7 +26,7 @@ export function MemoryTimelineView({
   events,
 }: MemoryTimelineViewProps) {
   return (
-    <div className="space-y-5">
+    <div className="feature-enter space-y-5">
       <div className="rounded-2xl border border-bedi-slate/8 bg-white/80 px-5 py-4 shadow-softer">
         <p className="text-[11px] tracking-wide text-bedi-sage">{title}</p>
         <p className="mt-2 text-sm leading-relaxed text-bedi-slate/75">
@@ -34,6 +35,14 @@ export function MemoryTimelineView({
       </div>
 
       <PhotoAlbumSection />
+
+      {events.length === 0 ? (
+        <SoftEmptyState
+          icon="🌱"
+          title="아직 첫 발자국이에요"
+          description="오늘 있었던 일이 하나씩 쌓이면, 여기가 우리만의 긴 이야기가 돼요."
+        />
+      ) : null}
 
       <ol className="relative space-y-0 border-l border-bedi-slate/12 ml-3 pl-6">
         {events.map((event) => (

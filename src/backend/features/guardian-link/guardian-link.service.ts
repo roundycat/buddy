@@ -33,27 +33,44 @@ import type {
 
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
-
 const CODE_LENGTH = 6;
-
 const INVITE_TTL_MS = 1000 * 60 * 60 * 48; // 48h
-
 const MAX_USES = 5;
+
+/** Per-process redeem throttle — stops online guessing of 6-char codes. */
+const REDEEM_WINDOW_MS = 60_000;
+const REDEEM_MAX_PER_WINDOW = 8;
+const redeemAttempts = new Map<string, { count: number; resetAt: number }>();
+
+function assertRedeemRateLimit(guardianUserId: string): void {
+  const now = Date.now();
+  const entry = redeemAttempts.get(guardianUserId);
+  if (!entry || entry.resetAt <= now) {
+    redeemAttempts.set(guardianUserId, {
+      count: 1,
+      resetAt: now + REDEEM_WINDOW_MS,
+    });
+    return;
+  }
+  entry.count += 1;
+  if (entry.count > REDEEM_MAX_PER_WINDOW) {
+    throw new Error(
+      "초대 코드 입력을 너무 많이 시도했어요. 잠시 후 다시 해 주세요."
+    );
+  }
+}
 
 
 
 function randomCode(): string {
-
+  // CSPRNG — Math.random is not acceptable for invite link entropy.
+  const bytes = new Uint32Array(CODE_LENGTH);
+  crypto.getRandomValues(bytes);
   let out = "";
-
   for (let i = 0; i < CODE_LENGTH; i++) {
-
-    out += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
-
+    out += CODE_ALPHABET[bytes[i]! % CODE_ALPHABET.length]!;
   }
-
   return out;
-
 }
 
 
@@ -259,12 +276,10 @@ export async function rotateChildInvite(
 
 
 export async function linkGuardianWithCode(
-
   guardianUserId: string,
-
   rawCode: string
-
 ): Promise<GuardianLinkResult> {
+  assertRedeemRateLimit(guardianUserId);
 
   const code = normalizeCode(rawCode);
 

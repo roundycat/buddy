@@ -95,8 +95,22 @@ export interface ConversationMessageDto {
   };
 }
 
+export interface ConversationCrisisActionDto {
+  id: string;
+  label: string;
+  href?: string;
+  hint: string;
+}
+
+export interface ConversationCrisisDto {
+  level: string;
+  empathyHint: string;
+  actions: ConversationCrisisActionDto[];
+}
+
 export interface ConversationApiResponse {
   reply: ConversationMessageDto;
+  crisis?: ConversationCrisisDto;
 }
 
 export interface ConversationHistoryApiResponse {

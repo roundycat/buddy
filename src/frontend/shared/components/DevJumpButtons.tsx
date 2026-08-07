@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { useAuthActions } from "@/frontend/shared/hooks/useAuthActions";
 
 /**
  * Development-only shortcuts. Never shown in production builds.
@@ -8,6 +9,7 @@ import { usePathname, useRouter } from "next/navigation";
 export function DevJumpButtons() {
   const pathname = usePathname();
   const router = useRouter();
+  const { logout, resetPersona } = useAuthActions({ redirectTo: "/start" });
 
   if (process.env.NODE_ENV !== "development") {
     return null;
@@ -24,9 +26,7 @@ export function DevJumpButtons() {
   }
 
   async function goLogin() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.replace("/start");
-    router.refresh();
+    await logout();
   }
 
   async function goOnboarding() {
@@ -34,7 +34,7 @@ export function DevJumpButtons() {
       "페르소나와 대화·정원·모험 기록을 모두 지우고 온보딩으로 돌아갈까요?"
     );
     if (!ok) return;
-    await fetch("/api/dev/reset-persona", { method: "POST" });
+    await resetPersona();
     router.replace("/onboarding");
     router.refresh();
   }

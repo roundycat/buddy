@@ -21,12 +21,14 @@ import {
   type CompanionBondView,
 } from "@/frontend/features/companion-bond/lib/companion-bond-api";
 import { fetchAvatarChoices } from "@/frontend/features/persona/lib/fetch-avatar-choices";
+import { selectAvatarChoice } from "@/frontend/features/persona/lib/select-avatar";
 
 export interface WaitingRoomScheduleItem {
   id: string;
   title: string;
   time?: string;
   type?: string;
+  notifyText?: string;
   explanation?: string;
   whatText?: string;
   whyText?: string;
@@ -95,10 +97,12 @@ export function WaitingRoom({
   const [bondReply, setBondReply] = useState<string | null>(null);
   const [bondReplyKey, setBondReplyKey] = useState(0);
   const visitedRef = useRef(false);
-  const { messages, pending, loaded, send } = useCompanionChat(
-    greeting,
-    companionMessage
-  );
+  const { messages, pending, loaded, send, crisis, dismissCrisis } =
+    useCompanionChat(greeting, companionMessage);
+
+  useEffect(() => {
+    if (crisis) setChatOpen(true);
+  }, [crisis]);
 
   const applyBond = useCallback((next: CompanionBondView | null) => {
     if (!next) return;
@@ -129,10 +133,10 @@ export function WaitingRoom({
   }, [questId]);
 
   useEffect(() => {
-    if (scheduleDeliveries.length > 0) {
+    if (searchParams.get("notifications") === "1") {
       setScheduleOpen(true);
     }
-  }, [scheduleDeliveries]);
+  }, [searchParams]);
 
   useEffect(() => {
     if (visitedRef.current) return;
@@ -186,6 +190,15 @@ export function WaitingRoom({
   const displayPrompt =
     prompt ??
     "오늘 하루, 나랑 조금만 이야기해줄래? 무리하지 않아도 괜찮아.";
+
+  function closeNotifications() {
+    setScheduleOpen(false);
+    if (searchParams.get("notifications") !== "1") return;
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("notifications");
+    const query = next.toString();
+    router.replace(query ? `/?${query}` : "/", { scroll: false });
+  }
 
   const questAnnounce = useMemo(
     () =>
@@ -339,15 +352,7 @@ export function WaitingRoom({
     setSavingPick(true);
     setPickError(null);
     try {
-      const res = await fetch("/api/persona/avatar/select", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ candidateId: pickedId }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error ?? "선택한 그림을 저장하지 못했어요.");
-      }
+      const data = await selectAvatarChoice(pickedId);
       setAvatarUrl(data.avatarUrl ?? `/api/persona/avatar?v=${Date.now()}`);
       setChoices([]);
       setDrawSlots([null, null]);
@@ -366,9 +371,16 @@ export function WaitingRoom({
   }
 
   return (
-    <section className="paper-room relative mx-auto flex min-h-[100dvh] max-w-lg flex-col px-5 pb-0 pt-2">
-      <ScheduleDeliveryEffect deliveries={scheduleDeliveries} />
-      <TopBrandBar showBack={false} />
+    <section className="paper-room relative mx-auto flex min-h-[100dvh] max-w-lg flex-col px-5 pb-0 pt-2 md:max-w-2xl md:px-8">
+      <ScheduleDeliveryEffect
+        deliveries={scheduleDeliveries}
+        onOpenNotifications={() => setScheduleOpen(true)}
+      />
+      <TopBrandBar
+        showBack={false}
+        notificationCount={scheduleTeaser.length}
+        onOpenNotifications={() => setScheduleOpen(true)}
+      />
 
       <div className="relative mt-5 shrink-0 text-center">
         <p className="text-sm text-bedi-slate/70">
@@ -385,10 +397,7 @@ export function WaitingRoom({
       </div>
 
       <div className="waiting-room-enter relative z-0 flex min-h-0 flex-1 flex-col items-center justify-end gap-1 pb-2 pt-3">
-        <WaitingRoomCategories
-          scheduleCount={scheduleTeaser.length}
-          onOpenSchedule={() => setScheduleOpen(true)}
-        />
+        <WaitingRoomCategories scheduleCount={scheduleTeaser.length} />
 
         <PersonaCharacter
           name={companionName}
@@ -520,6 +529,8 @@ export function WaitingRoom({
                             src={choice.url}
                             alt={`후보 ${index + 1}`}
                             className="aspect-square w-full object-contain"
+                            loading="lazy"
+                            decoding="async"
                           />
                         </button>
                       );
@@ -610,11 +621,13 @@ export function WaitingRoom({
         loaded={loaded}
         onSend={sendWithQuest}
         onSpeakingChange={setSpeaking}
+        crisis={crisis}
+        onDismissCrisis={dismissCrisis}
       />
 
       <ScheduleNotifySheet
         open={scheduleOpen}
-        onClose={() => setScheduleOpen(false)}
+        onClose={closeNotifications}
         items={scheduleTeaser}
       />
     </section>

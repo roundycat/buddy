@@ -1,11 +1,22 @@
 import type { Metadata } from "next";
-import { OnboardingFlow } from "@/frontend/features/onboarding/components/OnboardingFlow";
+import nextDynamic from "next/dynamic";
 import { getSessionUser } from "@/backend/shared/http/auth";
+import { PageSkeleton } from "@/frontend/shared/components/ChildUi";
 
 export const metadata: Metadata = {
   title: "Beddy",
   description: "첫 로그인 AI 페르소나 생성",
 };
+
+const OnboardingFlow = nextDynamic(
+  () =>
+    import(
+      "@/frontend/features/onboarding/components/OnboardingFlow"
+    ).then((m) => m.OnboardingFlow),
+  {
+    loading: () => <PageSkeleton rows={1} />,
+  }
+);
 
 export default async function OnboardingPage() {
   const user = await getSessionUser();

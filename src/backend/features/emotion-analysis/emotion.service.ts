@@ -1,4 +1,4 @@
-import { runLlm } from "@/backend/ai/llm-gateway";
+import { runLlm } from "@/backend/ai/orchestrator";
 import { env } from "@/backend/shared/config/env";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";
@@ -148,14 +148,19 @@ emotionScore: 높을수록 따뜻·안도·긍정 쪽.`),
 
 /**
  * Analyze one chat turn and persist structured emotion result.
+ *
+ * Hot path uses heuristics only (no Bedrock) so chat latency stays low.
+ * Nightly batch `emotion-refine.job` may upgrade today's records with one LLM pass.
  */
 export async function analyzeChatEmotion(params: {
   userId: string;
   userMessage: string;
   messageId?: string;
+  /** When true, allow a Bedrock extract (batch / admin only). */
+  allowLlm?: boolean;
 }): Promise<EmotionAnalysisRecord> {
   const extracted =
-    (await llmExtract(params.userMessage)) ??
+    (params.allowLlm ? await llmExtract(params.userMessage) : null) ??
     heuristicFromText(params.userMessage);
 
   const record: EmotionAnalysisRecord = {

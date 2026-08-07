@@ -1,0 +1,190 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR','Segoe UI',sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5A6675"/></marker>
+    <marker id="at" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#0F766E"/></marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#C2410C"/></marker>
+    <marker id="av" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6B2BE0"/></marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#E7157B"/></marker>
+    <marker id="an" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#A11BA8"/></marker>
+    <linearGradient id="gOrb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38CBB2"/><stop offset="1" stop-color="#017A6A"/></linearGradient>
+    <linearGradient id="gSmi" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F79640"/><stop offset="1" stop-color="#C85B10"/></linearGradient>
+    <linearGradient id="gNeb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E164EA"/><stop offset="1" stop-color="#A11BA8"/></linearGradient>
+    <linearGradient id="gCos" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4479C"/><stop offset="1" stop-color="#B60F60"/></linearGradient>
+    <linearGradient id="gRed" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F26D7A"/><stop offset="1" stop-color="#BE123C"/></linearGradient>
+    <style>
+      .bg { fill: #FFFFFF; }
+      .title { font-size: 37px; font-weight: 700; fill: #16202E; }
+      .sub { font-size: 16px; fill: #5A6675; }
+      .lab { font-size: 12.5px; font-weight: 700; fill: #9BA7B6; letter-spacing: 1.5px; }
+      .h1 { font-size: 21px; font-weight: 700; }
+      .h2 { font-size: 18px; font-weight: 700; }
+      .h3 { font-size: 16px; font-weight: 700; }
+      .cs { font-size: 14px; fill: #48546A; }
+      .cx { font-size: 12.5px; fill: #7A8699; }
+      .cm { font-size: 12.5px; fill: #48546A; font-family: 'Consolas','Courier New',monospace; }
+      .tag { font-size: 12px; font-weight: 700; fill: #FFFFFF; letter-spacing: 1px; }
+      .ln { fill: none; stroke-width: 2.6; }
+      .lnd { fill: none; stroke-width: 2.2; stroke-dasharray: 8 4; }
+      .ft { font-size: 15px; fill: #334155; }
+      .fh { font-size: 15px; font-weight: 700; }
+      .step { font-size: 14px; font-weight: 700; fill: #FFFFFF; }
+      .stepn { font-size: 28px; font-weight: 700; fill: #FFFFFF; }
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1920" height="1080"/>
+
+  <text class="title" x="50" y="58">오늘의 미션 — AI Agent (Bedrock Tool Use)</text>
+  <text class="sub" x="50" y="90">모델이 도구를 고르고, 앱이 실행하고, 결과를 다시 모델에게 전달하는 루프</text>
+
+  <!-- ============ STEP CIRCLES ============ -->
+  <!-- Step 1 -->
+  <circle cx="130" cy="220" r="28" fill="#C2410C"/>
+  <text class="stepn" x="119" y="231">1</text>
+  <text class="h2" x="174" y="214" fill="#C2410C">EventBridge 트리거</text>
+  <text class="cs" x="174" y="240">새벽 배치가 환아별로 prepareMissionsForUser() 호출</text>
+  <text class="cx" x="174" y="262">CRON_SECRET 으로 인증 · 날짜별 멱등</text>
+
+  <!-- Step 2 -->
+  <circle cx="130" cy="340" r="28" fill="#C2410C"/>
+  <text class="stepn" x="119" y="351">2</text>
+  <text class="h2" x="174" y="334" fill="#C2410C">컨텍스트 수집</text>
+  <text class="cs" x="174" y="360">DynamoDB 에서 기분·에너지·일정·날씨·페르소나 로드</text>
+  <text class="cx" x="174" y="382">AdventureContextFactors 객체 구성 → Agent 입력</text>
+
+  <!-- Step 3 — the loop -->
+  <circle cx="130" cy="470" r="28" fill="#0F766E"/>
+  <text class="stepn" x="119" y="481">3</text>
+  <text class="h2" x="174" y="464" fill="#0F766E">Tool Use 루프 (최대 4턴)</text>
+  <text class="cs" x="174" y="490">Bedrock ConverseCommand + toolConfig 로 모델에게 도구 카탈로그 전달</text>
+  <text class="cx" x="174" y="512">stopReason === "tool_use" → 도구 실행 → toolResult 재주입 → 재호출</text>
+  <text class="cx" x="174" y="534">stopReason === "end_turn" 또는 submit_mission_plan 호출 시 루프 종료</text>
+
+  <!-- Step 4 -->
+  <circle cx="130" cy="640" r="28" fill="#6B2BE0"/>
+  <text class="stepn" x="119" y="651">4</text>
+  <text class="h2" x="174" y="634" fill="#6B2BE0">미션 생성 (Opus)</text>
+  <text class="cs" x="174" y="660">확정된 plan + guidanceCards 로 미션 3개 JSON 생성</text>
+  <text class="cx" x="174" y="682">qualityModelId (Opus 4.6) 사용 · 최대 1회 repair</text>
+
+  <!-- Step 5 -->
+  <circle cx="130" cy="760" r="28" fill="#A11BA8"/>
+  <text class="stepn" x="119" y="771">5</text>
+  <text class="h2" x="174" y="754" fill="#A11BA8">저장</text>
+  <text class="cs" x="174" y="780">DynamoDB 에 AdventureDayPack 저장 (pk=MAP#adventure-packs)</text>
+  <text class="cx" x="174" y="802">환아가 앱을 열면 오늘의 미션이 준비돼 있음</text>
+
+  <!-- ============ RIGHT SIDE: TOOL CATALOGUE + AWS ============ -->
+
+  <!-- Tool Use 루프 상세 -->
+  <rect x="720" y="140" width="540" height="440" rx="18" fill="#F0FDF4" stroke="#0F766E" stroke-width="3"/>
+  <text class="lab" x="740" y="168">BEDROCK TOOL USE 루프 상세</text>
+
+  <!-- Converse box -->
+  <rect x="750" y="186" width="480" height="80" rx="12" fill="#FFFFFF" stroke="#0F766E" stroke-width="2.4"/>
+  <g transform="translate(770,200)">
+    <rect width="30" height="30" rx="7" fill="url(#gOrb)"/>
+    <path d="M 5 10 C 8 8 12 13 16 10 C 18 8.5 20 9.2 21.5 10" fill="none" stroke="#FFF" stroke-width="1.6"/>
+    <path d="M 5 16 C 8 14 12 19 16 16 C 18 14.5 20 15.2 21.5 16" fill="none" stroke="#FFF" stroke-width="1.6"/>
+  </g>
+  <text class="h3" x="812" y="218" fill="#0F766E">Amazon Bedrock — ConverseCommand</text>
+  <text class="cm" x="812" y="240">toolConfig: { tools: [lookup_guidance, recent_titles, submit_plan] }</text>
+  <text class="cx" x="812" y="256">모델: Haiku 4.5 · Guardrails 부착 · 예산 12초</text>
+
+  <!-- Tool 1 -->
+  <rect x="750" y="290" width="220" height="90" rx="10" fill="#FFFFFF" stroke="#C2410C" stroke-width="2.4"/>
+  <rect x="750" y="290" width="180" height="20" rx="6" fill="#C2410C"/>
+  <text class="tag" x="762" y="305">lookup_emotional_guidance</text>
+  <text class="cs" x="770" y="336">15장 근거 카드에서</text>
+  <text class="cs" x="770" y="356">태그(치료불안·고립·놀이 등)</text>
+  <text class="cs" x="770" y="376">로 검색</text>
+
+  <!-- Tool 2 -->
+  <rect x="1010" y="290" width="220" height="90" rx="10" fill="#FFFFFF" stroke="#C2410C" stroke-width="2.4"/>
+  <rect x="1010" y="290" width="160" height="20" rx="6" fill="#C2410C"/>
+  <text class="tag" x="1022" y="305">list_recent_quest_titles</text>
+  <text class="cs" x="1030" y="336">DynamoDB 에서</text>
+  <text class="cs" x="1030" y="356">최근 7일 미션 제목 조회</text>
+  <text class="cs" x="1030" y="376">→ 중복 방지</text>
+
+  <!-- Tool 3 (submit) -->
+  <rect x="750" y="410" width="480" height="70" rx="10" fill="#FFFFFF" stroke="#6B2BE0" stroke-width="2.4"/>
+  <rect x="750" y="410" width="140" height="20" rx="6" fill="#6B2BE0"/>
+  <text class="tag" x="762" y="425">submit_mission_plan</text>
+  <text class="cs" x="770" y="452">scene · questKinds · focusSignals · avoid · reasoning 을 JSON 으로 확정</text>
+  <text class="cx" x="770" y="472">이 도구를 부르면 루프 종료 — 반드시 마지막에 1회 호출</text>
+
+  <!-- 루프 화살표 -->
+  <path class="ln" d="M 990 270 L 990 286" stroke="#0F766E" marker-end="url(#at)"/>
+  <path class="lnd" d="M 860 384 L 860 406" stroke="#6B2BE0"/>
+  <path class="lnd" d="M 1120 384 L 1120 406" stroke="#6B2BE0"/>
+
+  <!-- 폴백 -->
+  <rect x="750" y="500" width="480" height="60" rx="10" fill="#FEF3C7" stroke="#B45309" stroke-width="2"/>
+  <text class="h3" x="770" y="524" fill="#B45309">폴백: 규칙 기반 생성</text>
+  <text class="cx" x="770" y="548">Tool Use 실패·예산 초과·mock 프로바이더 → resolveScene() + buildRuleBasedPack()</text>
+
+  <!-- ============ AWS SERVICES 오른쪽 ============ -->
+  <rect x="1300" y="140" width="580" height="440" rx="18" fill="#F8FAFC" stroke="#334155" stroke-width="2.6"/>
+  <text class="lab" x="1320" y="168">이 Agent 가 사용하는 AWS 서비스</text>
+
+  <!-- Bedrock -->
+  <rect x="1320" y="186" width="540" height="90" rx="12" fill="#FFFFFF" stroke="#01A88D" stroke-width="2.4"/>
+  <g transform="translate(1340,202)">
+    <rect width="32" height="32" rx="8" fill="url(#gOrb)"/>
+    <path d="M 5 10 C 8 8 12 13 16 10 C 18 8.5 20 9.2 21.5 10" fill="none" stroke="#FFF" stroke-width="1.6"/>
+    <path d="M 5 16 C 8 14 12 19 16 16 C 18 14.5 20 15.2 21.5 16" fill="none" stroke="#FFF" stroke-width="1.6"/>
+  </g>
+  <text class="h2" x="1384" y="222" fill="#0F766E">Amazon Bedrock</text>
+  <text class="cs" x="1384" y="246">ConverseCommand + toolConfig (계획: Haiku 4.5)</text>
+  <text class="cs" x="1384" y="268">ConverseCommand (생성: Opus 4.6) + Guardrails</text>
+
+  <!-- DynamoDB -->
+  <rect x="1320" y="296" width="540" height="80" rx="12" fill="#FFFFFF" stroke="#C925D1" stroke-width="2.4"/>
+  <g transform="translate(1340,310)">
+    <rect width="32" height="32" rx="8" fill="url(#gNeb)"/>
+    <ellipse cx="16" cy="10" rx="8" ry="3.2" fill="none" stroke="#FFF" stroke-width="1.6"/>
+    <path d="M 8 10 V 22 C 8 24 12 25.4 16 25.4 C 20 25.4 24 24 24 22 V 10" fill="none" stroke="#FFF" stroke-width="1.6"/>
+  </g>
+  <text class="h2" x="1384" y="330" fill="#A11BA8">Amazon DynamoDB</text>
+  <text class="cs" x="1384" y="354">컨텍스트 로드(기분·일정·페르소나) + 최근 미션 조회 + 결과 저장</text>
+  <text class="cx" x="1384" y="370">pk=MAP#adventure-packs · pk=MAP#personas · pk=MAP#wallets</text>
+
+  <!-- EventBridge -->
+  <rect x="1320" y="396" width="540" height="70" rx="12" fill="#FFFFFF" stroke="#E7157B" stroke-width="2.4"/>
+  <g transform="translate(1340,408)">
+    <rect width="32" height="32" rx="8" fill="url(#gCos)"/>
+    <circle cx="16" cy="16" r="8" fill="none" stroke="#FFF" stroke-width="1.6"/>
+    <line x1="16" y1="16" x2="16" y2="10" stroke="#FFF" stroke-width="1.6"/>
+    <line x1="16" y1="16" x2="20" y2="18" stroke="#FFF" stroke-width="1.6"/>
+  </g>
+  <text class="h2" x="1384" y="428" fill="#BE185D">Amazon EventBridge</text>
+  <text class="cs" x="1384" y="452">새벽 cron → POST /api/cron/daily → prepareMissionsForUser()</text>
+
+  <!-- CloudWatch -->
+  <rect x="1320" y="486" width="540" height="80" rx="12" fill="#FFFFFF" stroke="#E7157B" stroke-width="2.4"/>
+  <g transform="translate(1340,500)">
+    <rect width="32" height="32" rx="8" fill="url(#gCos)"/>
+    <rect x="5" y="8" width="22" height="16" rx="2.2" fill="none" stroke="#FFF" stroke-width="1.6"/>
+    <path d="M 9 18 H 12 L 14 12 L 17 22 L 19 16 H 22" fill="none" stroke="#FFF" stroke-width="1.6"/>
+  </g>
+  <text class="h2" x="1384" y="520" fill="#BE185D">Amazon CloudWatch</text>
+  <text class="cs" x="1384" y="544">AgentLatencyMs · AgentStepLatencyMs · AgentToolCalls</text>
+  <text class="cx" x="1384" y="560">Feature=agent.mission · Operation=turn_1/2/3/4 으로 분리 계측</text>
+
+  <!-- ============ SEQUENCE DIAGRAM (하단) ============ -->
+  <line x1="50" y1="870" x2="1870" y2="870" stroke="#E2E8EE" stroke-width="2"/>
+
+  <text class="fh" x="50" y="906" fill="#0F766E">실제 API 호출 순서 (1회 미션 생성)</text>
+
+  <text class="cm" x="50" y="936">EventBridge → POST /api/cron/daily</text>
+  <text class="cm" x="50" y="958">  → DynamoDB Query (컨텍스트 5종)</text>
+  <text class="cm" x="50" y="980">  → Bedrock Converse + toolConfig (턴1: 모델이 lookup_guidance 호출)</text>
+  <text class="cm" x="50" y="1002">  → 로컬 카드 검색 → toolResult 주입 → Bedrock Converse (턴2: submit_plan)</text>
+  <text class="cm" x="50" y="1024">  → Bedrock Converse (Opus, 미션 3개 생성) → DynamoDB Put (결과 저장)</text>
+  <text class="cm" x="50" y="1046">  → CloudWatch PutMetricData (AgentLatencyMs, AgentToolCalls)</text>
+
+  <text class="ft" x="1100" y="936">Bedrock 호출: 최소 2회, 최대 5회 (계획 + 생성)</text>
+  <text class="ft" x="1100" y="958">DynamoDB 호출: 6~8회 (컨텍스트 + 미션이력 + 저장)</text>
+  <text class="ft" x="1100" y="980">전체 지연: 평균 4~8초 (새벽 배치라 지연 무관)</text>
+  <text class="ft" x="1100" y="1002">폴백 시: Bedrock 1회 + 규칙 → 2초 이내</text>
+</svg>

@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { PhotoAlbumListItem } from "@/backend/features/photo-album/photo-album.types";
+import type { PhotoAlbumListItem } from "@/frontend/shared/types/photo-album";
+import {
+  SoftEmptyState,
+  SoftErrorState,
+  SoftPulse,
+} from "@/frontend/shared/components/ChildUi";
 
 /**
  * Memory page photo album grid — loads from /api/photos.
@@ -52,18 +57,27 @@ export function PhotoAlbumSection() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-bedi-slate/40">불러오는 중…</p>
+        <ul
+          className="grid grid-cols-2 gap-2.5 sm:grid-cols-3"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <span className="sr-only">사진첩을 여는 중</span>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <li key={i}>
+              <SoftPulse className="aspect-square w-full rounded-2xl" />
+            </li>
+          ))}
+        </ul>
       ) : error ? (
-        <p className="text-sm text-bedi-slate/45">{error}</p>
+        <SoftErrorState message={error} />
       ) : photos.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-bedi-slate/15 bg-white/60 px-4 py-6 text-center">
-          <p className="text-sm text-bedi-slate/50">
-            아직 올린 사진이 없어요.
-          </p>
-          <p className="mt-1 text-xs text-bedi-slate/35">
-            모험 미션에서 사진을 올리면 여기에 모아져요.
-          </p>
-        </div>
+        <SoftEmptyState
+          icon="📷"
+          title="아직 사진이 없어요"
+          description="모험 미션에서 사진을 남기면 여기에 하나씩 모아 둘게요."
+        />
       ) : (
         <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           {photos.map((photo) => (
@@ -76,6 +90,8 @@ export function PhotoAlbumSection() {
                 src={photo.url}
                 alt={photo.caption || "모험 사진"}
                 className="aspect-square w-full object-cover"
+                loading="lazy"
+                decoding="async"
               />
               {photo.caption ? (
                 <p className="truncate px-2 py-1.5 text-[10px] text-bedi-slate/45">

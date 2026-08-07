@@ -3,7 +3,10 @@ import {
   listConversation,
   streamMessage,
 } from "@/backend/features/conversation/conversation.service";
-import { requireAuthUser } from "@/backend/shared/http/auth";
+import {
+  requireAuthUser,
+  UnauthorizedError,
+} from "@/backend/shared/http/auth";
 import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/route";
 
 /**
@@ -101,6 +104,18 @@ async function streamConversation(request: Request) {
     });
   } catch (error) {
     console.error("[api/conversation stream auth]", error);
+    if (error instanceof UnauthorizedError) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (error instanceof HttpError) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: error.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     return new Response(
       JSON.stringify({ error: "대화를 이어갈 수 없습니다." }),
       { status: 500, headers: { "Content-Type": "application/json" } }

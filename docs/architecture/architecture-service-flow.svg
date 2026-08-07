@@ -1,0 +1,365 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR','Segoe UI',sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5A6675"/></marker>
+    <marker id="ae" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#E7157B"/></marker>
+    <linearGradient id="gArr" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ED7100"/><stop offset="1" stop-color="#FBBF24"/></linearGradient>
+    <linearGradient id="gOrb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38CBB2"/><stop offset="1" stop-color="#017A6A"/></linearGradient>
+    <linearGradient id="gNeb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E164EA"/><stop offset="1" stop-color="#A11BA8"/></linearGradient>
+    <linearGradient id="gEnd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9CC72F"/><stop offset="1" stop-color="#5E7F10"/></linearGradient>
+    <linearGradient id="gCos" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4479C"/><stop offset="1" stop-color="#B60F60"/></linearGradient>
+    <linearGradient id="gSmi" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F79640"/><stop offset="1" stop-color="#C85B10"/></linearGradient>
+    <linearGradient id="gGal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A882FF"/><stop offset="1" stop-color="#6B2BE0"/></linearGradient>
+    <linearGradient id="gSqu" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4A5B70"/><stop offset="1" stop-color="#1A2431"/></linearGradient>
+    <linearGradient id="gAmb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F0A93C"/><stop offset="1" stop-color="#B45309"/></linearGradient>
+    <linearGradient id="gRed" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F26D7A"/><stop offset="1" stop-color="#BE123C"/></linearGradient>
+    <linearGradient id="gCya" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22D3EE"/><stop offset="1" stop-color="#0E7490"/></linearGradient>
+    <style>
+      .bg { fill: #FFFFFF; }
+      .title { font-size: 34px; font-weight: 700; fill: #16202E; }
+      .sub { font-size: 15px; fill: #5A6675; }
+      .lab { font-size: 12.5px; font-weight: 700; fill: #9BA7B6; letter-spacing: 1.4px; }
+      .h1 { font-size: 20px; font-weight: 700; }
+      .h2 { font-size: 16px; font-weight: 700; }
+      .h3 { font-size: 14px; font-weight: 700; }
+      .h4 { font-size: 13.5px; font-weight: 700; }
+      .cs { font-size: 12.5px; fill: #48546A; }
+      .cs2 { font-size: 11.5px; fill: #48546A; }
+      .cx { font-size: 11.5px; fill: #7A8699; }
+      .cm { font-size: 11.5px; fill: #48546A; font-family: 'Consolas','Courier New',monospace; }
+      .bd { font-size: 10.5px; font-weight: 700; }
+      .tg { font-size: 11px; font-weight: 700; fill: #FFFFFF; letter-spacing: 0.5px; }
+      .sn { font-size: 12.5px; font-weight: 700; fill: #FFFFFF; }
+      .glab { font-size: 12.5px; font-weight: 700; letter-spacing: 0.6px; }
+      .ln { fill: none; stroke-width: 2.6; }
+      .ft { font-size: 13.5px; fill: #334155; }
+      .fh { font-size: 13.5px; font-weight: 700; }
+    </style>
+  </defs>
+  <rect class="bg" width="1920" height="1080"/>
+
+  <text class="title" x="50" y="56">Beddy — 서비스 구현과 AWS 아키텍처</text>
+  <text class="sub" x="50" y="86">환아 공간과 보호자 공간을 컨테이너 안에서 분리   ·   us-east-1 (이미지만 us-west-2)   ·   API 라우트 51개   ·   AWS 서비스 10종</text>
+
+  <text class="lab" x="50" y="124">CLIENT</text>
+  <text class="lab" x="300" y="124">EDGE</text>
+  <text class="lab" x="496" y="124">COMPUTE — 서비스 구현 (ECS Fargate 단일 컨테이너)</text>
+  <text class="lab" x="1302" y="124">AWS 매니지드 서비스</text>
+
+  <!-- ======================= CLIENT ======================= -->
+  <rect x="50" y="140" width="230" height="620" rx="16" fill="#F8FAFC" stroke="#334155" stroke-width="2.6"/>
+  <g transform="translate(68,156)">
+    <rect width="28" height="28" rx="7" fill="url(#gSqu)"/>
+    <rect x="7" y="5" width="14" height="18" rx="2.2" fill="none" stroke="#FFF" stroke-width="1.8"/>
+    <line x1="10" y1="19" x2="18" y2="19" stroke="#FFF" stroke-width="1.8"/>
+  </g>
+  <text class="h2" x="106" y="176" fill="#16202E">Beddy 웹앱</text>
+  <text class="cx" x="68" y="200">하나의 Next.js 14 App Router</text>
+  <text class="cx" x="68" y="218">화면과 API 가 같은 컨테이너</text>
+
+  <rect x="66" y="236" width="198" height="176" rx="12" fill="#FFFFFF" stroke="#0E7490" stroke-width="2.4"/>
+  <g transform="translate(82,250)">
+    <rect width="30" height="30" rx="8" fill="#0E7490"/>
+    <circle cx="15" cy="11" r="5" fill="#FFF"/>
+    <path d="M 6 26 C 6 18 24 18 24 26 Z" fill="#FFF"/>
+  </g>
+  <text class="h2" x="120" y="270" fill="#0E7490">환아용</text>
+  <text class="cm" x="82" y="300">role = child</text>
+  <text class="cs" x="82" y="326">대화 · 오늘의 미션</text>
+  <text class="cs" x="82" y="346">감정 정원 · 소원 나무</text>
+  <text class="cs" x="82" y="366">사진첩 · 그림책 · 일기</text>
+  <text class="cx" x="82" y="392">/login → /onboarding → /</text>
+
+  <rect x="66" y="424" width="198" height="152" rx="12" fill="#FFFFFF" stroke="#B45309" stroke-width="2.4"/>
+  <g transform="translate(82,438)">
+    <rect width="30" height="30" rx="8" fill="url(#gAmb)"/>
+    <path d="M 6 15 L 15 7 L 24 15" fill="none" stroke="#FFF" stroke-width="2.3"/>
+    <rect x="9" y="15" width="12" height="9" fill="#FFF"/>
+  </g>
+  <text class="h2" x="120" y="458" fill="#B45309">보호자용</text>
+  <text class="cm" x="82" y="488">role = guardian</text>
+  <text class="cs" x="82" y="514">오늘의 마음 · 리포트</text>
+  <text class="cs" x="82" y="534">여정 · 일정 등록</text>
+  <text class="cx" x="82" y="558">/login → /guardian</text>
+
+  <rect x="66" y="588" width="198" height="156" rx="12" fill="#FFFFFF" stroke="#5A6675" stroke-width="2.2"/>
+  <text class="h3" x="82" y="612" fill="#334155">middleware 게이트</text>
+  <text class="cs" x="82" y="638">쿠키 role 로 경로 차단</text>
+  <text class="cx" x="82" y="662">보호자는 /guardian 만</text>
+  <text class="cx" x="82" y="682">환아는 /guardian 불가</text>
+  <text class="cx" x="82" y="702">페르소나 미완료 →</text>
+  <text class="cx" x="82" y="720">/onboarding 으로 고정</text>
+
+  <!-- ======================= EDGE ======================= -->
+  <rect x="300" y="140" width="180" height="620" rx="16" fill="#F8FAFC" stroke="#334155" stroke-width="2.6"/>
+
+  <rect x="316" y="272" width="148" height="120" rx="12" fill="#FFFFFF" stroke="#8C4FFF" stroke-width="2.4"/>
+  <g transform="translate(332,286)">
+    <rect width="28" height="28" rx="7" fill="url(#gGal)"/>
+    <circle cx="14" cy="14" r="8.2" fill="none" stroke="#FFF" stroke-width="1.7"/>
+    <ellipse cx="14" cy="14" rx="3.8" ry="8.2" fill="none" stroke="#FFF" stroke-width="1.3"/>
+    <line x1="5.8" y1="14" x2="22.2" y2="14" stroke="#FFF" stroke-width="1.3"/>
+  </g>
+  <text class="h3" x="332" y="338" fill="#7C3AED">CloudFront</text>
+  <text class="cx" x="332" y="360">HTTPS 공개 진입점</text>
+  <text class="cx" x="332" y="378">Secure 쿠키에 필수</text>
+
+  <rect x="316" y="472" width="148" height="120" rx="12" fill="#FFFFFF" stroke="#8C4FFF" stroke-width="2.4"/>
+  <g transform="translate(332,486)">
+    <rect width="28" height="28" rx="7" fill="url(#gGal)"/>
+    <circle cx="9" cy="14" r="2.5" fill="#FFF"/>
+    <line x1="11" y1="14" x2="20" y2="8" stroke="#FFF" stroke-width="1.8"/>
+    <line x1="11" y1="14" x2="21" y2="14" stroke="#FFF" stroke-width="1.8"/>
+    <line x1="11" y1="14" x2="20" y2="20" stroke="#FFF" stroke-width="1.8"/>
+  </g>
+  <text class="h3" x="332" y="538" fill="#7C3AED">ALB</text>
+  <text class="cm" x="332" y="560">:80 → :3000</text>
+  <text class="cx" x="332" y="578">헬스체크 · healthy</text>
+
+  <!-- ======================= COMPUTE ======================= -->
+  <rect x="496" y="140" width="736" height="620" rx="16" fill="#FFF7ED" stroke="#ED7100" stroke-width="3"/>
+  <g transform="translate(520,156)">
+    <rect width="32" height="32" rx="8" fill="url(#gSmi)"/>
+    <rect x="7" y="7" width="7.5" height="7.5" rx="1.3" fill="#FFF"/>
+    <rect x="17.5" y="7" width="7.5" height="7.5" rx="1.3" fill="#FFF"/>
+    <rect x="7" y="17.5" width="7.5" height="7.5" rx="1.3" fill="#FFF"/>
+    <rect x="17.5" y="17.5" width="7.5" height="7.5" rx="1.3" fill="none" stroke="#FFF" stroke-width="1.6"/>
+  </g>
+  <text class="h1" x="564" y="180" fill="#C2410C">Amazon ECS Fargate</text>
+  <text class="cx" x="520" y="204">1 vCPU / 2 GB · 태스크 정의 rev 21 · running 1 · 도메인 서비스 30 · 모든 모델 호출은 LLM Gateway 단일 관문을 지난다</text>
+
+  <!-- 공통: 로그인 -->
+  <rect x="516" y="216" width="696" height="96" rx="11" fill="#FFFFFF" stroke="#BE123C" stroke-width="2.4"/>
+  <rect x="516" y="216" width="62" height="19" rx="6" fill="#BE123C"/>
+  <text class="bd" x="527" y="230" fill="#FFFFFF">공통</text>
+  <circle cx="608" cy="240" r="11" fill="#BE123C"/>
+  <text class="sn" x="604" y="245">1</text>
+  <text class="h2" x="628" y="246" fill="#BE123C">로그인 · 회원가입 · 세션</text>
+  <text class="cs" x="532" y="272">bcrypt 검증 → 세션 토큰 서명 (HS256)</text>
+  <text class="cs" x="532" y="290">EMAIL#메일 → USER#id 2단 조회</text>
+  <text class="cs" x="876" y="272">Aurora 제거 완료 — 계정도 단일 테이블</text>
+  <text class="cs" x="876" y="290">role 에 따라 환아·보호자 공간으로 분기</text>
+  <rect x="532" y="298" width="8" height="8" rx="2" fill="#A11BA8"/>
+  <text class="bd" x="544" y="306" fill="#A11BA8">DDB</text>
+  <rect x="580" y="298" width="8" height="8" rx="2" fill="#BE123C"/>
+  <text class="bd" x="592" y="306" fill="#BE123C">SM</text>
+
+  <!-- 환아용 그룹 -->
+  <rect x="516" y="326" width="340" height="420" rx="12" fill="#ECFEFF" stroke="#0E7490" stroke-width="2.4"/>
+  <text class="glab" x="530" y="348" fill="#0E7490">환아용 서비스 — role = child</text>
+
+  <rect x="528" y="358" width="316" height="70" rx="9" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.8"/>
+  <circle cx="552" cy="378" r="10" fill="#0F766E"/>
+  <text class="sn" x="548" y="382">1</text>
+  <text class="h4" x="570" y="383" fill="#0F766E">온보딩 — 페르소나 생성</text>
+  <text class="cs2" x="544" y="403">이름·동물·성격 선택 → Bedrock 이 말투 생성</text>
+  <rect x="544" y="413" width="7" height="7" rx="2" fill="#0F766E"/>
+  <text class="bd" x="555" y="420" fill="#0F766E">BR</text>
+  <rect x="583" y="413" width="7" height="7" rx="2" fill="#A11BA8"/>
+  <text class="bd" x="594" y="420" fill="#A11BA8">DDB</text>
+
+  <rect x="528" y="435" width="316" height="70" rx="9" fill="#FFFFFF" stroke="#4D7C0F" stroke-width="1.8"/>
+  <circle cx="552" cy="455" r="10" fill="#4D7C0F"/>
+  <text class="sn" x="548" y="459">2</text>
+  <text class="h4" x="570" y="460" fill="#4D7C0F">아바타 이미지 생성</text>
+  <text class="cs2" x="544" y="480">InvokeModel · Stability 3단 폴백 · 후보 3장</text>
+  <rect x="544" y="490" width="7" height="7" rx="2" fill="#0F766E"/>
+  <text class="bd" x="555" y="497" fill="#0F766E">BR</text>
+  <rect x="583" y="490" width="7" height="7" rx="2" fill="#4D7C0F"/>
+  <text class="bd" x="594" y="497" fill="#4D7C0F">S3</text>
+  <rect x="619" y="490" width="7" height="7" rx="2" fill="#A11BA8"/>
+  <text class="bd" x="630" y="497" fill="#A11BA8">DDB</text>
+
+  <rect x="528" y="512" width="316" height="70" rx="9" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.8"/>
+  <circle cx="552" cy="532" r="10" fill="#0E7490"/>
+  <text class="sn" x="548" y="536">3</text>
+  <text class="h4" x="570" y="537" fill="#0E7490">실시간 대화 (SSE)</text>
+  <text class="cs2" x="544" y="557">ConverseStream 1회 → 토큰 스트리밍</text>
+  <rect x="544" y="567" width="7" height="7" rx="2" fill="#0F766E"/>
+  <text class="bd" x="555" y="574" fill="#0F766E">BR</text>
+  <rect x="583" y="567" width="7" height="7" rx="2" fill="#A11BA8"/>
+  <text class="bd" x="594" y="574" fill="#A11BA8">DDB</text>
+  <rect x="628" y="567" width="7" height="7" rx="2" fill="#BE185D"/>
+  <text class="bd" x="639" y="574" fill="#BE185D">CW</text>
+
+  <rect x="528" y="589" width="316" height="70" rx="9" fill="#FFFFFF" stroke="#C2410C" stroke-width="1.8"/>
+  <circle cx="552" cy="609" r="10" fill="#C2410C"/>
+  <text class="sn" x="548" y="613">4</text>
+  <text class="h4" x="570" y="614" fill="#C2410C">오늘의 미션 — AI Agent</text>
+  <text class="cs2" x="544" y="634">toolConfig 로 도구 3개 전달 · 최대 4턴</text>
+  <rect x="544" y="644" width="7" height="7" rx="2" fill="#0F766E"/>
+  <text class="bd" x="555" y="651" fill="#0F766E">BR</text>
+  <rect x="583" y="644" width="7" height="7" rx="2" fill="#A11BA8"/>
+  <text class="bd" x="594" y="651" fill="#A11BA8">DDB</text>
+  <rect x="628" y="644" width="7" height="7" rx="2" fill="#BE185D"/>
+  <text class="bd" x="639" y="651" fill="#BE185D">CW</text>
+
+  <rect x="528" y="666" width="316" height="70" rx="9" fill="#FFFFFF" stroke="#A11BA8" stroke-width="1.8"/>
+  <circle cx="552" cy="686" r="10" fill="#A11BA8"/>
+  <text class="sn" x="548" y="690">5</text>
+  <text class="h4" x="570" y="691" fill="#A11BA8">정원 · 소원 · 사진첩 · 그림책</text>
+  <text class="cs2" x="544" y="711">감정 꽃 · 소원 잎 · 사진 · 삽화 · 별조각</text>
+  <rect x="544" y="721" width="7" height="7" rx="2" fill="#0F766E"/>
+  <text class="bd" x="555" y="728" fill="#0F766E">BR</text>
+  <rect x="583" y="721" width="7" height="7" rx="2" fill="#4D7C0F"/>
+  <text class="bd" x="594" y="728" fill="#4D7C0F">S3</text>
+  <rect x="619" y="721" width="7" height="7" rx="2" fill="#A11BA8"/>
+  <text class="bd" x="630" y="728" fill="#A11BA8">DDB</text>
+
+  <!-- 보호자용 그룹 -->
+  <rect x="872" y="326" width="340" height="420" rx="12" fill="#FFFBEB" stroke="#B45309" stroke-width="2.4"/>
+  <text class="glab" x="886" y="348" fill="#B45309">보호자용 서비스 — role = guardian</text>
+
+  <rect x="884" y="358" width="316" height="120" rx="9" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.8"/>
+  <circle cx="910" cy="380" r="11" fill="#0E7490"/>
+  <text class="sn" x="906" y="385">1</text>
+  <text class="h3" x="930" y="385" fill="#0E7490">보호자 인사이트 — RAG</text>
+  <text class="cs" x="900" y="410">질의 재작성 → Knowledge Bases 검색</text>
+  <text class="cs" x="900" y="428">프라이버시 필터를 통과한 요약만 사용</text>
+  <text class="cx" x="900" y="446">근거 부족하면 한 번 더 넓혀 · 예산 3.5초</text>
+  <rect x="900" y="457" width="7" height="7" rx="2" fill="#0F766E"/>
+  <text class="bd" x="911" y="464" fill="#0F766E">BR</text>
+  <rect x="939" y="457" width="7" height="7" rx="2" fill="#0E7490"/>
+  <text class="bd" x="950" y="464" fill="#0E7490">KB</text>
+  <rect x="975" y="457" width="7" height="7" rx="2" fill="#A11BA8"/>
+  <text class="bd" x="986" y="464" fill="#A11BA8">DDB</text>
+
+  <rect x="884" y="487" width="316" height="120" rx="9" fill="#FFFFFF" stroke="#B45309" stroke-width="1.8"/>
+  <circle cx="910" cy="509" r="11" fill="#B45309"/>
+  <text class="sn" x="906" y="514">2</text>
+  <text class="h3" x="930" y="514" fill="#B45309">보호자 연결 · 리포트</text>
+  <text class="cs" x="900" y="539">초대 코드 6자리로 환아 ↔ 보호자 연결</text>
+  <text class="cs" x="900" y="557">일정 등록 → 삽화 · 오늘의 마음 · 리포트</text>
+  <text class="cx" x="900" y="575">공감 문구와 편지도 요약 기반으로만 생성</text>
+  <rect x="900" y="586" width="7" height="7" rx="2" fill="#0F766E"/>
+  <text class="bd" x="911" y="593" fill="#0F766E">BR</text>
+  <rect x="939" y="586" width="7" height="7" rx="2" fill="#4D7C0F"/>
+  <text class="bd" x="950" y="593" fill="#4D7C0F">S3</text>
+  <rect x="975" y="586" width="7" height="7" rx="2" fill="#A11BA8"/>
+  <text class="bd" x="986" y="593" fill="#A11BA8">DDB</text>
+
+  <rect x="884" y="616" width="316" height="120" rx="9" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.8"/>
+  <circle cx="910" cy="638" r="11" fill="#DC2626"/>
+  <text class="sn" x="907" y="643">!</text>
+  <text class="h3" x="930" y="643" fill="#DC2626">두 공간 사이의 경계</text>
+  <text class="cs" x="900" y="668">환아 대화 원문은 보호자로 넘어가지 않는다</text>
+  <text class="cs" x="900" y="686">RAG 가 유일한 통로 — 요약만 통과</text>
+  <text class="cx" x="900" y="704">KB 색인에도 원문 제외 · 경로 밖 히트는 폐기</text>
+  <text class="cx" x="900" y="724">middleware 가 경로를 차단해 화면도 분리</text>
+
+  <!-- ======================= 큰 화살표 하나 ======================= -->
+  <path d="M 1238 428 H 1270 V 404 L 1298 450 L 1270 496 V 472 H 1238 Z" fill="url(#gArr)" stroke="#C2410C" stroke-width="2"/>
+
+  <!-- ======================= AWS 매니지드 서비스 ======================= -->
+  <rect x="1302" y="140" width="568" height="620" rx="16" fill="#F8FAFC" stroke="#334155" stroke-width="2.6"/>
+
+  <rect x="1322" y="152" width="528" height="92" rx="12" fill="#FFFFFF" stroke="#01A88D" stroke-width="2.4"/>
+  <g transform="translate(1342,166)">
+    <rect width="30" height="30" rx="8" fill="url(#gOrb)"/>
+    <path d="M 5 10 C 8 8 12 13 16 10 C 18 8.6 20 9.3 21.5 10.5" fill="none" stroke="#FFF" stroke-width="1.7"/>
+    <path d="M 5 15.5 C 8 13.5 12 18.5 16 15.5 C 18 14.1 20 14.8 21.5 16" fill="none" stroke="#FFF" stroke-width="1.7"/>
+    <path d="M 5 21 C 8 19 12 24 16 21 C 18 19.6 20 20.3 21.5 21.5" fill="none" stroke="#FFF" stroke-width="1.7"/>
+  </g>
+  <text class="h2" x="1382" y="186" fill="#0F766E">Amazon Bedrock</text>
+  <rect x="1802" y="164" width="34" height="19" rx="6" fill="#0F766E"/>
+  <text class="tg" x="1812" y="178">BR</text>
+  <text class="cs" x="1342" y="212">Converse · ConverseStream · toolConfig · InvokeModel</text>
+  <text class="cx" x="1342" y="230">Haiku 4.5 대화·분석 / Opus 4.6 품질 / Stability 이미지 · Guardrails bedi-safety</text>
+
+  <rect x="1322" y="252" width="528" height="92" rx="12" fill="#FFFFFF" stroke="#7AA116" stroke-width="2.4"/>
+  <g transform="translate(1342,266)">
+    <rect width="30" height="30" rx="8" fill="url(#gEnd)"/>
+    <path d="M 6.5 8 H 23.5 L 21 23.5 H 9 Z" fill="none" stroke="#FFF" stroke-width="1.7"/>
+    <line x1="7.3" y1="13" x2="22.7" y2="13" stroke="#FFF" stroke-width="1.5"/>
+  </g>
+  <text class="h2" x="1382" y="286" fill="#4D7C0F">Amazon S3</text>
+  <rect x="1802" y="264" width="34" height="19" rx="6" fill="#4D7C0F"/>
+  <text class="tg" x="1814" y="278">S3</text>
+  <text class="cm" x="1342" y="312">avatars/ · photos/ · diary/ · schedule/ · kb-summaries/ · vectors/</text>
+  <text class="cx" x="1342" y="330">퍼블릭 차단 4종 전부 · 앱이 소유자 확인 후 직접 전달 (presigned URL 없음)</text>
+
+  <rect x="1322" y="352" width="528" height="92" rx="12" fill="#FFFFFF" stroke="#C925D1" stroke-width="2.4"/>
+  <g transform="translate(1342,366)">
+    <rect width="30" height="30" rx="8" fill="url(#gNeb)"/>
+    <ellipse cx="15" cy="9" rx="7.5" ry="3" fill="none" stroke="#FFF" stroke-width="1.7"/>
+    <path d="M 7.5 9 V 21 C 7.5 22.8 11 24 15 24 C 19 24 22.5 22.8 22.5 21 V 9" fill="none" stroke="#FFF" stroke-width="1.7"/>
+  </g>
+  <text class="h2" x="1382" y="386" fill="#A11BA8">Amazon DynamoDB</text>
+  <rect x="1802" y="364" width="34" height="19" rx="6" fill="#A11BA8"/>
+  <text class="tg" x="1809" y="378">DDB</text>
+  <text class="cs" x="1342" y="412">BediApp 단일 테이블 — 환아·보호자 데이터와 인증 전부 (99항목)</text>
+  <text class="cm" x="1342" y="430">pk=MAP#{ns} · EMAIL#메일 · USER#id   ·   PITR 35일 · 삭제 방지 켜짐</text>
+
+  <rect x="1322" y="452" width="528" height="92" rx="12" fill="#FFFFFF" stroke="#0E7490" stroke-width="2.4"/>
+  <g transform="translate(1342,466)">
+    <rect width="30" height="30" rx="8" fill="url(#gCya)"/>
+    <circle cx="13" cy="13" r="6.8" fill="none" stroke="#FFF" stroke-width="1.8"/>
+    <line x1="18" y1="18" x2="24" y2="24" stroke="#FFF" stroke-width="2.1"/>
+  </g>
+  <text class="h2" x="1382" y="486" fill="#0E7490">Bedrock Knowledge Bases</text>
+  <rect x="1802" y="464" width="34" height="19" rx="6" fill="#0E7490"/>
+  <text class="tg" x="1813" y="478">KB</text>
+  <text class="cs" x="1342" y="512">bedi-child-summaries (GREBZFCNYP) · ACTIVE · S3 Vectors</text>
+  <text class="cx" x="1342" y="530">환아 → 보호자 방향의 유일한 통로 · 요약 문서만 색인 · 원문 제외</text>
+
+  <rect x="1322" y="552" width="528" height="92" rx="12" fill="#FFFFFF" stroke="#E7157B" stroke-width="2.4"/>
+  <g transform="translate(1342,566)">
+    <rect width="30" height="30" rx="8" fill="url(#gCos)"/>
+    <rect x="5" y="8" width="20" height="14" rx="2.4" fill="none" stroke="#FFF" stroke-width="1.7"/>
+    <path d="M 8.5 17 H 11.5 L 13.5 11 L 16.5 21 L 18.5 15 H 21.5" fill="none" stroke="#FFF" stroke-width="1.7"/>
+  </g>
+  <text class="h2" x="1382" y="586" fill="#BE185D">Amazon CloudWatch</text>
+  <rect x="1802" y="564" width="34" height="19" rx="6" fill="#BE185D"/>
+  <text class="tg" x="1812" y="578">CW</text>
+  <text class="cs" x="1342" y="612">Namespace Beddy · 메트릭 279개 축적 중</text>
+  <text class="cm" x="1342" y="630">BedrockLatencyMs · AgentLatencyMs · RagLatencyMs · Feature/Model/Operation</text>
+
+  <rect x="1322" y="652" width="528" height="92" rx="12" fill="#FFFFFF" stroke="#DD344C" stroke-width="2.4"/>
+  <g transform="translate(1342,666)">
+    <rect width="30" height="30" rx="8" fill="url(#gRed)"/>
+    <rect x="8.5" y="14" width="13" height="10" rx="2" fill="#FFF"/>
+    <path d="M 11 14 V 10.8 A 4 4 0 0 1 19 10.8 V 14" fill="none" stroke="#FFF" stroke-width="1.9"/>
+  </g>
+  <text class="h2" x="1382" y="686" fill="#BE123C">AWS Secrets Manager</text>
+  <rect x="1802" y="664" width="34" height="19" rx="6" fill="#BE123C"/>
+  <text class="tg" x="1812" y="678">SM</text>
+  <text class="cm" x="1342" y="712">AUTH_SESSION_SECRET · CRON_SECRET</text>
+  <text class="cx" x="1342" y="730">태스크 정의는 valueFrom 참조만 — 평문 0건 · 컨테이너 시작 시 주입</text>
+
+  <!-- ======================= EVENTBRIDGE ======================= -->
+  <rect x="496" y="784" width="736" height="84" rx="14" fill="#FFFFFF" stroke="#E7157B" stroke-width="2.6"/>
+  <g transform="translate(520,798)">
+    <rect width="30" height="30" rx="8" fill="url(#gCos)"/>
+    <circle cx="15" cy="15" r="8" fill="none" stroke="#FFF" stroke-width="1.8"/>
+    <line x1="15" y1="15" x2="15" y2="9.5" stroke="#FFF" stroke-width="1.8"/>
+    <line x1="15" y1="15" x2="19" y2="17.4" stroke="#FFF" stroke-width="1.8"/>
+  </g>
+  <text class="h2" x="560" y="818" fill="#BE185D">Amazon EventBridge</text>
+  <text class="cs" x="520" y="842">bedi-dawn-daily-batch · cron(0 20 * * ? *) = 매일 KST 05:00 · ENABLED · POST /api/cron/daily · CRON_SECRET 인증 · 202 즉시 반환</text>
+  <text class="cx" x="520" y="860">배치 4잡: 환아 기억 통합 → 미션 사전 생성 → 보호자 요약 → KB 색인   ·   날짜별 멱등성으로 중복 실행 방지</text>
+
+  <!-- ======================= FLOWS ======================= -->
+  <path class="ln" d="M 280 332 L 312 332" stroke="#5A6675" marker-end="url(#a)"/>
+  <path class="ln" d="M 390 392 L 390 468" stroke="#5A6675" marker-end="url(#a)"/>
+  <path class="ln" d="M 464 532 L 492 532" stroke="#5A6675" marker-end="url(#a)"/>
+  <path class="ln" d="M 864 780 L 864 764" stroke="#E7157B" marker-end="url(#ae)"/>
+
+  <!-- ======================= FOOTER ======================= -->
+  <line x1="50" y1="896" x2="1870" y2="896" stroke="#E2E8EE" stroke-width="2"/>
+
+  <text class="fh" x="50" y="922" fill="#C2410C">뱃지 읽기</text>
+  <text class="ft" x="196" y="922">각 서비스 블록 아래 약어(BR · S3 · DDB · KB · CW · SM)가 그 기능이 호출하는 AWS 서비스입니다. 오른쪽 서비스 박스의 같은 색 태그와 짝을 이룹니다.</text>
+
+  <text class="fh" x="50" y="948" fill="#BE123C">공통 · 로그인</text>
+  <text class="ft" x="196" y="948">DynamoDB 2단 조회(EMAIL#메일 → USER#id) 후 bcrypt 검증. 세션 토큰은 Secrets Manager 키로 서명하고, CloudFront HTTPS 에서만 Secure 쿠키로 내려갑니다.</text>
+
+  <text class="fh" x="50" y="974" fill="#0E7490">환아용 5개</text>
+  <text class="ft" x="196" y="974">페르소나·아바타로 자기 친구를 만들고, 대화는 ConverseStream 즉시 응답, 미션은 toolConfig Agent 루프, 정원·소원·사진첩은 삽화 생성과 별조각 보상으로 이어집니다.</text>
+
+  <text class="fh" x="50" y="1000" fill="#B45309">보호자용 2개</text>
+  <text class="ft" x="196" y="1000">Knowledge Bases RAG 로 환아의 요약만 읽어 인사이트를 만들고, 초대 코드로 연결한 뒤 일정·리포트·공감 문구를 제공합니다. 원문 열람 기능은 존재하지 않습니다.</text>
+
+  <text class="fh" x="50" y="1026" fill="#DC2626">두 공간의 경계</text>
+  <text class="ft" x="196" y="1026">같은 컨테이너 안에 있지만 middleware 가 경로를, RAG 필터가 데이터를 나눕니다. 환아는 비밀친구를 믿을 수 있는 친구로 느끼고, 보호자는 감시가 아니라 이해를 받습니다.</text>
+
+  <text class="cx" x="50" y="1058">DynamoDB 는 하나의 테이블을 쓰지만 pk 네임스페이스와 소유자 스코프로 두 공간의 데이터가 섞이지 않습니다.</text>
+</svg>

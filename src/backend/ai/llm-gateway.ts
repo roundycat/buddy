@@ -10,6 +10,10 @@ import type {
   LlmChatRequest,
   LlmChatResult,
   LlmMessage,
+  LlmToolChatResult,
+  LlmToolChoice,
+  LlmToolSpec,
+  LlmToolTurn,
 } from "@/backend/shared/llm/types";
 import {
   logObservation,
@@ -17,6 +21,10 @@ import {
   observeAsync,
   putBeddyMetrics,
 } from "@/backend/shared/observability";
+import {
+  createStreamingNameFilter,
+  fillNamePlaceholders,
+} from "@/backend/shared/llm/sanitize";
 import { StandardUnit } from "@aws-sdk/client-cloudwatch";
 
 /**
@@ -50,6 +58,10 @@ function defaultGuardrail(): LlmChatRequest["guardrail"] {
 
 /**
  * Generic LLM call — all non-stream feature paths should use this.
+ *
+ * Output always goes through `fillNamePlaceholders`, so a `{NAME}` the model
+ * invented can never reach a screen. Pass `childName` to get the real name
+ * (with the right 조사) instead of the placeholder simply being dropped.
  */
 export async function runLlm(input: {
   feature: string;
@@ -59,12 +71,14 @@ export async function runLlm(input: {
   maxTokens?: number;
   /** default true when BEDROCK_GUARDRAIL_ID is set */
   applyGuardrail?: boolean;
+  /** The child's name, used to resolve `{NAME}` placeholders in the answer */
+  childName?: string;
 }): Promise<LlmChatResult> {
   const model = resolveModelForPurpose(input.purpose);
   const guardrail =
     input.applyGuardrail === false ? false : defaultGuardrail();
 
-  return observeAsync(
+  const result = await observeAsync(
     {
       feature: input.feature,
       operation: "chat",
@@ -82,13 +96,81 @@ export async function runLlm(input: {
       });
     }
   );
+
+  return {
+    ...result,
+    content: fillNamePlaceholders(result.content, input.childName),
+  };
+}
+
+/** Raised when the active provider has no tool-use API (e.g. mock). */
+export class ToolUseUnsupportedError extends Error {
+  constructor(providerName: string) {
+    super(`Provider "${providerName}" does not support tool use.`);
+    this.name = "ToolUseUnsupportedError";
+  }
+}
+
+/**
+ * Tool-use LLM turn — the model picks which tool to call.
+ * Same routing, Guardrails and instrumentation as runLlm().
+ */
+export async function runLlmWithTools(input: {
+  feature: string;
+  purpose: AiPurpose;
+  system?: string;
+  turns: LlmToolTurn[];
+  tools: LlmToolSpec[];
+  temperature?: number;
+  maxTokens?: number;
+  applyGuardrail?: boolean;
+  /** The child's name, used to resolve `{NAME}` placeholders in the answer */
+  childName?: string;
+  disableTools?: boolean;
+  toolChoice?: LlmToolChoice;
+}): Promise<LlmToolChatResult> {
+  const model = resolveModelForPurpose(input.purpose);
+  const guardrail =
+    input.applyGuardrail === false ? false : defaultGuardrail();
+
+  const result = await observeAsync(
+    {
+      feature: input.feature,
+      operation: "tool_use",
+      model,
+      latencyMetric: "BedrockLatencyMs",
+    },
+    async () => {
+      const provider = getLlmProvider();
+      if (!provider.chatWithTools) {
+        throw new ToolUseUnsupportedError(provider.name);
+      }
+      return provider.chatWithTools({
+        system: input.system,
+        turns: input.turns,
+        tools: input.tools,
+        temperature: input.temperature,
+        maxTokens: input.maxTokens,
+        model: env.llmProvider === "bedrock" ? model : undefined,
+        guardrail,
+        disableTools: input.disableTools,
+        toolChoice: input.toolChoice,
+      });
+    }
+  );
+
+  return {
+    ...result,
+    text: fillNamePlaceholders(result.text, input.childName),
+  };
 }
 
 /** Child chat — Haiku (speed). Streaming immediate path + metrics. */
 export async function* streamCompanionChat(
   userMessage: string,
   history: Array<{ role: "user" | "assistant"; content: string }> = [],
-  companion?: CompanionPromptContext
+  companion?: CompanionPromptContext,
+  options?: { systemAddendum?: string }
 ): AsyncIterable<string> {
   const model = resolveModelForPurpose("chat");
   const requestId = newRequestId();
@@ -98,16 +180,22 @@ export async function* streamCompanionChat(
   let errorName: string | undefined;
   let message: string | undefined;
 
+  // A placeholder can straddle two tokens, so filter the assembled stream.
+  const nameFilter = createStreamingNameFilter(companion?.childName);
+
   try {
     for await (const token of streamWithCompanion(
       userMessage,
       history,
       companion,
-      { model }
+      { model, systemAddendum: options?.systemAddendum }
     )) {
       if (firstTokenMs === null) firstTokenMs = Date.now() - started;
-      yield token;
+      const safe = nameFilter.push(token);
+      if (safe) yield safe;
     }
+    const tail = nameFilter.flush();
+    if (tail) yield tail;
   } catch (error) {
     success = false;
     errorName = error instanceof Error ? error.name : "UnknownError";
@@ -175,10 +263,11 @@ export async function* streamCompanionChat(
 export async function companionChat(
   userMessage: string,
   history: Array<{ role: "user" | "assistant"; content: string }> = [],
-  companion?: CompanionPromptContext
+  companion?: CompanionPromptContext,
+  options?: { systemAddendum?: string }
 ): Promise<LlmChatResult> {
   const model = resolveModelForPurpose("chat");
-  return observeAsync(
+  const result = await observeAsync(
     {
       feature: "conversation.chat",
       operation: "chat",
@@ -188,8 +277,14 @@ export async function companionChat(
     () =>
       chatWithCompanion(userMessage, history, companion, {
         model,
+        systemAddendum: options?.systemAddendum,
       })
   );
+
+  return {
+    ...result,
+    content: fillNamePlaceholders(result.content, companion?.childName),
+  };
 }
 
 export async function observeBatchRun<T>(

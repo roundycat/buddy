@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, ChevronDown, ChevronUp } from "lucide-react";
-import { ParentCard } from "@/frontend/features/parent/components/ParentUi";
+import {
+  ErrorState,
+  LoadingSkeleton,
+  ParentCard,
+} from "@/frontend/features/parent/components/ParentUi";
 import { EmptyScheduleState } from "@/frontend/features/parent/components/schedule/EmptyScheduleState";
 import { FavoriteScheduleList } from "@/frontend/features/parent/components/schedule/FavoriteScheduleList";
 import { QuickActionMenu } from "@/frontend/features/parent/components/schedule/QuickActionMenu";
@@ -10,6 +14,14 @@ import { ReminderSettings } from "@/frontend/features/parent/components/schedule
 import { RepeatSelector } from "@/frontend/features/parent/components/schedule/RepeatSelector";
 import { ScheduleCard } from "@/frontend/features/parent/components/schedule/ScheduleCard";
 import { ScheduleTemplateSelector } from "@/frontend/features/parent/components/schedule/ScheduleTemplateSelector";
+import {
+  createParentSchedule,
+  deleteParentSchedule,
+  listParentSchedule,
+  updateParentSchedule,
+  type ParentScheduleItem,
+  type UpdateParentScheduleBody,
+} from "@/frontend/features/parent/lib/schedule-api";
 import {
   QUICK_TIMES,
   getScheduleTemplate,
@@ -20,21 +32,7 @@ import {
 } from "@/frontend/features/parent/lib/schedule-templates";
 import { cn } from "@/frontend/shared/lib/utils";
 
-type ScheduleItem = {
-  id: string;
-  type: string;
-  title: string;
-  time?: string;
-  explanation?: string;
-  done?: boolean;
-  skipped?: boolean;
-  dateKey: string;
-  templateId?: string;
-  colorTag?: string;
-  repeatLabel?: string;
-  reminderEnabled?: boolean;
-  reminderMinutes?: number | null;
-};
+type ScheduleItem = ParentScheduleItem;
 
 const FAV_KEY = "bedi-parent-schedule-favorites";
 
@@ -102,11 +100,7 @@ export function ParentSchedulePanel() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `/api/parent/schedule?date=${encodeURIComponent(dateKey)}`
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "일정을 불러오지 못했어요.");
+      const data = await listParentSchedule(dateKey);
       setLinked(Boolean(data.linked));
       setItems(Array.isArray(data.items) ? data.items : []);
     } catch (err) {
@@ -164,43 +158,31 @@ export function ParentSchedulePanel() {
     setDeliveredMsg(null);
     try {
       if (editingId) {
-        const res = await fetch(`/api/parent/schedule/${editingId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type,
-            title: finalTitle,
-            time: time.trim() || null,
-            note: note.trim() || undefined,
-            colorTag,
-            reminderMinutes: reminderEnabled ? reminderMinutes : null,
-            reminderEnabled,
-            dateKey,
-          }),
+        await updateParentSchedule(editingId, {
+          type,
+          title: finalTitle,
+          time: time.trim() || null,
+          note: note.trim() || undefined,
+          colorTag,
+          reminderMinutes: reminderEnabled ? reminderMinutes : null,
+          reminderEnabled,
+          dateKey,
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error ?? "수정하지 못했어요.");
         setDeliveredMsg("일정을 수정했어요.");
       } else {
-        const res = await fetch("/api/parent/schedule", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type,
-            title: finalTitle,
-            time: time.trim() || undefined,
-            note: note.trim() || undefined,
-            dateKey,
-            templateId: templateId ?? undefined,
-            colorTag,
-            repeatRule,
-            repeatWeekdays: repeatRule === "custom" ? weekdays : undefined,
-            reminderMinutes: reminderEnabled ? reminderMinutes : null,
-            reminderEnabled,
-          }),
+        const data = await createParentSchedule({
+          type,
+          title: finalTitle,
+          time: time.trim() || undefined,
+          note: note.trim() || undefined,
+          dateKey,
+          templateId: templateId ?? undefined,
+          colorTag,
+          repeatRule,
+          repeatWeekdays: repeatRule === "custom" ? weekdays : undefined,
+          reminderMinutes: reminderEnabled ? reminderMinutes : null,
+          reminderEnabled,
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error ?? "저장하지 못했어요.");
         const count = typeof data.count === "number" ? data.count : 1;
         const when = time.trim()
           ? `${dateKey} ${time.trim()}`
@@ -223,18 +205,12 @@ export function ParentSchedulePanel() {
 
   async function patchItem(
     id: string,
-    body: Record<string, unknown>,
+    body: UpdateParentScheduleBody,
     okMsg?: string
   ) {
     setError(null);
     try {
-      const res = await fetch(`/api/parent/schedule/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "수정하지 못했어요.");
+      await updateParentSchedule(id, body);
       if (okMsg) setDeliveredMsg(okMsg);
       await load();
     } catch (err) {
@@ -248,11 +224,7 @@ export function ParentSchedulePanel() {
     }
     setError(null);
     try {
-      const res = await fetch(`/api/parent/schedule/${id}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "삭제하지 못했어요.");
+      await deleteParentSchedule(id);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "삭제하지 못했어요.");
@@ -320,7 +292,7 @@ export function ParentSchedulePanel() {
 
       <div className="mt-4 space-y-2">
         {loading ? (
-          <p className="text-sm text-slate-400">불러오는 중…</p>
+          <LoadingSkeleton rows={2} />
         ) : items.length === 0 && !composerOpen ? (
           <EmptyScheduleState onAdd={() => setComposerOpen(true)} />
         ) : items.length > 0 ? (
@@ -480,7 +452,9 @@ export function ParentSchedulePanel() {
       ) : null}
 
       {error ? (
-        <p className="mt-3 text-xs text-rose-600">{error}</p>
+        <div className="mt-3">
+          <ErrorState message={error} />
+        </div>
       ) : null}
 
       <QuickActionMenu
@@ -530,28 +504,20 @@ export function ParentSchedulePanel() {
                     void (async () => {
                       setSaving(true);
                       try {
-                        const res = await fetch("/api/parent/schedule", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            type:
-                              actionItem.type === "treatment"
-                                ? "treatment"
-                                : "exam",
-                            title: actionItem.title,
-                            time: actionItem.time,
-                            dateKey: actionItem.dateKey,
-                            templateId: actionItem.templateId,
-                            colorTag: actionItem.colorTag,
-                            repeatRule: "weekdays",
-                            reminderMinutes: actionItem.reminderMinutes,
-                            reminderEnabled: actionItem.reminderEnabled,
-                          }),
+                        const data = await createParentSchedule({
+                          type:
+                            actionItem.type === "treatment"
+                              ? "treatment"
+                              : "exam",
+                          title: actionItem.title,
+                          time: actionItem.time,
+                          dateKey: actionItem.dateKey,
+                          templateId: actionItem.templateId,
+                          colorTag: actionItem.colorTag,
+                          repeatRule: "weekdays",
+                          reminderMinutes: actionItem.reminderMinutes,
+                          reminderEnabled: actionItem.reminderEnabled,
                         });
-                        const data = await res.json();
-                        if (!res.ok) {
-                          throw new Error(data?.error ?? "추가하지 못했어요.");
-                        }
                         setDeliveredMsg(
                           `평일 일정 ${data.count ?? ""}건을 추가했습니다.`
                         );

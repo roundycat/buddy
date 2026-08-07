@@ -299,6 +299,8 @@ export function PersonaCharacter({
                   alt={`${name} 캐릭터`}
                   className="h-full w-full object-contain drop-shadow-md"
                   draggable={false}
+                  loading="lazy"
+                  decoding="async"
                   onError={() => setImgFailed(true)}
                 />
               ) : (

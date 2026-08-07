@@ -62,6 +62,7 @@ export async function resolveChildCompanionContext(
       name: persona?.name,
       tone: persona?.tone,
       callName: persona?.callName || "너",
+      childName: persona?.self?.nickname,
       styleKey: persona?.interaction,
       energyKey: persona?.energy,
       companionVoice: persona?.companionMessage,

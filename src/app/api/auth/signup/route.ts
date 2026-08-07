@@ -10,7 +10,7 @@ import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/rou
 export const dynamic = "force-dynamic";
 
 /**
- * API Bridge: Signup — create Aurora user + session cookies.
+ * API Bridge: Signup — create DynamoDB user + session cookies.
  */
 export async function POST(request: Request) {
   return withApiGuard(

@@ -1,4 +1,4 @@
-import { runLlm } from "@/backend/ai/llm-gateway";
+import { runLlm } from "@/backend/ai/orchestrator";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 
 /**
@@ -8,6 +8,7 @@ export async function composeChildScheduleCopy(input: {
   type: "exam" | "treatment";
   title: string;
   note?: string;
+  childName?: string;
 }): Promise<{ what: string; why: string; notify: string } | null> {
   const title = input.title.trim();
   const note = input.note?.trim();
@@ -17,6 +18,7 @@ export async function composeChildScheduleCopy(input: {
     const result = await runLlm({
       feature: "hospital-day.schedule-copy",
       purpose: "analysis",
+      childName: input.childName,
       temperature: 0.45,
       maxTokens: 320,
       messages: [

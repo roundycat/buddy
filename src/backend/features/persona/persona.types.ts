@@ -57,7 +57,13 @@ export interface Persona {
   avatarUrl?: string;
   avatarPrompt?: string;
   prompt?: string;
+  /**
+   * Hospital-journey day shown in the waiting room ("N일째").
+   * Prefer computing from `journeyStartedAt` — do not treat a frozen 1 as truth.
+   */
   dayCount?: number;
+  /** ISO timestamp when the child finished onboarding / journey began */
+  journeyStartedAt?: string;
   callName?: string;
   energy?: EnergyLevel;
   interaction?: InteractionStyle;

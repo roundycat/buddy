@@ -1,5 +1,10 @@
 import { randomUUID } from "crypto";
 import {
+  assertAllowedImageType,
+  assertImageSize,
+  normalizeImageContentType,
+} from "@/backend/shared/media/image-upload";
+import {
   listPhotosForUser,
   readPhotoBytes,
   savePhotoBytes,
@@ -7,14 +12,6 @@ import {
 } from "./photo-album.store";
 import type { PhotoAlbumListItem } from "./photo-album.types";
 import { attachPhotoToQuest } from "@/backend/features/adventure-quest/adventure-quest.service";
-
-const ALLOWED = new Set([
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-]);
 
 const MAX_BYTES = 6 * 1024 * 1024;
 
@@ -36,13 +33,9 @@ export async function uploadAlbumPhoto(input: {
   questId?: string;
   caption?: string;
 }): Promise<PhotoAlbumListItem> {
-  const contentType = input.contentType.toLowerCase().split(";")[0]!.trim();
-  if (!ALLOWED.has(contentType)) {
-    throw new Error("사진(JPEG/PNG/WebP)만 올릴 수 있어요.");
-  }
-  if (input.bytes.length === 0 || input.bytes.length > MAX_BYTES) {
-    throw new Error("사진 크기는 6MB 이하로 올려 주세요.");
-  }
+  const contentType = normalizeImageContentType(input.contentType);
+  assertAllowedImageType(contentType);
+  assertImageSize(input.bytes, MAX_BYTES);
 
   const id = randomUUID();
   await savePhotoBytes(input.userId, id, input.bytes, contentType);

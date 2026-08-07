@@ -1,5 +1,5 @@
 import { Lightbulb, Sparkles } from "lucide-react";
-import type { ParentCareSuggestion } from "@/backend/features/parent/parent.types";
+import type { ParentCareSuggestion } from "@/frontend/shared/types/parent";
 
 export function DailySummaryCard({ summary }: { summary: string }) {
   return (

@@ -8,6 +8,7 @@ import type {
   SelfProfile,
 } from "./persona.types";
 import { createMapStore } from "@/backend/shared/persist/map-store";
+import { hospitalDayCount } from "@/backend/shared/time/date";
 
 /**
  * Secret-friend personas by userId.
@@ -15,6 +16,14 @@ import { createMapStore } from "@/backend/shared/persist/map-store";
  */
 
 const store = createMapStore<Persona>("personas.json");
+
+/** Short TTL cache — multi-turn chat often re-reads the same persona. */
+const PERSONA_TTL_MS = 30_000;
+const personaCache = new Map<string, { at: number; value: Persona }>();
+
+function invalidatePersonaCache(userId: string) {
+  personaCache.delete(userId);
+}
 
 
 const ENERGY_COPY: Record<
@@ -235,6 +244,7 @@ export function buildPersonaFromPreferences(
     companionMessage: buildCompanionMessage(profile, interaction, mode),
     prompt: energy.prompt,
     dayCount: 1,
+    journeyStartedAt: new Date().toISOString(),
     setupCompleted: true,
   };
 }
@@ -264,18 +274,87 @@ export async function hasCompletedPersonaSetup(
   return Boolean(persona?.setupCompleted && persona.profile);
 }
 
+function withLiveDayCount(persona: Persona): Persona {
+  return {
+    ...persona,
+    dayCount: hospitalDayCount(persona.journeyStartedAt, persona.dayCount ?? 1),
+  };
+}
+
+/**
+ * Existing accounts were saved without a start date. Migrate them to day 3,
+ * as agreed for the current demo cohort, then advance at each local midnight.
+ */
+async function ensureJourneyStartedAt(
+  userId: string,
+  persona: Persona
+): Promise<Persona> {
+  if (persona.journeyStartedAt || !persona.setupCompleted) {
+    return withLiveDayCount(persona);
+  }
+
+  const migratedDayCount = 3;
+  const start = new Date();
+  start.setHours(12, 0, 0, 0);
+  start.setDate(start.getDate() - (migratedDayCount - 1));
+  const next: Persona = {
+    ...persona,
+    journeyStartedAt: start.toISOString(),
+    dayCount: hospitalDayCount(start.toISOString(), migratedDayCount),
+  };
+  // Persist once so subsequent reads (and other features) share the same epoch.
+  await store.set(userId, next);
+  return next;
+}
+
 export async function getPersonaForUser(userId: string): Promise<Persona> {
-  return (await store.get(userId)) ?? getDefaultPersona();
+  const hit = personaCache.get(userId);
+  if (hit && Date.now() - hit.at < PERSONA_TTL_MS) {
+    return withLiveDayCount(hit.value);
+  }
+  const raw = (await store.get(userId)) ?? getDefaultPersona();
+  const value =
+    userId === "anonymous"
+      ? withLiveDayCount(raw)
+      : await ensureJourneyStartedAt(userId, raw);
+  personaCache.set(userId, { at: Date.now(), value });
+  return withLiveDayCount(value);
+}
+
+/**
+ * The child's display name, used to resolve `{NAME}` placeholders in AI prose.
+ *
+ * Undefined when onboarding never captured one — callers then drop the
+ * placeholder rather than invent a name.
+ */
+export async function getChildName(
+  userId?: string
+): Promise<string | undefined> {
+  if (!userId) return undefined;
+  const persona = await getPersonaForUser(userId);
+  return (
+    persona.self?.nickname?.trim() || persona.callName?.trim() || undefined
+  );
 }
 
 export async function saveGeneratedPersona(
   userId: string,
   persona: Persona
 ): Promise<Persona> {
-  return store.set(userId, persona);
+  invalidatePersonaCache(userId);
+  const withStart: Persona = {
+    ...persona,
+    journeyStartedAt: persona.journeyStartedAt ?? new Date().toISOString(),
+    dayCount: hospitalDayCount(
+      persona.journeyStartedAt ?? new Date().toISOString(),
+      persona.dayCount ?? 1
+    ),
+  };
+  return store.set(userId, withStart);
 }
 
 export async function clearPersonaForUser(userId: string) {
+  invalidatePersonaCache(userId);
   await store.delete(userId);
 }
 
@@ -302,11 +381,6 @@ export function formatSelfForPrompt(self?: SelfProfile): string {
   return lines.length
     ? lines.join("\n")
     : "아직 상대(사용자) 정보가 없습니다.";
-}
-
-/** @deprecated */
-export function formatProfileForPrompt(profile?: CharacterProfile): string {
-  return formatCompanionCharacterForPrompt(undefined, profile);
 }
 
 export function formatCompanionCharacterForPrompt(

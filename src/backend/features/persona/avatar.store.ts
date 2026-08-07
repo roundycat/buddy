@@ -1,107 +1,32 @@
 import "server-only";
-import {
-  GetObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-  unlinkSync,
-} from "fs";
-import os from "os";
-import path from "path";
-import { env } from "@/backend/shared/config/env";
-import { observeFailure } from "@/backend/shared/observability";
+import { createBlobStore } from "@/backend/shared/persist/blob-store";
 
 /**
- * Prefer /tmp in containers (ECS nextjs user cannot mkdir under /app).
- * Local dev can still use project .data when writable.
+ * Crayon persona avatars.
+ * Legacy layout preserved:
+ *   S3:    avatars/{userId}.png | avatars/{userId}__c{n}.png
+ *   local: {userId}.png | {userId}__c{n}.png
  */
-function resolveLocalDir(): string {
-  const fromEnv = process.env.AVATAR_LOCAL_DIR?.trim();
-  if (fromEnv) {
-    if (!existsSync(fromEnv)) {
-      mkdirSync(fromEnv, { recursive: true });
-    }
-    return fromEnv;
-  }
+const ACTIVE = "active";
 
-  const preferred = path.join(process.cwd(), ".data", "avatars");
-  try {
-    if (!existsSync(preferred)) {
-      mkdirSync(preferred, { recursive: true });
-    }
-    return preferred;
-  } catch {
-    const fallback = path.join(os.tmpdir(), "bedi-avatars");
-    if (!existsSync(fallback)) {
-      mkdirSync(fallback, { recursive: true });
-    }
-    return fallback;
-  }
-}
-
-let cachedLocalDir: string | null = null;
-
-function localDir() {
-  if (!cachedLocalDir) cachedLocalDir = resolveLocalDir();
-  return cachedLocalDir;
-}
-
-function sanitize(userId: string) {
-  return userId.replace(/[^a-zA-Z0-9_-]/g, "_");
-}
-
-function localPath(userId: string, candidate?: string) {
-  const base = sanitize(userId);
-  const name =
-    candidate !== undefined && candidate !== ""
-      ? `${base}__c${candidate}.png`
-      : `${base}.png`;
-  return path.join(localDir(), name);
-}
-
-function s3Key(userId: string, candidate?: string) {
-  const base = sanitize(userId);
+function blobIdFor(candidate?: string) {
   return candidate !== undefined && candidate !== ""
-    ? `avatars/${base}__c${candidate}.png`
-    : `avatars/${base}.png`;
+    ? `c${candidate}`
+    : ACTIVE;
 }
 
-function createS3() {
-  const { accessKeyId, secretAccessKey, sessionToken, region } = env.bedrock;
-  return new S3Client({
-    region: env.avatar.s3Region || region,
-    // Prefer task-role credentials in ECS; only inject static keys when present.
-    ...(accessKeyId && secretAccessKey
-      ? {
-          credentials: {
-            accessKeyId,
-            secretAccessKey,
-            ...(sessionToken ? { sessionToken } : {}),
-          },
-        }
-      : {}),
-  });
-}
-
-function tryWriteLocal(userId: string, bytes: Buffer, candidate?: string) {
-  try {
-    writeFileSync(localPath(userId, candidate), bytes);
-    return true;
-  } catch (error) {
-    observeFailure({
-      feature: "avatar",
-      operation: "local_write",
-      error,
-      metricName: "StorageErrors",
-    });
-    return false;
-  }
-}
+const blobs = createBlobStore({
+  prefix: "avatars",
+  localSubdir: "avatars",
+  feature: "avatar",
+  localDirEnv: "AVATAR_LOCAL_DIR",
+  s3Key: (ownerId, blobId) =>
+    blobId === ACTIVE
+      ? `avatars/${ownerId}.png`
+      : `avatars/${ownerId}__${blobId}.png`,
+  localFileName: (ownerId, blobId) =>
+    blobId === ACTIVE ? `${ownerId}.png` : `${ownerId}__${blobId}.png`,
+});
 
 export async function saveAvatarImage(
   userId: string,
@@ -109,82 +34,20 @@ export async function saveAvatarImage(
   contentType: string,
   candidate?: string
 ): Promise<{ stored: "s3" | "local"; key: string }> {
-  const bucket = env.avatar.s3Bucket;
-
-  if (bucket) {
-    const key = s3Key(userId, candidate);
-    const client = createS3();
-    try {
-      await client.send(
-        new PutObjectCommand({
-          Bucket: bucket,
-          Key: key,
-          Body: bytes,
-          ContentType: contentType,
-          CacheControl: "private, max-age=60",
-        })
-      );
-    } catch (error) {
-      observeFailure({
-        feature: "avatar",
-        operation: "s3_put",
-        error,
-        metricName: "S3WriteErrors",
-      });
-      throw error;
-    }
-    // Best-effort local cache — must not fail the request in ECS.
-    tryWriteLocal(userId, bytes, candidate);
-    return { stored: "s3", key };
-  }
-
-  if (!tryWriteLocal(userId, bytes, candidate)) {
-    throw new Error("아바타를 저장할 수 없어요. 저장소를 확인해 주세요.");
-  }
-  return { stored: "local", key: localPath(userId, candidate) };
+  const blobId = blobIdFor(candidate);
+  const stored = await blobs.save(userId, blobId, bytes, contentType);
+  const key =
+    blobId === ACTIVE
+      ? `avatars/${userId.replace(/[^a-zA-Z0-9_-]/g, "_")}.png`
+      : `avatars/${userId.replace(/[^a-zA-Z0-9_-]/g, "_")}__${blobId}.png`;
+  return { stored, key };
 }
 
 export async function readAvatarImage(
   userId: string,
   candidate?: string
 ): Promise<{ bytes: Buffer; contentType: string } | null> {
-  const bucket = env.avatar.s3Bucket;
-  if (bucket) {
-    try {
-      const client = createS3();
-      const res = await client.send(
-        new GetObjectCommand({
-          Bucket: bucket,
-          Key: s3Key(userId, candidate),
-        })
-      );
-      const body = res.Body;
-      if (!body) return null;
-      const bytes = Buffer.from(await body.transformToByteArray());
-      return {
-        bytes,
-        contentType: res.ContentType || "image/png",
-      };
-    } catch (error) {
-      observeFailure({
-        feature: "avatar",
-        operation: "s3_get",
-        error,
-        metricName: "S3ReadErrors",
-      });
-    }
-  }
-
-  try {
-    const file = localPath(userId, candidate);
-    if (!existsSync(file)) return null;
-    return {
-      bytes: readFileSync(file),
-      contentType: "image/png",
-    };
-  } catch {
-    return null;
-  }
+  return blobs.readWithType(userId, blobIdFor(candidate), "image/png");
 }
 
 /** Promote a candidate image to the active avatar. */
@@ -199,15 +62,10 @@ export async function selectAvatarCandidate(
 }
 
 export async function deleteAvatarImage(userId: string): Promise<void> {
-  try {
-    for (const suffix of ["", "__c0", "__c1", "__c2"]) {
-      const file =
-        suffix === ""
-          ? localPath(userId)
-          : path.join(localDir(), `${sanitize(userId)}${suffix}.png`);
-      if (existsSync(file)) unlinkSync(file);
-    }
-  } catch {
-    // ignore local cleanup errors
-  }
+  await Promise.all([
+    blobs.remove(userId, ACTIVE),
+    blobs.remove(userId, "c0"),
+    blobs.remove(userId, "c1"),
+    blobs.remove(userId, "c2"),
+  ]);
 }

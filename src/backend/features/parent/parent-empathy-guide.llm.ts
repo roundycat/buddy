@@ -1,5 +1,5 @@
 import "server-only";
-import { runLlm } from "@/backend/ai/llm-gateway";
+import { runLlm } from "@/backend/ai/orchestrator";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { env } from "@/backend/shared/config/env";
 import type { ParentEmpathyGuide } from "./parent.types";
@@ -231,6 +231,7 @@ export async function composeEmpathyGuideWithLlm(
     const result = await runLlm({
       feature: "parent.empathy",
       purpose: "quality",
+      childName: ctx.childName,
       temperature: 0.55,
       maxTokens: 750,
       messages: [

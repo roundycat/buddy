@@ -10,6 +10,7 @@ import { getMemoryPost } from "@/backend/features/memory-post/memory-post.servic
 import { getWallet } from "@/backend/features/wallet/wallet.service";
 import { getGrowthStorybook } from "@/backend/features/growth-storybook/growth-storybook.service";
 import { getWishTree } from "@/backend/features/wish-tree/wish-tree.service";
+import { getPictureDiary } from "@/backend/features/picture-diary/picture-diary.service";
 
 /**
  * App-layer loaders — Server Components only.
@@ -82,4 +83,9 @@ export async function loadGrowthStorybook() {
 export async function loadWishTree() {
   const userId = await currentUserId();
   return getWishTree(userId);
+}
+
+export async function loadPictureDiary() {
+  const userId = await currentUserId();
+  return getPictureDiary(userId);
 }

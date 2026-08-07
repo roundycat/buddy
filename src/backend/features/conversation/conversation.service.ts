@@ -13,11 +13,16 @@ import { analyzeChatEmotion } from "@/backend/features/emotion-analysis/emotion.
 import { resolveChildCompanionContext } from "./child-context.service";
 import {
   companionChat,
+  fillNamePlaceholdersDeep,
   resolveModelForPurpose,
   streamCompanionChat,
-} from "@/backend/ai/llm-gateway";
+} from "@/backend/ai/orchestrator";
+import { getChildName } from "@/backend/features/persona/persona.store";
 import { env } from "@/backend/shared/config/env";
 import { logObservation, newRequestId } from "@/backend/shared/observability";
+import { detectCrisisSignal } from "@/backend/ai/safety/crisis-detect";
+import { CRISIS_TURN_SYSTEM_ADDENDUM } from "@/backend/ai/prompts/safety";
+import { createChildSafetyAlert } from "@/backend/features/safety/safety-alert.store";
 
 /**
  * Conversation Service
@@ -66,11 +71,26 @@ function schedulePersistTurn(params: {
   });
 }
 
+function scheduleCrisisAlert(params: {
+  userId: string;
+  summary: string;
+  level: "elevated" | "urgent";
+}) {
+  void createChildSafetyAlert({
+    childUserId: params.userId,
+    summary: params.summary,
+    level: params.level,
+  }).catch((error) => {
+    console.error("[conversation] safety alert failed", error);
+  });
+}
+
 export async function sendMessage(
   request: SendMessageRequest
 ): Promise<SendMessageResponse> {
   const userId = request.userId;
   const ctx = await resolveChildCompanionContext(userId, request.message);
+  const crisis = detectCrisisSignal(request.message);
 
   const clientHistory = (request.history ?? [])
     .filter((m) => m.role === "user" || m.role === "assistant")
@@ -84,7 +104,8 @@ export async function sendMessage(
   const llm = await companionChat(
     request.message,
     historyForLlm,
-    ctx.companion
+    ctx.companion,
+    crisis.detected ? { systemAddendum: CRISIS_TURN_SYSTEM_ADDENDUM } : undefined
   );
 
   const now = new Date().toISOString();
@@ -113,9 +134,27 @@ export async function sendMessage(
       reply,
       profileSummary: ctx.profileSummary,
     });
+    if (crisis.detected && crisis.level !== "none") {
+      scheduleCrisisAlert({
+        userId,
+        summary: crisis.parentSummary,
+        level: crisis.level,
+      });
+    }
   }
 
-  return { reply };
+  return {
+    reply,
+    ...(crisis.detected
+      ? {
+          crisis: {
+            level: crisis.level,
+            empathyHint: crisis.childEmpathyHint,
+            actions: crisis.actions,
+          },
+        }
+      : {}),
+  };
 }
 
 /**
@@ -125,6 +164,7 @@ export async function sendMessage(
 export async function* streamMessage(
   request: SendMessageRequest
 ): AsyncGenerator<
+  | { type: "crisis"; level: string; empathyHint: string; actions: unknown }
   | { type: "token"; text: string }
   | { type: "done"; reply: ConversationMessage },
   void,
@@ -134,6 +174,7 @@ export async function* streamMessage(
   const requestId = newRequestId();
   const ctxStarted = Date.now();
   const ctx = await resolveChildCompanionContext(userId, request.message);
+  const crisis = detectCrisisSignal(request.message);
   const ctxMs = Date.now() - ctxStarted;
   logObservation({
     feature: "conversation.context",
@@ -142,6 +183,15 @@ export async function* streamMessage(
     success: true,
     requestId,
   });
+
+  if (crisis.detected) {
+    yield {
+      type: "crisis",
+      level: crisis.level,
+      empathyHint: crisis.childEmpathyHint,
+      actions: crisis.actions,
+    };
+  }
 
   const clientHistory = (request.history ?? [])
     .filter((m) => m.role === "user" || m.role === "assistant")
@@ -158,7 +208,8 @@ export async function* streamMessage(
   for await (const token of streamCompanionChat(
     request.message,
     historyForLlm,
-    ctx.companion
+    ctx.companion,
+    crisis.detected ? { systemAddendum: CRISIS_TURN_SYSTEM_ADDENDUM } : undefined
   )) {
     full += token;
     yield { type: "token", text: token };
@@ -193,12 +244,26 @@ export async function* streamMessage(
       reply,
       profileSummary: ctx.profileSummary,
     });
+    if (crisis.detected && crisis.level !== "none") {
+      scheduleCrisisAlert({
+        userId,
+        summary: crisis.parentSummary,
+        level: crisis.level,
+      });
+    }
   }
 }
 
 export async function listConversation(userId: string) {
+  const [messages, memory, childName] = await Promise.all([
+    getConversationHistory(userId),
+    getConversationMemory(userId),
+    getChildName(userId),
+  ]);
+
+  // Replies stored before placeholder scrubbing existed are still on disk.
   return {
-    messages: await getConversationHistory(userId),
-    memory: await getConversationMemory(userId),
+    messages: fillNamePlaceholdersDeep(messages, childName),
+    memory,
   };
 }

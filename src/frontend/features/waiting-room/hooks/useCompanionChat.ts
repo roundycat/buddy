@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ConversationMessageDto } from "@/frontend/shared/types/api";
+import type {
+  ConversationCrisisDto,
+  ConversationMessageDto,
+} from "@/frontend/shared/types/api";
 
 function welcomeMessages(
   greeting: string,
@@ -33,6 +36,7 @@ export function useCompanionChat(
   );
   const [pending, setPending] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [crisis, setCrisis] = useState<ConversationCrisisDto | null>(null);
   const pendingRef = useRef(false);
 
   useEffect(() => {
@@ -77,6 +81,8 @@ export function useCompanionChat(
     };
   }, [enabled, greeting, companionMessage]);
 
+  const dismissCrisis = useCallback(() => setCrisis(null), []);
+
   const send = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || pendingRef.current) return false;
@@ -117,10 +123,14 @@ export function useCompanionChat(
       // Non-stream JSON fallback
       const contentType = res.headers.get("content-type") ?? "";
       if (!contentType.includes("text/event-stream")) {
-        const data = (await res.json()) as { reply: ConversationMessageDto };
+        const data = (await res.json()) as {
+          reply: ConversationMessageDto;
+          crisis?: ConversationCrisisDto;
+        };
         setMessages((prev) =>
           prev.map((m) => (m.id === streamId ? data.reply : m))
         );
+        if (data.crisis) setCrisis(data.crisis);
         return true;
       }
 
@@ -152,9 +162,18 @@ export function useCompanionChat(
               text?: string;
               reply?: ConversationMessageDto;
               message?: string;
+              level?: string;
+              empathyHint?: string;
+              actions?: ConversationCrisisDto["actions"];
             };
 
-            if (event.type === "token" && event.text) {
+            if (event.type === "crisis" && event.empathyHint && event.actions) {
+              setCrisis({
+                level: event.level ?? "elevated",
+                empathyHint: event.empathyHint,
+                actions: event.actions,
+              });
+            } else if (event.type === "token" && event.text) {
               assembled += event.text;
               const snapshot = assembled;
               setMessages((prev) =>
@@ -198,5 +217,5 @@ export function useCompanionChat(
     }
   }, []);
 
-  return { messages, pending, loaded, send };
+  return { messages, pending, loaded, send, crisis, dismissCrisis };
 }

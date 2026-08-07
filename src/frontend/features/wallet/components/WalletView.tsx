@@ -1,5 +1,6 @@
-import type { WalletLedgerEntry } from "@/backend/features/wallet/wallet.types";
+import type { WalletLedgerEntry } from "@/frontend/shared/types/wallet";
 import { formatKoreanShortDateTime } from "@/frontend/shared/lib/date";
+import { SoftEmptyState } from "@/frontend/shared/components/ChildUi";
 
 interface WalletViewProps {
   balance: number;
@@ -15,7 +16,7 @@ export function WalletView({
   ledger,
 }: WalletViewProps) {
   return (
-    <div className="space-y-5">
+    <div className="feature-enter space-y-5">
       <div className="rounded-2xl border border-bedi-sage/25 bg-bedi-sage/10 px-5 py-5 shadow-softer">
         <p className="text-[11px] tracking-wide text-bedi-sage">{currencyLabel}</p>
         <p className="mt-2 font-display text-3xl font-semibold tabular-nums text-bedi-slate">
@@ -33,11 +34,12 @@ export function WalletView({
         </p>
 
         {ledger.length === 0 ? (
-          <p className="mt-4 rounded-2xl border border-bedi-slate/8 bg-white/80 px-5 py-6 text-center text-sm text-bedi-slate/45">
-            아직 받은 보상이 없어요.
-            <br />
-            <span className="text-bedi-slate/35">오늘의 모험부터 시작해 볼까요?</span>
-          </p>
+          <SoftEmptyState
+            className="mt-4"
+            icon="⭐"
+            title="아직 모은 별조각이 없어요"
+            description="오늘의 모험을 하나 마치면 첫 별조각이 여기에 반짝여요."
+          />
         ) : (
           <ul className="mt-4 space-y-2.5">
             {ledger.map((entry) => (

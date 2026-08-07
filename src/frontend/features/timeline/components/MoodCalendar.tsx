@@ -101,7 +101,7 @@ export function MoodCalendar({
     .toUpperCase();
 
   return (
-    <section className="paper-room mx-auto min-h-[calc(100vh-4rem)] max-w-lg px-5 pb-8 pt-2">
+    <section className="paper-room mx-auto min-h-[calc(100vh-4rem)] max-w-lg px-5 pb-8 pt-2 md:max-w-2xl md:px-8">
       <TopBrandBar />
 
       <div className="mt-6 text-center">

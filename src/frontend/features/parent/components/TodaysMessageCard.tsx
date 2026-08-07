@@ -1,4 +1,4 @@
-import type { ParentTodayMessage } from "@/backend/features/parent/parent.types";
+import type { ParentTodayMessage } from "@/frontend/shared/types/parent";
 
 export function TodaysMessageCard({
   message,

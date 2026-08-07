@@ -1,211 +1,316 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { AnimatePresence, motion, type PanInfo } from "framer-motion";
 import { cn } from "@/frontend/shared/lib/utils";
+import { fetchJson } from "@/frontend/shared/api/fetch-json";
+import { useTransientToast } from "@/frontend/shared/hooks/useTransientToast";
+import { useSoftMotion } from "@/frontend/shared/lib/motion";
+import { SoftErrorState } from "@/frontend/shared/components/ChildUi";
+import { WishLeaf } from "@/frontend/features/wish-tree/components/WishLeaf";
+import { WishTreeCanvas } from "@/frontend/features/wish-tree/components/WishTreeCanvas";
+import { HangWishSheet } from "@/frontend/features/wish-tree/components/HangWishSheet";
+import { LeafMemoryCard } from "@/frontend/features/wish-tree/components/LeafMemoryCard";
 import type {
+  LeafMemoryCard as LeafMemoryCardData,
   WishHorizon,
-  WishItem,
+  WishKind,
+  WishLeafView,
   WishTreeResponse,
-} from "@/backend/features/wish-tree/wish-tree.types";
+} from "@/frontend/shared/catalogs";
 
 interface WishTreeViewProps {
   initial: WishTreeResponse;
 }
 
-const HORIZONS: Array<{ id: WishHorizon; label: string }> = [
-  { id: "after_discharge", label: "퇴원하면" },
-  { id: "hospital", label: "병원에서도" },
-  { id: "anytime", label: "언젠가" },
-];
+interface LeafDraft {
+  text: string;
+  kind: WishKind;
+  horizon: WishHorizon;
+}
 
-function horizonLabel(horizon: WishHorizon): string {
-  if (horizon === "hospital") return "병원에서도";
-  if (horizon === "after_discharge") return "퇴원하면";
-  return "언젠가";
+/** framer-motion's PanInfo point can lag behind the pointer, so prefer the event. */
+function clientPointOf(
+  event: MouseEvent | TouchEvent | PointerEvent,
+  info: PanInfo
+): { x: number; y: number } {
+  if ("clientX" in event && typeof event.clientX === "number") {
+    return { x: event.clientX, y: event.clientY };
+  }
+  const touch = "changedTouches" in event ? event.changedTouches[0] : null;
+  if (touch) return { x: touch.clientX, y: touch.clientY };
+  return info.point;
 }
 
 export function WishTreeView({ initial }: WishTreeViewProps) {
   const router = useRouter();
+  const canopyRef = useRef<HTMLDivElement>(null);
+
   const [tree, setTree] = useState(initial);
-  const [text, setText] = useState("");
-  const [horizon, setHorizon] = useState<WishHorizon>("after_discharge");
-  const [pending, setPending] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [draft, setDraft] = useState<LeafDraft | null>(null);
+  const [dropActive, setDropActive] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast: flash, setToast: setFlash } = useTransientToast(3600);
+  const [memory, setMemory] = useState<LeafMemoryCardData | null>(null);
+  const [memoryLoading, setMemoryLoading] = useState(false);
+  const { stagger, item } = useSoftMotion();
 
   useEffect(() => {
     setTree(initial);
   }, [initial]);
 
-  async function submit(nextText = text, nextHorizon = horizon) {
-    if (pending) return;
-    setPending(true);
+  function isOverCanopy(point: { x: number; y: number }): boolean {
+    const rect = canopyRef.current?.getBoundingClientRect();
+    if (!rect) return false;
+    // Generous target: children aim roughly, not precisely.
+    const pad = 28;
+    return (
+      point.x >= rect.left - pad &&
+      point.x <= rect.right + pad &&
+      point.y >= rect.top - pad &&
+      point.y <= rect.bottom + pad
+    );
+  }
+
+  async function hang(leaf: LeafDraft) {
+    if (busy) return;
+    setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/wish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: nextText, horizon: nextHorizon }),
-      });
-      const data = (await res.json()) as WishTreeResponse & { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "소원을 걸지 못했어요.");
+      const data = await fetchJson<WishTreeResponse>(
+        "/api/wish",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(leaf),
+        },
+        "잎을 걸지 못했어요."
+      );
+
+      const grew = data.tree.stage !== tree.tree.stage;
       setTree(data);
-      setText("");
+      setDraft(null);
+      setFlash(
+        grew
+          ? `나무가 자랐어요 · ${data.tree.stageLabel}`
+          : "잎이 나무에 걸렸어요"
+      );
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "소원을 걸지 못했어요.");
+      setError(err instanceof Error ? err.message : "잎을 걸지 못했어요.");
     } finally {
-      setPending(false);
+      setBusy(false);
+      setDropActive(false);
     }
   }
 
-  async function remove(wish: WishItem) {
-    if (pending) return;
-    setPending(true);
+  async function openMemory(leaf: WishLeafView) {
+    setMemoryLoading(true);
+    setMemory(null);
+    try {
+      const data = await fetchJson<LeafMemoryCardData>(
+        `/api/wish/leaf/${leaf.id}`,
+        undefined,
+        "기억을 불러오지 못했어요."
+      );
+      setMemory(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "기억을 불러오지 못했어요.");
+    } finally {
+      setMemoryLoading(false);
+    }
+  }
+
+  async function removeLeaf(leafId: string) {
+    setMemory(null);
+    setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/wish", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wishId: wish.id }),
-      });
-      const data = (await res.json()) as WishTreeResponse & { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "소원을 내리지 못했어요.");
+      const data = await fetchJson<WishTreeResponse>(
+        "/api/wish",
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ wishId: leafId }),
+        },
+        "잎을 내리지 못했어요."
+      );
       setTree(data);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "소원을 내리지 못했어요.");
+      setError(err instanceof Error ? err.message : "잎을 내리지 못했어요.");
     } finally {
-      setPending(false);
+      setBusy(false);
     }
   }
+
+  const { tree: meta } = tree;
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-2xl border border-bedi-slate/8 bg-white/85 px-5 py-4 shadow-softer">
-        <p className="text-[11px] tracking-wide text-bedi-sage">{tree.title}</p>
+    <motion.div className="space-y-5" {...stagger}>
+      <motion.div
+        className="rounded-2xl border border-bedi-slate/8 bg-white/85 px-5 py-4 shadow-softer"
+        {...item}
+      >
+        <p className="text-[11px] tracking-wide text-bedi-sage">
+          {meta.stageLabel}
+          {meta.leafCount > 0 ? ` · 잎 ${meta.leafCount}장` : ""}
+        </p>
         <p className="mt-2 text-sm leading-relaxed text-bedi-slate/70">
           {tree.companionNote}
         </p>
-        <p className="mt-2 text-xs text-bedi-slate/40">
-          치료가 아니라, 희망을 기억하는 나무예요.
-        </p>
-      </div>
+        {meta.nextStageIn !== null && meta.leafCount > 0 ? (
+          <p className="mt-2 text-xs text-bedi-slate/35">
+            잎 {meta.nextStageIn}장이 더 걸리면 나무가 한 뼘 자라요
+          </p>
+        ) : null}
+      </motion.div>
 
-      {/* Visual tree plot */}
-      <div
-        className="relative overflow-hidden rounded-3xl border border-emerald-200/40 px-4 pb-6 pt-8 shadow-softer"
-        style={{
-          background:
-            "linear-gradient(180deg, #E7F2E4 0%, #F4F8F2 55%, #E8EFE4 100%)",
-        }}
-      >
-        <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-white/50 text-3xl shadow-softer">
-          🌳
-        </div>
-        <div className="flex flex-wrap justify-center gap-2">
-          {tree.wishes.length === 0 ? (
-            <p className="py-4 text-center text-xs text-bedi-slate/40">
-              아직 걸린 소원이 없어요. 아래에서 걸어 보세요.
-            </p>
-          ) : (
-            tree.wishes.map((wish, i) => (
-              <button
-                key={wish.id}
-                type="button"
-                onClick={() => void remove(wish)}
-                title="눌러서 내리기"
-                className="garden-flower-rise max-w-[46%] rounded-2xl border border-white/70 bg-white/90 px-3 py-2 text-left shadow-softer transition hover:border-bedi-rose/30"
-                style={{ animationDelay: `${Math.min(i, 8) * 35}ms` }}
-              >
-                <span className="mr-1">{wish.emoji}</span>
-                <span className="text-xs leading-snug text-bedi-slate/75">
-                  {wish.text}
-                </span>
-              </button>
-            ))
-          )}
-        </div>
-      </div>
-
-      <section className="rounded-2xl border border-bedi-slate/8 bg-white/90 px-5 py-5 shadow-softer">
-        <h2 className="text-[15px] font-medium text-bedi-slate">소원 걸기</h2>
-        <p className="mt-1 text-xs text-bedi-slate/40">
-          짧게 적어도 괜찮아요
-        </p>
-
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {HORIZONS.map((h) => (
-            <button
-              key={h.id}
-              type="button"
-              onClick={() => setHorizon(h.id)}
-              className={cn(
-                "rounded-full border px-3 py-1 text-[11px] transition-colors",
-                horizon === h.id
-                  ? "border-bedi-sage/40 bg-bedi-sage/15 text-bedi-slate"
-                  : "border-bedi-slate/10 text-bedi-slate/45 hover:border-bedi-slate/20"
-              )}
-            >
-              {h.label}
-            </button>
-          ))}
-        </div>
-
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={2}
-          maxLength={80}
-          placeholder="예: 친구랑 축구하고 싶어요"
-          className="mt-3 w-full resize-none rounded-xl border border-bedi-slate/10 bg-[#FBFAF7] px-3 py-2.5 text-sm text-bedi-slate outline-none placeholder:text-bedi-slate/30 focus:border-bedi-sage/35"
+      <motion.div {...item}>
+        <WishTreeCanvas
+          stage={meta.stage}
+          season={meta.season}
+          sky={tree.sky}
+          leaves={tree.leaves}
+          canopyRef={canopyRef}
+          dropActive={dropActive}
+          onSelectLeaf={(leaf) => void openMemory(leaf)}
         />
+      </motion.div>
 
-        <button
-          type="button"
-          disabled={pending || text.trim().length < 2}
-          onClick={() => void submit()}
-          className="mt-3 h-10 w-full rounded-xl bg-bedi-slate text-sm font-medium text-white transition-colors hover:bg-bedi-slate/90 disabled:opacity-40"
+      <AnimatePresence mode="wait">
+        {draft ? (
+          <motion.div
+            key="draft"
+            className="rounded-2xl border border-bedi-sage/25 bg-bedi-sage/8 px-5 py-4"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+          >
+            <p className="text-center text-xs text-bedi-slate/55">
+              잎을 나무 위로 끌어올려 주세요
+            </p>
+            <div className="mt-3 flex justify-center">
+              <motion.div
+                drag
+                dragSnapToOrigin
+                dragElastic={0.18}
+                whileDrag={{ scale: 1.18, zIndex: 40 }}
+                onDrag={(event, info) =>
+                  setDropActive(isOverCanopy(clientPointOf(event, info)))
+                }
+                onDragEnd={(event, info) => {
+                  const over = isOverCanopy(clientPointOf(event, info));
+                  setDropActive(false);
+                  if (over) void hang(draft);
+                }}
+                className="cursor-grab touch-none active:cursor-grabbing"
+              >
+                <WishLeaf kind={draft.kind} size="lg" glow={1} sway />
+              </motion.div>
+            </div>
+            <p className="mt-2 text-center text-sm text-bedi-slate/70">
+              {draft.text}
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDraft(null)}
+                className="press-soft h-11 flex-1 rounded-2xl border border-bedi-slate/12 text-xs text-bedi-slate/50"
+              >
+                다시 적기
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void hang(draft)}
+                className="press-soft h-11 flex-1 rounded-2xl bg-bedi-slate text-sm font-medium text-white disabled:opacity-40"
+              >
+                {busy ? "거는 중…" : "바로 걸기"}
+              </button>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.button
+            key="open"
+            type="button"
+            onClick={() => setSheetOpen(true)}
+            className="h-14 w-full rounded-2xl bg-bedi-slate text-sm font-medium text-white transition-colors hover:bg-bedi-slate/90"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            마음 적고 잎 만들기
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {flash ? (
+        <p className="rounded-2xl bg-bedi-sage/12 px-4 py-2.5 text-center text-xs text-bedi-slate/75">
+          {flash}
+        </p>
+      ) : null}
+
+      {error ? <SoftErrorState message={error} /> : null}
+
+      {tree.leaves.length === 0 ? (
+        <motion.section
+          className="rounded-2xl border border-bedi-slate/8 bg-white/90 px-5 py-4 shadow-softer"
+          {...item}
         >
-          {pending ? "거는 중…" : "나무에 걸기"}
-        </button>
-
-        <div className="mt-4">
-          <p className="text-[11px] text-bedi-slate/40">이렇게 시작해도 좋아요</p>
-          <div className="mt-2 flex flex-col gap-1.5">
+          <p className="text-[15px] font-medium text-bedi-slate">
+            아직 가지가 비어 있어요
+          </p>
+          <p className="mt-1.5 text-sm leading-relaxed text-bedi-slate/50">
+            마음을 한 줄 적으면 잎이 하나 돋아나요. 이렇게 시작해도 좋아요.
+          </p>
+          <div className="mt-3.5 flex flex-col gap-1.5">
             {tree.suggestions.map((s) => (
               <button
                 key={s.text}
                 type="button"
-                disabled={pending}
-                onClick={() => void submit(s.text, s.horizon)}
-                className="rounded-xl border border-bedi-slate/8 bg-[#FBFAF7] px-3 py-2.5 text-left text-sm text-bedi-slate/70 transition hover:border-bedi-sage/25 hover:bg-white disabled:opacity-50"
+                disabled={busy}
+                onClick={() =>
+                  setDraft({
+                    text: s.text,
+                    kind: "make",
+                    horizon: s.horizon,
+                  })
+                }
+                className={cn(
+                  "press-soft min-h-11 rounded-xl border border-bedi-slate/8 bg-[#FBFAF7] px-3 py-3 text-left text-sm text-bedi-slate/70",
+                  "hover:border-bedi-sage/25 hover:bg-white disabled:opacity-50"
+                )}
               >
                 <span className="mr-1.5">{s.emoji}</span>
                 {s.text}
-                <span className="ml-2 text-[10px] text-bedi-slate/30">
-                  {horizonLabel(s.horizon)}
-                </span>
               </button>
             ))}
           </div>
-        </div>
-      </section>
-
-      {error ? (
-        <p className="rounded-lg bg-bedi-rose/15 px-3 py-2 text-sm text-bedi-slate/80">
-          {error}
-        </p>
+        </motion.section>
       ) : null}
 
-      <p className="text-center text-xs text-bedi-slate/40">
-        퇴원할 때{" "}
-        <Link href="/storybook" className="text-bedi-sage hover:underline">
-          성장 스토리북
-        </Link>
-        마지막 장에 모아요
-      </p>
-    </div>
+      <HangWishSheet
+        open={sheetOpen}
+        kinds={tree.kinds}
+        busy={busy}
+        onClose={() => setSheetOpen(false)}
+        onReady={(next) => {
+          setSheetOpen(false);
+          setDraft(next);
+        }}
+      />
+
+      <LeafMemoryCard
+        card={memory}
+        loading={memoryLoading}
+        onClose={() => setMemory(null)}
+        onRemove={(leafId) => void removeLeaf(leafId)}
+      />
+    </motion.div>
   );
 }

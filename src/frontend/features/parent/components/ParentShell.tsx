@@ -21,7 +21,7 @@ export function ParentShell({
   return (
     <div className="min-h-screen bg-[#F3F5F7]">
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-5">
+        <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-5 md:max-w-2xl md:px-8">
           <div className="flex min-w-0 items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -42,7 +42,7 @@ export function ParentShell({
         </div>
       </header>
 
-      <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-lg flex-col px-5 pb-28 pt-5">
+      <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-lg flex-col px-5 pb-28 pt-5 md:max-w-2xl md:px-8">
         {!hideContext && childName ? (
           <div className="mb-5">
             <h2 className="text-lg font-semibold tracking-tight text-slate-800">

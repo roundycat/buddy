@@ -235,7 +235,7 @@ export function HospitalScheduleView({
               disabled={loadingMonth}
               aria-label="이전 달"
               onClick={() => void loadMonth(shiftMonth(month.monthKey, -1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-bedi-mist text-bedi-softBlueDeep disabled:opacity-40"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-bedi-mist text-bedi-softBlueDeep transition-transform duration-150 active:scale-95 disabled:opacity-40 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bedi-sage/40"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -247,7 +247,7 @@ export function HospitalScheduleView({
               disabled={loadingMonth}
               aria-label="다음 달"
               onClick={() => void loadMonth(shiftMonth(month.monthKey, 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-bedi-mist text-bedi-softBlueDeep disabled:opacity-40"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-bedi-mist text-bedi-softBlueDeep transition-transform duration-150 active:scale-95 disabled:opacity-40 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bedi-sage/40"
             >
               <ChevronRight className="h-5 w-5" />
             </button>

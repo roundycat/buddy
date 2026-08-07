@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useAuthActions } from "@/frontend/shared/hooks/useAuthActions";
 
 /**
  * App launch splash — brand-first, then continue to login.
@@ -11,6 +12,7 @@ export function StartSplash() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next");
   const [busy, setBusy] = useState<"login" | "signup" | null>(null);
+  const { logout } = useAuthActions();
 
   function loginPath(mode?: "signup") {
     const params = new URLSearchParams();
@@ -27,7 +29,7 @@ export function StartSplash() {
     setBusy(mode ?? "login");
     try {
       // Drop leftover session so /login is not skipped by middleware
-      await fetch("/api/auth/logout", { method: "POST" });
+      await logout({ redirect: false });
     } catch {
       /* still continue to login */
     }

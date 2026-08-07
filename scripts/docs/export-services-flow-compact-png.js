@@ -1,0 +1,106 @@
+const fs = require("fs");
+const path = require("path");
+const sharp = require("sharp");
+
+const root = path.join(__dirname, "..");
+const svgPath = path.join(root, "docs", "architecture", "services-llm-agent-rag-flow-compact.svg");
+const pngPath = path.join(root, "docs", "architecture", "services-llm-agent-rag-flow-compact.png");
+
+const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" font-family="Malgun Gothic, Apple SD Gothic Neo, Noto Sans KR, Segoe UI, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker>
+    <style>
+      .title { font-size: 40px; font-weight: 800; fill: #0f172a; }
+      .sub { font-size: 18px; fill: #334155; }
+      .h1 { font-size: 24px; font-weight: 800; fill: #0f172a; }
+      .h2 { font-size: 18px; font-weight: 800; fill: #0f172a; }
+      .t { font-size: 14px; fill: #334155; }
+      .ln { fill: none; stroke: #475569; stroke-width: 2.6; marker-end: url(#a); }
+      .pill { font-size: 13px; font-weight: 800; fill: #ffffff; }
+    </style>
+  </defs>
+
+  <rect width="1920" height="1080" fill="#ffffff"/>
+  <text class="title" x="44" y="64">Beddy 서비스 플로우 (발표용 요약)</text>
+  <text class="sub" x="44" y="98">입원→퇴원 / LLM·Agent·RAG / AWS 서비스와 참조 문서</text>
+
+  <!-- AWS row -->
+  <rect x="44" y="128" width="1832" height="126" rx="14" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text class="h2" x="64" y="166">AWS 서비스</text>
+  <text class="t" x="64" y="198">ALB · ECS Fargate · Bedrock(Converse/Guardrails/KB) · DynamoDB · S3 · EventBridge · CloudWatch · Secrets Manager · Polly</text>
+
+  <!-- 3 core lanes -->
+  <rect x="44" y="286" width="586" height="610" rx="16" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"/>
+  <text class="h1" x="64" y="324">1) LLM 실시간 채팅</text>
+  <rect x="64" y="342" width="546" height="190" rx="12" fill="#ffffff" stroke="#3b82f6"/>
+  <text class="h2" x="84" y="376" fill="#1d4ed8">Browser → ALB → ECS → Bedrock(Haiku)</text>
+  <text class="t" x="84" y="404">Guardrails 적용 + SSE 응답</text>
+  <text class="t" x="84" y="430">참조: 페르소나 + memory summary</text>
+  <text class="t" x="84" y="456">저장: DynamoDB(상태), S3(미디어)</text>
+  <rect x="532" y="352" width="70" height="28" rx="8" fill="#1d4ed8"/><text class="pill" x="554" y="371">LLM</text>
+
+  <rect x="64" y="554" width="546" height="150" rx="12" fill="#ffffff" stroke="#3b82f6"/>
+  <text class="h2" x="84" y="588" fill="#1d4ed8">아이 경험</text>
+  <text class="t" x="84" y="614">정원 + 소원 + 이야기책 + 일정 + 사진/그림</text>
+  <text class="t" x="84" y="640">입원 기간 내내 축적</text>
+
+  <rect x="64" y="726" width="546" height="150" rx="12" fill="#fef2f2" stroke="#dc2626"/>
+  <text class="h2" x="84" y="760" fill="#b91c1c">프라이버시 경계</text>
+  <text class="t" x="84" y="786">채팅 원문/일기 원문/GPS는 보호자 직접 전달 금지</text>
+
+  <rect x="666" y="286" width="586" height="610" rx="16" fill="#fff7ed" stroke="#ea580c" stroke-width="2.5"/>
+  <text class="h1" x="686" y="324">2) Agent 새벽 준비 (05:00)</text>
+  <rect x="686" y="342" width="546" height="250" rx="12" fill="#ffffff" stroke="#fb923c"/>
+  <text class="h2" x="706" y="376" fill="#c2410c">EventBridge → /api/cron/daily → Mission Agent</text>
+  <text class="t" x="706" y="404">tool-use 계획: guidance 카드 + 최근 미션 제목</text>
+  <text class="t" x="706" y="430">submit_mission_plan 후 generate/validate/repair/fallback</text>
+  <text class="t" x="706" y="456">결과: 다음날 미션팩 준비</text>
+  <rect x="1152" y="352" width="78" height="28" rx="8" fill="#c2410c"/><text class="pill" x="1170" y="371">AGENT</text>
+
+  <rect x="686" y="614" width="546" height="262" rx="12" fill="#ffffff" stroke="#fb923c"/>
+  <text class="h2" x="706" y="648" fill="#c2410c">RAG 문서 생성 (S3)</text>
+  <text class="t" x="706" y="674">kb-summaries/{childId}/{date}-{kind}.md</text>
+  <text class="t" x="706" y="700">kind: memory / emotion / mission / timeline / interests</text>
+  <text class="t" x="706" y="726">생성: index-summaries.ts · 필터: privacy-filter.ts</text>
+
+  <rect x="1288" y="286" width="588" height="610" rx="16" fill="#faf5ff" stroke="#9333ea" stroke-width="2.5"/>
+  <text class="h1" x="1308" y="324">3) RAG 보호자 질문 응답</text>
+  <rect x="1308" y="342" width="548" height="280" rx="12" fill="#ffffff" stroke="#a855f7"/>
+  <text class="h2" x="1328" y="376" fill="#7e22ce">Parent 질문 → guardian-rag.ts</text>
+  <text class="t" x="1328" y="404">→ retrieve.ts(Bedrock KB) → Bridge 필터</text>
+  <text class="t" x="1328" y="430">→ 라이브 집계 결합 → 요약 답변</text>
+  <text class="t" x="1328" y="456">참조 문서: 위 5종 MD + 당일 집계 데이터</text>
+  <rect x="1778" y="352" width="68" height="28" rx="8" fill="#7e22ce"/><text class="pill" x="1800" y="371">RAG</text>
+
+  <rect x="1308" y="644" width="548" height="120" rx="12" fill="#ffffff" stroke="#a855f7"/>
+  <text class="h2" x="1328" y="678" fill="#7e22ce">보호자 화면</text>
+  <text class="t" x="1328" y="704">홈 요약 / 공감 가이드 / 일정 / 리포트 답변</text>
+  <text class="t" x="1328" y="730">퇴원 시 편지 오픈</text>
+
+  <rect x="1308" y="786" width="548" height="90" rx="12" fill="#fef2f2" stroke="#dc2626"/>
+  <text class="t" x="1328" y="820" fill="#b91c1c">항상 차단: 채팅 원문 · 일기 원문 · GPS · 타 아동 KB</text>
+
+  <!-- arrows between lanes -->
+  <path class="ln" d="M 630 438 L 666 438"/>
+  <path class="ln" d="M 1252 744 L 1288 470"/>
+
+  <!-- footer -->
+  <rect x="44" y="926" width="1832" height="110" rx="12" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text class="h2" x="64" y="962">발표 한 줄</text>
+  <text class="t" x="64" y="990">입원 중에는 LLM이 아이와 실시간 상호작용하고, 새벽에는 Agent가 미션을 준비하며, 보호자는 RAG가 요약 문서와 집계 데이터를 바탕으로 만든 답변만 받습니다.</text>
+</svg>
+`;
+
+fs.writeFileSync(svgPath, svg, "utf8");
+
+sharp(svgPath, { density: 144 })
+  .png()
+  .toFile(pngPath)
+  .then((info) => {
+    console.log("ok", pngPath, `${info.width}x${info.height}`);
+  })
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });

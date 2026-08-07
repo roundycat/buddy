@@ -1,5 +1,6 @@
 import "server-only";
 import { todayKey } from "@/backend/shared/time/date";
+import { mapPool } from "@/backend/shared/async/map-pool";
 import { listMemoryUserIds } from "@/backend/features/conversation/conversation.store";
 import { listPersonaUserIds } from "@/backend/features/persona/persona.store";
 import { listGuardianUserIds } from "@/backend/features/guardian-link/guardian-link.store";
@@ -7,11 +8,18 @@ import { consolidateMemoryForUser } from "./memory-consolidate.job";
 import { prepareMissionsForUser } from "./mission-prep.job";
 import { prepareParentSummaryForGuardian } from "./parent-summary.job";
 import { indexKbSummariesForUser } from "./kb-index.job";
-import { observeBatchRun } from "@/backend/ai/llm-gateway";
+import { refineEmotionsForUser } from "./emotion-refine.job";
+import { updateStoriesForUser } from "./story-update.job";
+import { observeBatchRun } from "@/backend/ai/orchestrator";
+
+/** Max concurrent child jobs within one dawn batch phase. */
+const CHILD_CONCURRENCY = 3;
 
 export type DailyBatchResult = {
   dateKey: string;
   memory: { ok: number; fail: number };
+  emotion: { ok: number; fail: number; refined: number };
+  stories: { ok: number; fail: number; composed: number };
   missions: { ok: number; fail: number; created: number };
   parent: { ok: number; fail: number };
   kbIndex: { ok: number; fail: number; docs: number };
@@ -25,8 +33,22 @@ async function listChildUserIds(): Promise<string[]> {
   return Array.from(new Set([...mem, ...personas]));
 }
 
+function tallyOkFail(rows: Array<{ ok: boolean }>) {
+  let ok = 0;
+  let fail = 0;
+  for (const r of rows) {
+    if (r.ok) ok += 1;
+    else fail += 1;
+  }
+  return { ok, fail };
+}
+
 /**
- * Dawn batch: memory consolidate → mission prep → parent summary.
+ * Dawn batch (EventBridge → /api/cron/daily):
+ * Memory Extraction → Emotion Analysis → Story Updates → Mission prep
+ * → Parent Summary → KB index
+ *
+ * Child phases run with limited concurrency (Promise pool).
  */
 export async function runDailyBatch(
   dateKey = todayKey()
@@ -35,38 +57,51 @@ export async function runDailyBatch(
     const childIds = await listChildUserIds();
     const guardianIds = await listGuardianUserIds();
 
-    const memory = { ok: 0, fail: 0 };
-    for (const userId of childIds) {
-      const r = await consolidateMemoryForUser(userId, dateKey);
-      if (r.ok) memory.ok += 1;
-      else memory.fail += 1;
-    }
+    const memoryRows = await mapPool(childIds, CHILD_CONCURRENCY, (userId) =>
+      consolidateMemoryForUser(userId, dateKey)
+    );
+    const memory = tallyOkFail(memoryRows);
 
-    const missions = { ok: 0, fail: 0, created: 0 };
-    for (const userId of childIds) {
-      const r = await prepareMissionsForUser(userId, dateKey);
-      if (r.ok) {
-        missions.ok += 1;
-        if (r.created) missions.created += 1;
-      } else missions.fail += 1;
-    }
+    const emotionRows = await mapPool(childIds, CHILD_CONCURRENCY, (userId) =>
+      refineEmotionsForUser(userId, dateKey)
+    );
+    const emotion = {
+      ...tallyOkFail(emotionRows),
+      refined: emotionRows.filter((r) => r.refined).length,
+    };
 
-    const parent = { ok: 0, fail: 0 };
-    for (const guardianUserId of guardianIds) {
-      const r = await prepareParentSummaryForGuardian(guardianUserId, dateKey);
-      if (r.ok) parent.ok += 1;
-      else parent.fail += 1;
-    }
+    const storyRows = await mapPool(childIds, CHILD_CONCURRENCY, (userId) =>
+      updateStoriesForUser(userId)
+    );
+    const stories = {
+      ...tallyOkFail(storyRows),
+      composed: storyRows.filter((r) => r.composed).length,
+    };
 
-    const kbIndex = { ok: 0, fail: 0, docs: 0 };
-    for (const userId of childIds) {
-      const r = await indexKbSummariesForUser(userId, dateKey);
-      if (r.ok) {
-        kbIndex.ok += 1;
-        kbIndex.docs += r.docs;
-      } else kbIndex.fail += 1;
-    }
+    const missionRows = await mapPool(childIds, CHILD_CONCURRENCY, (userId) =>
+      prepareMissionsForUser(userId, dateKey)
+    );
+    const missions = {
+      ...tallyOkFail(missionRows),
+      created: missionRows.filter((r) => r.created).length,
+    };
 
-    return { dateKey, memory, missions, parent, kbIndex };
+    const parentRows = await mapPool(
+      guardianIds,
+      CHILD_CONCURRENCY,
+      (guardianUserId) =>
+        prepareParentSummaryForGuardian(guardianUserId, dateKey)
+    );
+    const parent = tallyOkFail(parentRows);
+
+    const kbRows = await mapPool(childIds, CHILD_CONCURRENCY, (userId) =>
+      indexKbSummariesForUser(userId, dateKey)
+    );
+    const kbIndex = {
+      ...tallyOkFail(kbRows),
+      docs: kbRows.reduce((n, r) => n + (r.docs ?? 0), 0),
+    };
+
+    return { dateKey, memory, emotion, stories, missions, parent, kbIndex };
   });
 }

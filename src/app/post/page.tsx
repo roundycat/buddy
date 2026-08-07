@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { MemoryPostView } from "@/frontend/features/memory-post/components/MemoryPostView";
 import { TopBrandBar } from "@/frontend/shared/components/TopBrandBar";
+import { SoftSkeleton } from "@/frontend/shared/components/ChildUi";
 import { loadMemoryPost } from "@/app/_server/loaders";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +10,7 @@ export default async function PostPage() {
   const post = await loadMemoryPost();
 
   return (
-    <div className="paper-room mx-auto max-w-lg px-5 pb-8 pt-2">
+    <div className="paper-room mx-auto max-w-lg px-5  pt-2 md:max-w-2xl md:px-8">
       <TopBrandBar />
 
       <div className="mt-8 mb-6 text-center">
@@ -21,7 +22,7 @@ export default async function PostPage() {
         </h1>
       </div>
 
-      <Suspense fallback={<p className="text-sm text-bedi-slate/45">불러오는 중…</p>}>
+      <Suspense fallback={<SoftSkeleton rows={2} label="편지를 꺼내는 중" />}>
         <MemoryPostView
           title={post.title}
           companionNote={post.companionNote}

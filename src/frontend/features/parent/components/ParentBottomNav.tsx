@@ -27,7 +27,7 @@ export function ParentBottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur-md">
-      <div className="mx-auto flex max-w-lg items-stretch justify-around px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5">
+      <div className="mx-auto flex max-w-lg items-stretch justify-around px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 md:max-w-2xl">
         {links.map((link) => {
           const isActive = link.exact
             ? pathname === link.href
@@ -51,7 +51,7 @@ export function ParentBottomNav() {
               />
               <span
                 className={cn(
-                  "text-[10px] leading-none",
+                  "text-[11px] leading-none",
                   isActive ? "font-semibold" : "font-medium"
                 )}
               >

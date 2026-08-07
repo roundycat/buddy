@@ -1,1 +1,0 @@
-http://bedi-alb-1051798792.us-east-1.elb.amazonaws.com

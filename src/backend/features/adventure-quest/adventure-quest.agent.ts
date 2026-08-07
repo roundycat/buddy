@@ -1,13 +1,25 @@
 import "server-only";
-import { runLlm, type AiPurpose } from "@/backend/ai/llm-gateway";
 import {
+  runLlm,
   runPipeline,
+  runToolAgent,
+  type AgentTool,
+  type AiPurpose,
   type RunHandle,
-} from "@/backend/ai/agent/agent-run";
+} from "@/backend/ai/orchestrator";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { env } from "@/backend/shared/config/env";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";
 import { recordCount } from "@/backend/shared/observability";
+import { getChildName } from "@/backend/features/persona/persona.store";
+import {
+  MISSION_TOOL_SPECS,
+  runLookupGuidanceTool,
+  runRecentTitlesTool,
+  TOOL_LOOKUP_GUIDANCE,
+  TOOL_RECENT_TITLES,
+  TOOL_SUBMIT_PLAN,
+} from "./adventure-quest.tools";
 import { listAdventurePacksForUser } from "./adventure-quest.store";
 import {
   buildFactorChips,
@@ -75,72 +87,198 @@ function ruleReasoning(
   return { reasoning, focusSignals, avoid };
 }
 
-async function planMission(
-  run: RunHandle,
+function rulesPlan(
   context: AdventureContextFactors,
-  date: string
-): Promise<MissionPlan> {
-  if (env.llmProvider === "mock") {
-    const scene = resolveScene(context);
-    const r = ruleReasoning(scene, context);
-    run.note("plan", "fallback_to_rules_mock");
-    return {
-      scene,
-      ...r,
-      questKinds: ["photo", "chat", "observe"],
-      needsRecentHistory: false,
-    };
-  }
+  detail: string,
+  run: RunHandle
+): MissionPlan {
+  const scene = resolveScene(context);
+  const r = ruleReasoning(scene, context);
+  run.note("plan", detail);
+  return {
+    scene,
+    ...r,
+    questKinds: ["photo", "chat", "observe"],
+    needsRecentHistory: false,
+    needsGuidanceDocs: false,
+    plannedBy: "rules",
+    toolCalls: [],
+  };
+}
 
-  const planned = await run.stepSafe("agent.mission.plan", async () => {
-    const result = await runLlm({
-      feature: "agent.mission.plan",
-      purpose: PLAN_PURPOSE,
-      temperature: 0.3,
-      maxTokens: 500,
-      messages: [
-        {
-          role: "system",
-          content: withBeddySafety(`당신은 Beddy 미션 Agent의 계획기입니다.
-입원 청소년용 오늘의 모험 장면을 고르고 JSON만 출력하세요.
-scene은 sunny|rainy|treatment|low_energy 중 하나.
-needsRecentHistory는 최근 미션과 제목 중복을 피해야 할 때만 true.
-형식:
-{"scene":"...","reasoning":"...","focusSignals":["..."],"avoid":["..."],"questKinds":["photo","chat","observe"],"needsRecentHistory":false}`),
-        },
-        {
-          role: "user",
-          content: `날짜: ${date}\n컨텍스트:\n${JSON.stringify(context, null, 2)}`,
-        },
-      ],
-    });
-    return extractJsonObject(result.content) as Partial<MissionPlan>;
-  });
+function buildMissionTools(userId: string, date: string): AgentTool[] {
+  const byName = new Map(MISSION_TOOL_SPECS.map((s) => [s.name, s]));
+  return [
+    {
+      spec: byName.get(TOOL_LOOKUP_GUIDANCE)!,
+      run: async (input) => runLookupGuidanceTool(input),
+    },
+    {
+      spec: byName.get(TOOL_RECENT_TITLES)!,
+      run: async (input) => runRecentTitlesTool(userId, date, input),
+    },
+    {
+      spec: byName.get(TOOL_SUBMIT_PLAN)!,
+      // Terminal — input is the MissionPlan; run is never invoked.
+      run: async (input) => input,
+      terminal: true,
+    },
+  ];
+}
 
-  if (!planned || !planned.scene || !SCENES.has(planned.scene as AdventureScene)) {
-    const scene = resolveScene(context);
-    const r = ruleReasoning(scene, context);
-    run.note("plan", "fallback_to_rules");
-    return {
-      scene,
-      ...r,
-      questKinds: ["photo", "chat", "observe"],
-      needsRecentHistory: Boolean(planned?.needsRecentHistory),
-    };
-  }
+function normalizeSubmittedPlan(
+  submitted: Record<string, unknown>,
+  toolCalls: string[]
+): MissionPlan | null {
+  const scene = String(submitted.scene ?? "");
+  if (!SCENES.has(scene as AdventureScene)) return null;
 
-  const kinds = (planned.questKinds ?? []).filter((k): k is AdventureQuestKind =>
-    ["photo", "garden", "chat", "post", "observe"].includes(k as string)
-  );
+  const kinds = (Array.isArray(submitted.questKinds) ? submitted.questKinds : [])
+    .map(String)
+    .filter((k): k is AdventureQuestKind =>
+      ["photo", "garden", "chat", "post", "observe"].includes(k)
+    );
+
+  const usedGuidance = toolCalls.includes(TOOL_LOOKUP_GUIDANCE);
+  const usedRecent = toolCalls.includes(TOOL_RECENT_TITLES);
 
   return {
-    scene: planned.scene as AdventureScene,
-    reasoning: (planned.reasoning ?? "").trim() || "컨텍스트에 맞춰 장면을 골랐어요.",
-    focusSignals: (planned.focusSignals ?? []).map(String).slice(0, 6),
-    avoid: (planned.avoid ?? []).map(String).slice(0, 6),
+    scene: scene as AdventureScene,
+    reasoning:
+      String(submitted.reasoning ?? "").trim() ||
+      "컨텍스트에 맞춰 장면을 골랐어요.",
+    focusSignals: (Array.isArray(submitted.focusSignals)
+      ? submitted.focusSignals
+      : []
+    )
+      .map(String)
+      .slice(0, 6),
+    avoid: (Array.isArray(submitted.avoid) ? submitted.avoid : [])
+      .map(String)
+      .slice(0, 6),
     questKinds: kinds.length ? kinds.slice(0, 3) : ["photo", "chat", "observe"],
-    needsRecentHistory: Boolean(planned.needsRecentHistory),
+    needsRecentHistory: usedRecent,
+    needsGuidanceDocs: usedGuidance,
+    plannedBy: "tool-use",
+    toolCalls,
   };
+}
+
+function titlesFromToolCalls(
+  calls: Array<{ name: string; ok: boolean; output?: unknown }>
+): string[] {
+  const hit = [...calls]
+    .reverse()
+    .find((c) => c.name === TOOL_RECENT_TITLES && c.ok);
+  if (!hit || !hit.output || typeof hit.output !== "object") return [];
+  const titles = (hit.output as { titles?: unknown }).titles;
+  if (!Array.isArray(titles)) return [];
+  return titles.map(String).filter(Boolean).slice(0, 21);
+}
+
+/**
+ * Plan phase — Bedrock tool-use agent.
+ * Model may call guidance / recent-titles tools, then must submit_mission_plan.
+ */
+async function planMission(
+  run: RunHandle,
+  userId: string,
+  context: AdventureContextFactors,
+  date: string
+): Promise<{ plan: MissionPlan; avoidTitles: string[] }> {
+  if (env.llmProvider === "mock") {
+    return { plan: rulesPlan(context, "fallback_to_rules_mock", run), avoidTitles: [] };
+  }
+
+  const childName = await getChildName(userId);
+
+  const outcome = await run.stepSafe("agent.mission.plan", async () =>
+    runToolAgent({
+      feature: "agent.mission.plan",
+      purpose: PLAN_PURPOSE,
+      childName,
+      maxIterations: 5,
+      budgetMs: Math.min(10_000, Math.max(3_000, run.remainingMs())),
+      temperature: 0.3,
+      maxTokens: 500,
+      tools: buildMissionTools(userId, date),
+      system: withBeddySafety(`당신은 Beddy 미션 Agent의 계획기입니다.
+입원 청소년용 "오늘의 작은 모험" 장면을 고릅니다.
+
+도구:
+- ${TOOL_LOOKUP_GUIDANCE}: 치료 불안·낮은 에너지·고립감처럼 정서 배려가 필요한 날에만.
+- ${TOOL_RECENT_TITLES}: 제목 중복을 피해야 할 때만.
+- ${TOOL_SUBMIT_PLAN}: 필요한 도구를 쓴 뒤 마지막에 반드시 한 번 호출해 계획을 확정.
+
+규칙:
+- 의료·진단·처방 금지. 병실·침대 근처에서 할 수 있는 활동만.
+- 야외·무리한 활동은 avoid에 넣으세요.
+- questKinds는 photo|garden|chat|post|observe 중 서로 다르게 최대 3개.`),
+      task: `날짜: ${date}
+아이 이름: ${childName ?? "(미상)"}
+오늘의 컨텍스트(JSON):
+${JSON.stringify(context, null, 2)}
+
+위 컨텍스트를 보고 필요한 도구를 고른 뒤, ${TOOL_SUBMIT_PLAN}으로 오늘의 미션 계획을 제출하세요.`,
+    })
+  );
+
+  if (!outcome) {
+    return {
+      plan: rulesPlan(context, "fallback_to_rules_plan_error", run),
+      avoidTitles: [],
+    };
+  }
+
+  for (const step of outcome.trace) {
+    run.note(step.step, step.detail ?? (step.ok ? "ok" : "fail"));
+  }
+
+  const toolCallNames = outcome.toolCalls.map((c) => c.name);
+  run.note(
+    "agent.mission.tool_calls",
+    toolCallNames.length ? toolCallNames.join(",") : "none"
+  );
+
+  if (outcome.exhausted) {
+    recordCount("AgentFallbacks", 1, {
+      feature: "agent.mission",
+      operation: "plan_exhausted",
+    });
+  }
+
+  const avoidTitles = titlesFromToolCalls(outcome.toolCalls);
+
+  if (!outcome.submitted) {
+    return {
+      plan: rulesPlan(context, "fallback_to_rules_no_submit", run),
+      avoidTitles,
+    };
+  }
+
+  const plan = normalizeSubmittedPlan(outcome.submitted, toolCallNames);
+  if (!plan) {
+    return {
+      plan: rulesPlan(context, "fallback_to_rules_bad_submit", run),
+      avoidTitles,
+    };
+  }
+
+  let titles = avoidTitles;
+  if (!titles.length && plan.needsRecentHistory) {
+    titles =
+      (await run.stepSafe("agent.mission.tool.recent_history", () =>
+        loadRecentQuestTitles(userId, date)
+      )) ?? [];
+  } else if (!toolCallNames.includes(TOOL_RECENT_TITLES)) {
+    run.note("agent.mission.tool.recent_history", "skipped_by_model");
+  }
+
+  if (!toolCallNames.includes(TOOL_LOOKUP_GUIDANCE)) {
+    run.note("agent.mission.tool.guidance", "skipped_by_model");
+  }
+
+  return { plan, avoidTitles: titles };
 }
 
 async function loadRecentQuestTitles(
@@ -256,6 +394,7 @@ async function generatePack(
     runLlm({
       feature: input.feature,
       purpose: GENERATE_PURPOSE,
+      childName: await getChildName(input.userId),
       temperature: 0.7,
       maxTokens: 900,
       messages: [
@@ -343,7 +482,7 @@ points는 10~20 정수. 가능하면 kind를 다양하게.`,
 
 /**
  * AI Agent — Today's Mission.
- * plan(LLM) → conditional tool call → generate(LLM) → validate(pure) → repair(LLM, max 1) → rule fallback
+ * tool-use plan → generate(LLM) → validate(pure) → repair(LLM, max 1) → rule fallback
  */
 export async function runMissionAgent(
   userId: string,
@@ -351,19 +490,14 @@ export async function runMissionAgent(
   context: AdventureContextFactors
 ): Promise<AdventureDayPack> {
   const { result, trace } = await runPipeline(
-    { feature: "agent.mission", kind: "agent" },
+    { feature: "agent.mission", kind: "agent", budgetMs: 20_000 },
     async (run) => {
-      const plan = await planMission(run, context, date);
-
-      let avoidTitles: string[] = [];
-      if (plan.needsRecentHistory) {
-        avoidTitles =
-          (await run.stepSafe("agent.mission.tool.recent_history", () =>
-            loadRecentQuestTitles(userId, date)
-          )) ?? [];
-      } else {
-        run.note("agent.mission.tool.recent_history", "skipped_by_plan");
-      }
+      const { plan, avoidTitles } = await planMission(
+        run,
+        userId,
+        context,
+        date
+      );
 
       let attempts = 0;
       let pack = await generatePack(run, {

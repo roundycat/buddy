@@ -6,6 +6,7 @@ import {
   LegalDocumentModal,
   type LegalDocId,
 } from "@/frontend/features/auth/components/LegalDocumentModal";
+import { fetchJson } from "@/frontend/shared/api/fetch-json";
 import {
   getPasswordChecks,
   isPasswordValid,
@@ -134,25 +135,20 @@ export function LoginForm() {
             }
           : { email, password };
 
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      const data = (await res.json()) as {
-        error?: string;
+      const data = await fetchJson<{
         needsOnboarding?: boolean;
         isGuardian?: boolean;
-      };
-      if (!res.ok) {
-        throw new Error(
-          data?.error ??
-            (mode === "signup"
-              ? "회원가입에 실패했습니다."
-              : "로그인에 실패했습니다.")
-        );
-      }
+      }>(
+        endpoint,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+        mode === "signup"
+          ? "회원가입에 실패했습니다."
+          : "로그인에 실패했습니다."
+      );
 
       if (data.isGuardian) {
         window.location.assign("/guardian");
@@ -298,8 +294,6 @@ export function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={mode === "signup" ? 8 : undefined}
-            maxLength={mode === "signup" ? 20 : undefined}
             className="h-11 w-full rounded-xl border border-bedi-slate/10 bg-white/70 px-3 text-sm text-bedi-slate outline-none ring-bedi-slate/20 focus:ring-2"
           />
           {mode === "signup" && (
@@ -331,8 +325,6 @@ export function LoginForm() {
                 value={passwordConfirm}
                 onChange={(e) => setPasswordConfirm(e.target.value)}
                 required
-                minLength={8}
-                maxLength={20}
                 className="h-11 w-full rounded-xl border border-bedi-slate/10 bg-white/70 px-3 text-sm text-bedi-slate outline-none ring-bedi-slate/20 focus:ring-2"
               />
               {passwordConfirm.length > 0 && (

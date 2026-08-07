@@ -17,8 +17,10 @@ export interface ScheduleDeliveryItem {
  */
 export function ScheduleDeliveryEffect({
   deliveries,
+  onOpenNotifications,
 }: {
   deliveries: ScheduleDeliveryItem[];
+  onOpenNotifications?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<ScheduleDeliveryItem[]>([]);
@@ -84,12 +86,20 @@ export function ScheduleDeliveryEffect({
             닫기
           </button>
         </div>
-        <a
-          href="/hospital"
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            if (onOpenNotifications) {
+              onOpenNotifications();
+            } else {
+              window.location.href = "/?notifications=1";
+            }
+          }}
           className="mt-3 flex h-10 items-center justify-center rounded-xl bg-bedi-softBlueDeep text-sm font-medium text-white"
         >
-          일정 보러 가기
-        </a>
+          알림에서 확인하기
+        </button>
       </div>
     </div>
   );

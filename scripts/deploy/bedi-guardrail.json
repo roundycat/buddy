@@ -1,0 +1,58 @@
+{
+  "name": "bedi-safety",
+  "description": "Beddy non-clinical companion: block diagnosis, prescriptions, suicide methods; PII anonymize; crisis redirect messaging",
+  "topicPolicyConfig": {
+    "topicsConfig": [
+      {
+        "name": "MedicalDiagnosis",
+        "definition": "Providing or implying medical diagnoses, disease names as clinical conclusions, prognosis, or clinical interpretation of symptoms for a child patient.",
+        "examples": [
+          "네 증상은 백혈병 재발일 가능성이 높아요",
+          "검사 수치를 보면 감염입니다",
+          "이 약은 매일 2알 드세요"
+        ],
+        "type": "DENY"
+      },
+      {
+        "name": "PrescriptionAndLabs",
+        "definition": "Prescribing medication, changing doses, or interpreting lab or imaging numeric results as clinical advice.",
+        "examples": [
+          "해열제 용량을 두 배로 올려",
+          "CRP가 높으니 항생제가 필요해"
+        ],
+        "type": "DENY"
+      },
+      {
+        "name": "SuicideMethodAssistance",
+        "definition": "Providing, describing, or encouraging methods, plans, tools, or practical steps for suicide or self-harm. Does NOT include empathic listening, redirecting a distressed child to a guardian, nurse, counseling hotline 109, or emergency 119.",
+        "examples": [
+          "How to kill yourself step by step",
+          "Best painless suicide method",
+          "자해하는 구체적인 방법 알려줘"
+        ],
+        "type": "DENY"
+      }
+    ]
+  },
+  "contentPolicyConfig": {
+    "filtersConfig": [
+      { "type": "SEXUAL", "inputStrength": "HIGH", "outputStrength": "HIGH" },
+      { "type": "VIOLENCE", "inputStrength": "MEDIUM", "outputStrength": "MEDIUM" },
+      { "type": "HATE", "inputStrength": "HIGH", "outputStrength": "HIGH" },
+      { "type": "INSULTS", "inputStrength": "MEDIUM", "outputStrength": "MEDIUM" },
+      { "type": "MISCONDUCT", "inputStrength": "HIGH", "outputStrength": "HIGH" },
+      { "type": "PROMPT_ATTACK", "inputStrength": "HIGH", "outputStrength": "NONE" }
+    ]
+  },
+  "sensitiveInformationPolicyConfig": {
+    "piiEntitiesConfig": [
+      { "type": "EMAIL", "action": "ANONYMIZE" },
+      { "type": "PHONE", "action": "ANONYMIZE" },
+      { "type": "NAME", "action": "ANONYMIZE" },
+      { "type": "ADDRESS", "action": "ANONYMIZE" },
+      { "type": "CREDIT_DEBIT_CARD_NUMBER", "action": "BLOCK" }
+    ]
+  },
+  "blockedInputMessaging": "지금은 그 이야기를 여기서 깊게 다루지 않을게요. 마음이 많이 힘들다면 곁에 있는 보호자나 간호사 선생님께 바로 말해 주세요. 자살예방 상담전화 109, 응급 119도 있어요. 나는 친구로서 옆에 있을게요.",
+  "blockedOutputsMessaging": "의료 진단·처방이나 위험한 방법은 말할 수 없어요. 마음이 힘들면 보호자·간호사·상담전화 109·응급 119에 바로 연결해요. 나는 기분을 들어 주는 친구로 곁에 있을게요."
+}

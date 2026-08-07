@@ -1,12 +1,7 @@
-import { runLlm } from "@/backend/ai/llm-gateway";
+import { fillNamePlaceholdersDeep, runLlm } from "@/backend/ai/orchestrator";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { env } from "@/backend/shared/config/env";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";
-import {
-  formatKbHitsForPrompt,
-  retrieveChildSummaries,
-} from "@/backend/ai/kb/retrieve";
-import { filterBridgeHits } from "@/backend/ai/bridge/privacy-filter";
 import { getPersonaForUser } from "@/backend/features/persona/persona.store";
 import { getGardenAccount } from "@/backend/features/emotion-garden/emotion-garden.store";
 import { sealGardenStorybook } from "@/backend/features/emotion-garden/emotion-garden.service";
@@ -16,8 +11,7 @@ import {
   listWishes,
 } from "@/backend/features/wish-tree/wish-tree.service";
 import { listPhotosForUser } from "@/backend/features/photo-album/photo-album.store";
-import { listMemoryEvents } from "@/backend/features/memory-timeline/memory-timeline.store";
-import { getConversationMemory } from "@/backend/features/conversation/conversation.store";
+import { getChildParentLetter } from "./storybook-parent-letter.service";
 import {
   getSealedDischargeTale,
   saveSealedDischargeTale,
@@ -43,7 +37,10 @@ function emptyBook(): GrowthStorybookResponse {
     opening: null,
     pages: [],
     wishClosing: null,
+    parentLetter: null,
     epilogue: null,
+    goodbye: null,
+    readingProgress: { pageIndex: 0, completed: false },
   };
 }
 
@@ -136,30 +133,25 @@ async function tryLlmCompose(input: {
   dayCount: number;
   adventureSummaries: string[];
   flowerCount: number;
-  flowerNotes: string[];
   wishTexts: string[];
-  photoCount: number;
-  memoryHighlights: string[];
-  emotionThemes: string[];
-  kbHighlights?: string;
 }): Promise<{
   cover: StorybookCover;
   openingBody: string;
   epilogueBody: string;
-  gardenBody?: string;
 } | null> {
   if (env.llmProvider === "mock") return null;
 
   try {
     const result = await runLlm({
-      feature: "growth.storybook",
+      feature: "growth-storybook.compose",
       purpose: "quality",
+      childName: input.childName,
       messages: [
         {
           role: "system",
           content: withBeddySafety(`당신은 Beddy 앱의 동화 작가입니다.
 입원 아동·청소년을 위한 희망적이고 감성적인 동화를 씁니다.
-원문 대화·좌표·지역명은 쓰지 마세요. 공포 표현 금지. 따뜻하고 짧은 문장. JSON만 출력.`),
+의료·진단·공포 표현 금지. 따뜻하고 짧은 문장. JSON만 출력.`),
         },
         {
           role: "user",
@@ -169,13 +161,7 @@ async function tryLlmCompose(input: {
 모험 요약:
 ${input.adventureSummaries.map((s) => `- ${s}`).join("\n") || "- (아직 적음)"}
 정원 꽃: ${input.flowerCount}송이
-꽃 메모: ${input.flowerNotes.join(" / ") || "없음"}
 소원: ${input.wishTexts.join(", ") || "없음"}
-사진: ${input.photoCount}장
-기억 하이라이트: ${input.memoryHighlights.join(" · ") || "없음"}
-마음 키워드: ${input.emotionThemes.join(", ") || "없음"}
-KB 요약(선택):
-${input.kbHighlights || "(없음)"}
 
 형식:
 {
@@ -183,13 +169,12 @@ ${input.kbHighlights || "(없음)"}
   "coverSubtitle": "부제",
   "dedication": "헌정 한 문장",
   "opening": "프롤로그 2~4문장",
-  "gardenChapter": "정원 장 2~3문장",
   "epilogue": "희망찬 내일을 응원하는 에필로그 3~5문장"
 }`,
         },
       ],
       temperature: 0.7,
-      maxTokens: 1100,
+      maxTokens: 900,
     });
 
     const parsed = extractJsonObject(result.content) as {
@@ -197,7 +182,6 @@ ${input.kbHighlights || "(없음)"}
       coverSubtitle?: string;
       dedication?: string;
       opening?: string;
-      gardenChapter?: string;
       epilogue?: string;
     };
 
@@ -217,7 +201,6 @@ ${input.kbHighlights || "(없음)"}
       },
       openingBody: parsed.opening.trim(),
       epilogueBody: parsed.epilogue.trim(),
-      gardenBody: parsed.gardenChapter?.trim(),
     };
   } catch (error) {
     console.warn("[storybook] LLM compose failed:", error);
@@ -233,38 +216,64 @@ export async function getGrowthStorybook(
 ): Promise<GrowthStorybookResponse> {
   if (!userId) return emptyBook();
 
+  const persona = await getPersonaForUser(userId);
+  const childName = persona.self?.nickname?.trim() || "너";
+
   const sealed = await getSealedDischargeTale(userId);
-  if (sealed) return taleToResponse(sealed);
+  if (sealed) {
+    const parentLetter = await getChildParentLetter(userId);
+    return fillNamePlaceholdersDeep(
+      {
+        ...taleToResponse({
+          ...sealed,
+          parentLetter: parentLetter ?? sealed.parentLetter ?? null,
+        }),
+        parentLetter: parentLetter ?? sealed.parentLetter ?? null,
+      },
+      childName
+    );
+  }
 
   const packs = await listDayStoriesForUser(userId);
   const garden = await getGardenAccount(userId);
   const wishClosing = await buildWishClosingPage(userId);
   const wishCount = (await listWishes(userId)).length;
-  const persona = await getPersonaForUser(userId);
-  const childName = persona.self?.nickname?.trim() || "너";
   const companionName = persona.name?.trim() || "Beddy";
+  const parentLetter = await getChildParentLetter(userId);
 
   const pages = buildLivingPages(packs, garden.flowers.length);
-  const totalPages = pages.length + (wishClosing ? 1 : 0);
+  const totalPages =
+    pages.length + (wishClosing ? 1 : 0) + (parentLetter ? 1 : 0);
 
   const cover = ruleBasedCover(childName, companionName);
 
-  return {
-    title: cover.title,
-    companionNote: garden.storybookSealed
-      ? "이야기 재료가 모였어요. 완성하면 희망찬 내일로 이어지는 책이 됩니다."
-      : "매일의 모험이 장이 되고, 소원 나무의 꿈은 마지막을 밝혀요.",
-    sealed: false,
-    sealedAt: garden.sealedAt,
-    pageCount: totalPages,
-    flowerCount: garden.flowers.length,
-    wishCount,
-    cover,
-    opening: null,
-    pages,
-    wishClosing,
-    epilogue: null,
-  };
+  // Pages written before placeholder scrubbing existed are still on disk.
+  return fillNamePlaceholdersDeep(
+    {
+      title: cover.title,
+      companionNote: parentLetter
+        ? parentLetter.locked
+          ? "보호자가 보낸 편지가 도착했어요. 퇴원 예정일이 되면 열어 볼 수 있어요."
+          : "보호자가 보낸 편지가 마지막 장에 도착했어요."
+        : garden.storybookSealed
+          ? "이야기 재료가 모였어요. 완성하면 희망찬 내일로 이어지는 책이 됩니다."
+          : "매일의 모험이 장이 되고, 소원 나무의 꿈은 마지막을 밝혀요.",
+      sealed: false as const,
+      sealedAt: garden.sealedAt,
+      pageCount: totalPages,
+      flowerCount: garden.flowers.length,
+      wishCount,
+      cover,
+      opening: null,
+      pages,
+      wishClosing,
+      parentLetter,
+      epilogue: null,
+      goodbye: null,
+      readingProgress: { pageIndex: 0, completed: false },
+    },
+    childName
+  );
 }
 
 /**
@@ -292,8 +301,6 @@ export async function composeDischargeTale(
   const wishes = await listWishes(userId);
   const persona = await getPersonaForUser(userId);
   const photos = await listPhotosForUser(userId);
-  const memoryEvents = await listMemoryEvents(userId);
-  const conversationMemory = await getConversationMemory(userId);
 
   const childName = persona.self?.nickname?.trim() || "너";
   const companionName = persona.name?.trim() || "Beddy";
@@ -316,22 +323,7 @@ export async function composeDischargeTale(
       (p) => `${p.date}: ${p.dayStory?.narrative ?? p.headline}`
     ),
     flowerCount: garden.flowers.length,
-    flowerNotes: garden.flowers.map((f) => f.note).slice(0, 5),
     wishTexts: wishes.map((w) => w.text),
-    photoCount: photos.length,
-    memoryHighlights: memoryEvents
-      .slice(0, 5)
-      .map((e) => `${e.title}: ${e.summary}`.slice(0, 80)),
-    emotionThemes: conversationMemory.emotionalThemes.slice(0, 5),
-    kbHighlights: formatKbHitsForPrompt(
-      filterBridgeHits(
-        await retrieveChildSummaries({
-          childUserId: userId,
-          query: `${childName} 병원 여정 모험 감정 소원`,
-          maxResults: 4,
-        })
-      )
-    ),
   });
 
   const cover = llm?.cover ?? ruleBasedCover(childName, companionName);
@@ -348,27 +340,34 @@ export async function composeDischargeTale(
       1 + livingPages.length + (wishClosing ? 1 : 0) + 1,
   };
 
-  // Renumber adventure pages after opening; enrich garden chapter if LLM provided
-  const pages = livingPages.map((p, i) => {
-    const next = { ...p, pageNumber: i + 2 };
-    if (p.kind === "garden" && llm?.gardenBody) {
-      return { ...next, body: llm.gardenBody };
-    }
-    return next;
-  });
+  // Renumber adventure pages after opening
+  const pages = livingPages.map((p, i) => ({
+    ...p,
+    pageNumber: i + 2,
+  }));
 
-  const tale: SealedDischargeTale = {
-    userId,
-    sealedAt: new Date().toISOString(),
-    cover,
-    opening,
-    pages,
-    wishClosing,
-    epilogue,
-    flowerCount: garden.flowers.length,
-    wishCount: wishes.length,
-  };
+  const parentLetter = await getChildParentLetter(userId);
+
+  const tale: SealedDischargeTale = fillNamePlaceholdersDeep(
+    {
+      userId,
+      sealedAt: new Date().toISOString(),
+      cover,
+      opening,
+      pages,
+      wishClosing,
+      parentLetter,
+      epilogue,
+      flowerCount: garden.flowers.length,
+      wishCount: wishes.length,
+    },
+    childName
+  );
 
   await saveSealedDischargeTale(tale);
-  return taleToResponse(tale);
+  // Prefer live letter so lock/unlock follows the calendar after seal.
+  return {
+    ...taleToResponse(tale),
+    parentLetter,
+  };
 }

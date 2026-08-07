@@ -1,5 +1,7 @@
 "use client";
 
+import { useDialogDismiss } from "@/frontend/shared/hooks/useDialogDismiss";
+
 /**
  * Quick actions sheet for a single schedule occurrence.
  */
@@ -19,6 +21,8 @@ export function QuickActionMenu({
     onClick: () => void;
   }>;
 }) {
+  useDialogDismiss(open, onClose);
+
   if (!open) return null;
 
   return (
@@ -31,6 +35,7 @@ export function QuickActionMenu({
       />
       <div
         role="dialog"
+        aria-modal="true"
         aria-label={`${title} 빠른 작업`}
         className="relative z-10 w-full max-w-lg rounded-t-3xl bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-soft sm:rounded-3xl sm:pb-4"
       >
@@ -45,7 +50,7 @@ export function QuickActionMenu({
                   action.onClick();
                   onClose();
                 }}
-                className={`flex h-12 w-full items-center rounded-xl px-4 text-left text-[15px] font-medium ${
+                className={`flex h-12 w-full items-center rounded-xl px-4 text-left text-[15px] font-medium transition-transform duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bedi-sage/40 ${
                   action.tone === "danger"
                     ? "bg-rose-50 text-rose-600"
                     : "bg-white text-slate-800"

@@ -1,7 +1,7 @@
 "use client";
 
 import { Heart, MessageSquare } from "lucide-react";
-import type { ParentEmpathyGuide } from "@/backend/features/parent/parent.types";
+import type { ParentEmpathyGuide } from "@/frontend/shared/types/parent";
 import { ParentCard } from "@/frontend/features/parent/components/ParentUi";
 
 /**

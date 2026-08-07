@@ -1,5 +1,6 @@
 export type {
   ParentHomeDashboard,
+  ParentSafetyAlert,
   ParentEmpathyGuide,
   ParentTimelineResponse,
   ParentReportResponse,
@@ -7,6 +8,7 @@ export type {
   ParentMoodTone,
   ParentAdventureItem,
   ParentMemoryHighlight,
+  ParentMediaItem,
   ParentCareSuggestion,
   ParentTimelineEntry,
   ParentReportAnswer,

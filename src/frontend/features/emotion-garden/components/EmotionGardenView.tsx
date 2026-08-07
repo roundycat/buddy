@@ -1,47 +1,68 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { BookMarked } from "lucide-react";
-import { cn } from "@/frontend/shared/lib/utils";
-import { GrowingFlower } from "@/frontend/features/emotion-garden/components/GrowingFlower";
+import { motion } from "framer-motion";
+import { fetchJson } from "@/frontend/shared/api/fetch-json";
+import { useTransientToast } from "@/frontend/shared/hooks/useTransientToast";
+import { useSoftMotion } from "@/frontend/shared/lib/motion";
+import { SoftErrorState } from "@/frontend/shared/components/ChildUi";
+import { GardenMap } from "@/frontend/features/emotion-garden/components/GardenMap";
+import { WeekGarden } from "@/frontend/features/emotion-garden/components/WeekGarden";
+import { DailyPlantingModal } from "@/frontend/features/emotion-garden/components/DailyPlantingModal";
+import { MemoryFlowerCard } from "@/frontend/features/emotion-garden/components/MemoryFlowerCard";
 import { completeAdventureQuest } from "@/frontend/features/adventure-quest/lib/complete-adventure-quest";
 import type {
   EmotionGardenResponse,
-  GardenFlower,
+  FlowerMemoryCard as FlowerMemoryCardData,
+  GardenPlantView,
   MoodId,
-} from "@/backend/features/emotion-garden/emotion-garden.types";
+  SkyPhase,
+} from "@/frontend/shared/catalogs";
 
 interface EmotionGardenViewProps {
   initial: EmotionGardenResponse;
 }
 
-const moodAccent: Record<MoodId, string> = {
-  happy: "from-amber-100/80 to-bedi-sage/20",
-  sad: "from-sky-100/80 to-indigo-100/40",
-  sleepy: "from-violet-100/70 to-bedi-slate/10",
-  angry: "from-orange-100/70 to-bedi-rose/20",
-  love: "from-bedi-rose/30 to-pink-100/50",
-};
+function phaseForHour(hour: number): SkyPhase {
+  if (hour >= 5 && hour < 8) return "dawn";
+  if (hour >= 8 && hour < 17) return "day";
+  if (hour >= 17 && hour < 20) return "dusk";
+  return "night";
+}
 
 export function EmotionGardenView({ initial }: EmotionGardenViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const questId = searchParams.get("quest");
+
+  const { stagger, item } = useSoftMotion();
+
   const [garden, setGarden] = useState(initial);
-  const [pendingMood, setPendingMood] = useState<MoodId | null>(null);
-  const [justBloomed, setJustBloomed] = useState<GardenFlower | null>(null);
+  const [plantingOpen, setPlantingOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [growingId, setGrowingId] = useState<string | null>(null);
-  const [sealing, setSealing] = useState(false);
+  const [wateringId, setWateringId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [memory, setMemory] = useState<FlowerMemoryCardData | null>(null);
+  const [memoryLoading, setMemoryLoading] = useState(false);
+  const { toast: flash, setToast: setFlash } = useTransientToast(2800);
   const [error, setError] = useState<string | null>(null);
   const [questHint, setQuestHint] = useState<string | null>(
-    questId ? "모험 미션: 오늘의 기분을 심으면 별조각을 받을 수 있어요." : null
+    questId
+      ? "모험 미션: 오늘의 감정 씨앗을 심으면 미션이 완료돼요."
+      : null
   );
+  const [livePhase, setLivePhase] = useState<SkyPhase | null>(null);
 
   useEffect(() => {
     setGarden(initial);
   }, [initial]);
+
+  useEffect(() => {
+    setLivePhase(phaseForHour(new Date().getHours()));
+  }, []);
 
   useEffect(() => {
     if (!growingId) return;
@@ -49,84 +70,138 @@ export function EmotionGardenView({ initial }: EmotionGardenViewProps) {
     return () => window.clearTimeout(t);
   }, [growingId]);
 
-  async function plant(mood: MoodId) {
-    if (!garden.canPlantToday || pendingMood) return;
-    setPendingMood(mood);
+  useEffect(() => {
+    if (!wateringId) return;
+    const t = window.setTimeout(() => setWateringId(null), 950);
+    return () => window.clearTimeout(t);
+  }, [wateringId]);
+
+  const applyGarden = useCallback((next: EmotionGardenResponse) => {
+    setGarden(next);
+  }, []);
+
+  async function plantSeed(mood: MoodId) {
+    if (!garden.canPlantToday || busy) return;
+    setBusy(true);
     setError(null);
-    setJustBloomed(null);
-
-    const moodMeta = garden.moods.find((m) => m.id === mood);
-
     try {
-      const res = await fetch("/api/garden/plant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mood }),
-      });
-      const data = (await res.json()) as EmotionGardenResponse & {
-        bloomed?: GardenFlower;
-        error?: string;
-      };
-      if (!res.ok) throw new Error(data.error ?? "꽃을 피우지 못했어요.");
+      const data = await fetchJson<
+        EmotionGardenResponse & { planted?: GardenPlantView }
+      >(
+        "/api/garden/plant",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mood }),
+        },
+        "씨앗을 심지 못했어요."
+      );
 
-      setGarden(data);
-      if (data.bloomed) {
-        setJustBloomed(data.bloomed);
-        setGrowingId(data.bloomed.id);
-      } else if (moodMeta) {
-        setGrowingId(`temp-${mood}`);
+      applyGarden(data);
+      setPlantingOpen(false);
+      if (data.planted) {
+        setGrowingId(data.planted.id);
+        setFlash(`${data.planted.flowerName} 씨앗을 심었어요.`);
       }
+
       if (questId) {
         const ok = await completeAdventureQuest(questId, `정원 · ${mood}`);
         if (ok) {
-          setQuestHint("미션 완료! 모험으로 돌아가 별조각을 받아 보세요.");
+          setQuestHint("미션 완료! 모험으로 돌아가 보세요.");
         }
       }
-      window.dispatchEvent(new Event("bedi:wallet"));
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "꽃을 피우지 못했어요.");
+      setError(err instanceof Error ? err.message : "씨앗을 심지 못했어요.");
     } finally {
-      setPendingMood(null);
+      setBusy(false);
     }
   }
 
-  async function sealStorybook() {
-    if (sealing || garden.storybook.sealed) return;
-    setSealing(true);
+  async function water(plant: GardenPlantView) {
+    if (!plant.canWater || busy) return;
+    setBusy(true);
     setError(null);
+    setWateringId(plant.id);
     try {
-      const res = await fetch("/api/garden/storybook", { method: "POST" });
-      const data = (await res.json()) as EmotionGardenResponse & {
-        error?: string;
-      };
-      if (!res.ok) throw new Error(data.error ?? "스토리북에 넣지 못했어요.");
-      setGarden(data);
-      setJustBloomed(null);
-      setGrowingId(null);
+      const data = await fetchJson<
+        EmotionGardenResponse & { watered?: GardenPlantView }
+      >(
+        "/api/garden/water",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plantId: plant.id }),
+        },
+        "물을 주지 못했어요."
+      );
+
+      const before = plant.stage;
+      applyGarden(data);
+      if (data.watered && data.watered.stage !== before) {
+        setGrowingId(data.watered.id);
+        setFlash(
+          data.watered.stage === "bloom"
+            ? `${data.watered.flowerName}이(가) 활짝 피었어요.`
+            : `${data.watered.stageLabel}(으)로 자랐어요.`
+        );
+      } else {
+        setFlash("마음이 촉촉해졌어요.");
+      }
       router.refresh();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "스토리북에 넣지 못했어요."
-      );
+      setWateringId(null);
+      setError(err instanceof Error ? err.message : "물을 주지 못했어요.");
     } finally {
-      setSealing(false);
+      setBusy(false);
     }
   }
 
-  const emptySlots = Math.max(0, garden.plotSlots - garden.flowers.length);
-  const plantingMood = pendingMood
-    ? garden.moods.find((m) => m.id === pendingMood)
-    : null;
+  async function openMemory(plant: GardenPlantView) {
+    setSelectedId(plant.id);
+    setMemoryLoading(true);
+    setMemory(null);
+    try {
+      const data = await fetchJson<FlowerMemoryCardData>(
+        `/api/garden/flower/${plant.id}`,
+        undefined,
+        "기억을 불러오지 못했어요."
+      );
+      setMemory(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "기억을 불러오지 못했어요.");
+      setSelectedId(null);
+    } finally {
+      setMemoryLoading(false);
+    }
+  }
+
+  function onSelectPlant(plant: GardenPlantView) {
+    if (plant.canWater) {
+      void water(plant);
+      return;
+    }
+    void openMemory(plant);
+  }
+
+  const phase = livePhase ?? garden.sky.phase;
+  const todayPlant =
+    garden.flowers.find((f) => f.plantedOn === garden.todayDate) ?? null;
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-bedi-slate/8 bg-white/80 px-5 py-4 shadow-softer">
-        <p className="text-[11px] tracking-wide text-bedi-sage">
-          {garden.title}
-        </p>
+    <motion.div className="space-y-6" {...stagger}>
+      <motion.div
+        className="rounded-2xl border border-bedi-slate/8 bg-white/80 px-5 py-4 shadow-softer"
+        {...item}
+      >
+        <p className="text-[11px] tracking-wide text-bedi-sage">{garden.title}</p>
         <p className="mt-1 text-xs text-bedi-slate/40">
-          입원 {garden.dayCount}일째 · 꽃 {garden.flowers.length}송이
+          입원 {garden.dayCount}일째
+          {todayPlant
+            ? ` · 오늘 ${todayPlant.flowerName}`
+            : garden.canPlantToday
+              ? " · 오늘 씨앗을 심을 수 있어요"
+              : ""}
         </p>
         <p className="mt-2 text-sm leading-relaxed text-bedi-slate/75">
           {garden.companionNote}
@@ -144,250 +219,62 @@ export function EmotionGardenView({ initial }: EmotionGardenViewProps) {
             ) : null}
           </p>
         ) : null}
-      </div>
+      </motion.div>
 
-      <section className="rounded-2xl border border-bedi-slate/8 bg-white/90 px-5 py-5 shadow-softer">
-        <h2 className="text-[15px] font-medium text-bedi-slate">오늘 기분</h2>
-        <p className="mt-1 text-xs text-bedi-slate/40">
-          {garden.canPlantToday
-            ? "하나를 고르면 꽃이 천천히 자라나요"
-            : garden.todayMood
-              ? "오늘은 이미 꽃이 피었어요"
-              : "스토리북에 넣은 정원이에요"}
-        </p>
-
-        <div className="mt-4 flex justify-between gap-1.5">
-          {garden.moods.map((mood) => {
-            const selected = garden.todayMood === mood.id;
-            const loading = pendingMood === mood.id;
-            return (
-              <button
-                key={mood.id}
-                type="button"
-                disabled={!garden.canPlantToday || !!pendingMood}
-                onClick={() => void plant(mood.id)}
-                aria-label={mood.label}
-                title={mood.label}
-                className={cn(
-                  "flex flex-1 flex-col items-center gap-1.5 rounded-2xl border px-1 py-3 transition-all duration-300",
-                  selected
-                    ? "border-bedi-sage/40 bg-bedi-sage/15 scale-[1.03]"
-                    : garden.canPlantToday
-                      ? "border-bedi-slate/10 bg-[#FBFAF7] hover:-translate-y-0.5 hover:border-bedi-sage/25 hover:bg-white"
-                      : "border-bedi-slate/8 bg-bedi-slate/[0.03] opacity-50",
-                  loading && "animate-pulse"
-                )}
-              >
-                <span className="text-2xl leading-none">{mood.emoji}</span>
-                <span className="text-[9px] tracking-wide text-bedi-slate/40">
-                  {mood.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {(justBloomed || plantingMood) && (
-          <div
-            key={justBloomed?.id ?? plantingMood?.id}
-            className={cn(
-              "garden-grow-stage mt-4 rounded-2xl border border-bedi-sage/25 bg-gradient-to-br px-4 py-4",
-              moodAccent[(justBloomed?.mood ?? plantingMood!.id) as MoodId]
-            )}
-          >
-            <p className="text-center text-[11px] tracking-wide text-bedi-sage">
-              {justBloomed ? "꽃이 피어나는 중" : "흙을 고르는 중…"}
-            </p>
-            <div className="mt-3 flex justify-center py-2">
-              <GrowingFlower
-                key={`hero-${justBloomed?.id ?? plantingMood!.id}`}
-                emoji={justBloomed?.emoji ?? plantingMood!.emoji}
-                mood={(justBloomed?.mood ?? plantingMood!.id) as MoodId}
-                animateGrow
-                size="lg"
-              />
-            </div>
-            {justBloomed ? (
-              <>
-                <p className="mt-1 text-center text-sm font-medium text-bedi-slate">
-                  {justBloomed.name}
-                </p>
-                <p className="mt-1 text-center text-xs leading-relaxed text-bedi-slate/60">
-                  {justBloomed.note}
-                </p>
-                <p className="mt-2 text-center text-[11px] text-bedi-sage">
-                  별조각 +5
-                </p>
-              </>
-            ) : null}
-          </div>
-        )}
-      </section>
-
-      <section>
-        <div className="mb-3 flex items-end justify-between gap-3">
-          <div>
-            <h2 className="text-[15px] font-medium text-bedi-slate">나의 정원</h2>
-            <p className="mt-1 text-xs text-bedi-slate/40">
-              꽃이 자라면 살짝 흔들려요
-            </p>
-          </div>
-          <p className="text-[11px] tabular-nums text-bedi-slate/35">
-            {garden.flowers.length}/{garden.plotSlots}
+      <motion.section {...item}>
+        <div className="mb-3">
+          <h2 className="text-[15px] font-medium text-bedi-slate">오늘의 씨앗</h2>
+          <p className="mt-1 text-xs text-bedi-slate/40">
+            흙에 심고, 물을 주며 조금씩 자라요
           </p>
         </div>
 
-        <div
-          className="relative overflow-hidden rounded-3xl border border-bedi-sage/20 px-4 pb-5 pt-8 shadow-softer"
-          style={{
-            background:
-              "linear-gradient(180deg, #E8F0E4 0%, #F3F6F0 42%, #E7EFE3 100%)",
-          }}
-        >
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-16 opacity-40"
-            style={{
-              background:
-                "radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.9), transparent 70%)",
-            }}
-          />
+        <GardenMap
+          garden={garden}
+          phase={phase}
+          growingId={growingId}
+          wateringId={wateringId}
+          busy={busy}
+          onSelectPlant={onSelectPlant}
+          onOpenPlanting={() => setPlantingOpen(true)}
+          onWater={(plant) => void water(plant)}
+          onOpenMemory={(plant) => void openMemory(plant)}
+        />
 
-          <div className="relative grid grid-cols-4 gap-x-2 gap-y-5 sm:grid-cols-5">
-            {garden.flowers.map((flower, index) => {
-              const isNew = growingId === flower.id;
-              return (
-                <GrowingFlower
-                  key={flower.id}
-                  emoji={flower.emoji}
-                  mood={flower.mood}
-                  label={`${flower.dayIndex}일`}
-                  animateGrow={isNew}
-                  sway={!isNew}
-                  size="sm"
-                  title={`${flower.name} · ${flower.dayIndex}일째`}
-                  style={
-                    isNew
-                      ? undefined
-                      : { animationDelay: `${Math.min(index, 8) * 60}ms` }
-                  }
-                  className={!isNew ? "garden-flower-rise" : undefined}
-                />
-              );
-            })}
-
-            {plantingMood && !justBloomed ? (
-              <GrowingFlower
-                key="planting"
-                emoji={plantingMood.emoji}
-                mood={plantingMood.id}
-                label="심는 중"
-                animateGrow
-                size="sm"
-              />
-            ) : null}
-
-            {Array.from({
-              length: Math.max(
-                0,
-                emptySlots - (plantingMood && !justBloomed ? 1 : 0)
-              ),
-            }).map((_, i) => (
-              <div
-                key={`empty-${i}`}
-                className="flex flex-col items-center justify-end opacity-30"
-                aria-hidden
-              >
-                <span className="mb-1 h-6 w-px rounded-full bg-bedi-slate/15" />
-                <span className="h-1.5 w-5 rounded-full bg-bedi-slate/10" />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {garden.flowers.length > 0 ? (
-          <ul className="mt-4 space-y-2.5">
-            {garden.flowers.map((flower) => (
-              <li
-                key={`row-${flower.id}`}
-                className={cn(
-                  "rounded-2xl border border-bedi-slate/8 bg-gradient-to-r px-4 py-3 shadow-softer",
-                  moodAccent[flower.mood],
-                  growingId === flower.id && "garden-bloom"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <GrowingFlower
-                    emoji={flower.emoji}
-                    mood={flower.mood}
-                    animateGrow={growingId === flower.id}
-                    sway={growingId !== flower.id}
-                    size="sm"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="text-sm font-medium text-bedi-slate">
-                        {flower.name}
-                      </p>
-                      <p className="shrink-0 text-[10px] tabular-nums text-bedi-slate/40">
-                        {flower.dayIndex}일째 · {flower.plantedOn.slice(5)}
-                      </p>
-                    </div>
-                    <p className="mt-1 text-xs leading-relaxed text-bedi-slate/60">
-                      {flower.note}
-                    </p>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+        {flash ? (
+          <p className="garden-grow-stage mt-3 rounded-xl bg-bedi-sage/12 px-3 py-2 text-center text-xs text-bedi-slate/75">
+            {flash}
+          </p>
         ) : null}
-      </section>
+      </motion.section>
 
-      <section className="rounded-2xl border border-bedi-slate/8 bg-white/90 px-5 py-5 shadow-softer">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-bedi-sage/15 text-bedi-sage">
-            <BookMarked className="h-4 w-4" strokeWidth={1.5} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-[15px] font-medium text-bedi-slate">
-              {garden.storybook.title}
-            </h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-bedi-slate/65">
-              {garden.storybook.summary}
-            </p>
-            {garden.storybook.sealed ? (
-              <p className="mt-3 text-[11px] text-bedi-sage">
-                스토리북에 넣었어요 · 꽃 {garden.storybook.flowerCount}송이
-              </p>
-            ) : (
-              <button
-                type="button"
-                disabled={sealing || garden.flowers.length === 0}
-                onClick={() => void sealStorybook()}
-                className="mt-4 h-10 w-full rounded-xl bg-bedi-slate text-sm font-medium text-white transition-colors hover:bg-bedi-slate/90 disabled:opacity-40"
-              >
-                {sealing
-                  ? "넣는 중…"
-                  : garden.flowers.length === 0
-                    ? "꽃이 피면 넣을 수 있어요"
-                    : "퇴원 · 정원을 스토리북에 넣기"}
-              </button>
-            )}
-            <Link
-              href="/storybook"
-              className="mt-3 block text-center text-xs text-bedi-sage underline-offset-2 hover:underline"
-            >
-              AI 성장 스토리북 펼치기
-            </Link>
-          </div>
-        </div>
-      </section>
+      <motion.div {...item}>
+        <WeekGarden
+          todayDate={garden.todayDate}
+          flowers={garden.flowers}
+          onOpenMemory={(plant) => void openMemory(plant)}
+        />
+      </motion.div>
 
-      {error ? (
-        <p className="rounded-lg bg-bedi-rose/15 px-3 py-2 text-sm text-bedi-slate/80">
-          {error}
-        </p>
-      ) : null}
-    </div>
+      {error ? <SoftErrorState message={error} /> : null}
+
+      <DailyPlantingModal
+        open={plantingOpen}
+        moods={garden.moods}
+        suggestion={garden.suggestion}
+        busy={busy}
+        onClose={() => setPlantingOpen(false)}
+        onPlant={(mood) => void plantSeed(mood)}
+      />
+
+      <MemoryFlowerCard
+        card={memory}
+        loading={memoryLoading}
+        onClose={() => {
+          setMemory(null);
+          setSelectedId(null);
+        }}
+      />
+    </motion.div>
   );
 }

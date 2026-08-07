@@ -95,7 +95,7 @@ export function ParentTimelineView({ data }: { data: ParentTimelineResponse }) {
             disabled={loading}
             aria-label="이전 달"
             onClick={() => void loadMonth(shiftMonth(monthKey, -1))}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 disabled:opacity-40"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-700 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bedi-sage/40"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -107,7 +107,7 @@ export function ParentTimelineView({ data }: { data: ParentTimelineResponse }) {
             disabled={loading}
             aria-label="다음 달"
             onClick={() => void loadMonth(shiftMonth(monthKey, 1))}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 disabled:opacity-40"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-700 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bedi-sage/40"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
@@ -167,15 +167,15 @@ export function ParentTimelineView({ data }: { data: ParentTimelineResponse }) {
           </p>
           {selected ? (
             <>
-              <div className="mt-2 flex items-baseline justify-between gap-2">
-                <h2 className="text-base font-semibold text-slate-800">
+              <div className="mt-2 flex items-start justify-between gap-2">
+                <h2 className="min-w-0 flex-1 text-base font-semibold leading-snug text-slate-800 break-keep">
                   {selected.headline}
                 </h2>
                 <span className="shrink-0 text-sm">
                   {selected.moodEmoji} {selected.moodLabel}
                 </span>
               </div>
-              <p className="mt-2 text-sm leading-relaxed text-slate-800/65">
+              <p className="mt-2 whitespace-pre-wrap break-keep text-sm leading-relaxed text-slate-800/65">
                 {selected.reflection}
               </p>
 

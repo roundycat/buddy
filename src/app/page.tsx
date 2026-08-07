@@ -1,10 +1,21 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { WaitingRoom } from "@/frontend/features/waiting-room/components/WaitingRoom";
+import nextDynamic from "next/dynamic";
 import { loadHospitalDay, loadPersona } from "@/app/_server/loaders";
 import { getSessionUser } from "@/backend/shared/http/auth";
+import { CompanionRoomSkeleton } from "@/frontend/shared/components/ChildUi";
 
 export const dynamic = "force-dynamic";
+
+const WaitingRoom = nextDynamic(
+  () =>
+    import(
+      "@/frontend/features/waiting-room/components/WaitingRoom"
+    ).then((m) => m.WaitingRoom),
+  {
+    loading: () => <CompanionRoomSkeleton />,
+  }
+);
 
 /**
  * 메인 — Sumone 스타일 페르소나 대기실.
@@ -32,6 +43,7 @@ export default async function HomePage() {
       title: item.childTitle || item.title,
       time: item.time,
       type: item.type,
+      notifyText: item.notifyText,
       explanation: item.explanation,
       whatText: item.whatText,
       whyText: item.whyText,
@@ -49,7 +61,7 @@ export default async function HomePage() {
   }));
 
   return (
-    <Suspense fallback={<main className="flex min-h-screen items-center justify-center text-sm text-bedi-slate/45">불러오는 중…</main>}>
+    <Suspense fallback={<CompanionRoomSkeleton />}>
       <WaitingRoom
         companionName={persona.name}
         companionRole={persona.role}

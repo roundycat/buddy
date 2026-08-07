@@ -1,6 +1,7 @@
 import "server-only";
 import { logObservation, newRequestId } from "./log";
 import { putBeddyMetrics, recordCount, recordLatency } from "./metrics";
+import { estimateAiCostUsd } from "./ai-cost";
 import type { ObservationFields } from "./types";
 import { StandardUnit } from "@aws-sdk/client-cloudwatch";
 
@@ -12,6 +13,7 @@ export {
   recordCount,
   recordLatency,
 } from "./metrics";
+export { estimateAiCostUsd } from "./ai-cost";
 
 export interface ObserveOptions {
   feature: string;
@@ -22,8 +24,27 @@ export interface ObserveOptions {
   latencyMetric?: string;
 }
 
+type UsageLike = {
+  usage?: { inputTokens?: number; outputTokens?: number };
+};
+
+function readUsage(result: unknown): {
+  inputTokens?: number;
+  outputTokens?: number;
+} {
+  if (!result || typeof result !== "object") return {};
+  const u = (result as UsageLike).usage;
+  if (!u) return {};
+  return {
+    inputTokens:
+      typeof u.inputTokens === "number" ? u.inputTokens : undefined,
+    outputTokens:
+      typeof u.outputTokens === "number" ? u.outputTokens : undefined,
+  };
+}
+
 /**
- * Time an async call, emit structured log + CloudWatch latency/error metrics.
+ * Time an async call, emit structured log + CloudWatch latency/error/token metrics.
  */
 export async function observeAsync<T>(
   options: ObserveOptions,
@@ -36,6 +57,7 @@ export async function observeAsync<T>(
   try {
     const result = await fn();
     const latencyMs = Date.now() - started;
+    const usage = readUsage(result);
     const fields: ObservationFields = {
       feature: options.feature,
       operation: options.operation,
@@ -43,9 +65,12 @@ export async function observeAsync<T>(
       latencyMs,
       success: true,
       requestId,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
     };
     logObservation(fields);
-    putBeddyMetrics([
+
+    const metrics: Parameters<typeof putBeddyMetrics>[0] = [
       {
         name: latencyMetric,
         value: latencyMs,
@@ -62,7 +87,45 @@ export async function observeAsync<T>(
         model: options.model,
         operation: options.operation,
       },
-    ]);
+    ];
+
+    if (typeof usage.inputTokens === "number") {
+      metrics.push({
+        name: "InputTokens",
+        value: usage.inputTokens,
+        unit: StandardUnit.Count,
+        feature: options.feature,
+        model: options.model,
+        operation: options.operation,
+      });
+    }
+    if (typeof usage.outputTokens === "number") {
+      metrics.push({
+        name: "OutputTokens",
+        value: usage.outputTokens,
+        unit: StandardUnit.Count,
+        feature: options.feature,
+        model: options.model,
+        operation: options.operation,
+      });
+    }
+    const cost = estimateAiCostUsd({
+      model: options.model,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+    });
+    if (cost > 0) {
+      metrics.push({
+        name: "AiCostUsd",
+        value: cost,
+        unit: StandardUnit.None,
+        feature: options.feature,
+        model: options.model,
+        operation: options.operation,
+      });
+    }
+
+    putBeddyMetrics(metrics);
     return result;
   } catch (error) {
     const latencyMs = Date.now() - started;

@@ -1,18 +1,22 @@
 /**
- * Lightweight JSON fetch helper for external HTTP APIs.
+ * Lightweight JSON fetch helper for external HTTP APIs (weather providers, etc.).
+ * Distinct from route HttpError / frontend ApiRequestError.
  */
-export class HttpError extends Error {
+export class ExternalHttpError extends Error {
   constructor(
     message: string,
     public readonly status: number,
     public readonly body?: string
   ) {
     super(message);
-    this.name = "HttpError";
+    this.name = "ExternalHttpError";
   }
 }
 
-export async function fetchJson<T>(
+/** @deprecated Prefer ExternalHttpError — kept for any stale imports */
+export const HttpError = ExternalHttpError;
+
+export async function fetchExternalJson<T>(
   url: string,
   init: RequestInit & { timeoutMs?: number } = {}
 ): Promise<T> {
@@ -28,7 +32,7 @@ export async function fetchJson<T>(
 
     const text = await response.text();
     if (!response.ok) {
-      throw new HttpError(
+      throw new ExternalHttpError(
         `HTTP ${response.status} from ${url}`,
         response.status,
         text
@@ -41,3 +45,6 @@ export async function fetchJson<T>(
     clearTimeout(timer);
   }
 }
+
+/** @deprecated Prefer fetchExternalJson */
+export const fetchJson = fetchExternalJson;

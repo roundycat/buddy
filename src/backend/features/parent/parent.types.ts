@@ -50,6 +50,19 @@ export interface ParentMemoryHighlight {
   title: string;
   caption: string;
   emoji: string;
+  /** Guardian-proxied image URL when this highlight is a real media item */
+  imageUrl?: string;
+}
+
+/** Child album photos + diary drawings visible to a linked guardian. */
+export interface ParentMediaItem {
+  id: string;
+  kind: "photo" | "drawing" | "diary_photo";
+  title: string;
+  caption: string;
+  imageUrl: string;
+  createdAt: string;
+  dateKey?: string;
 }
 
 export interface ParentCareSuggestion {
@@ -74,6 +87,14 @@ export interface ParentEmpathyGuide {
   generatedAt: string;
 }
 
+/** Summary-only safety notice — never includes raw child chat */
+export interface ParentSafetyAlert {
+  id: string;
+  level: "elevated" | "urgent";
+  summary: string;
+  createdAt: string;
+}
+
 export interface ParentHomeDashboard {
   linked: boolean;
   companionNote: string;
@@ -82,10 +103,14 @@ export interface ParentHomeDashboard {
   emotion: ParentEmotionOverview | null;
   adventures: ParentAdventureItem[];
   memories: ParentMemoryHighlight[];
+  /** Recent photos & drawings from the linked child (privacy-gated). */
+  media: ParentMediaItem[];
   dailySummary: string | null;
   careSuggestions: ParentCareSuggestion[];
   /** Today's Empathy Guide — communication support, never diagnostic */
   empathyGuide: ParentEmpathyGuide | null;
+  /** Active crisis safety alert (summary only) */
+  safetyAlert: ParentSafetyAlert | null;
   updatedLabel: string;
 }
 

@@ -1,6 +1,7 @@
 import type { MemoryTimelineResponse } from "./memory-timeline.types";
 import { listMemoryEvents } from "./memory-timeline.store";
 import { getPersonaForUser } from "@/backend/features/persona/persona.store";
+import { fillNamePlaceholdersDeep } from "@/backend/ai/orchestrator";
 
 /**
  * Memory Timeline — real adventure / life events for the signed-in child.
@@ -37,9 +38,13 @@ export async function getMemoryTimeline(
         ]
       : [];
 
-  const events = [...userEvents, ...bootstrap].sort(
-    (a, b) =>
-      new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+  // Stories written before placeholder scrubbing existed are still on disk.
+  const events = fillNamePlaceholdersDeep(
+    [...userEvents, ...bootstrap].sort(
+      (a, b) =>
+        new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+    ),
+    persona.self?.nickname?.trim()
   );
 
   const adventureCount = userEvents.filter((e) => e.type === "adventure").length;
