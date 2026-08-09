@@ -1,4 +1,4 @@
-# Beddy 🧸 — 장기 입원 청소년을 위한 AI 정서 돌봄 동반자 💙
+# Beddy 🧸 — 장기 입원 청소년을 위한 AI 정서 돌봄 동반자💙
 
 > **누구를 위해**: 병원 생활이 길고 외로운 **청소년 환아**, 그리고 “오늘 우리 아이 마음은 어땠을까?”를 걱정하는 **보호자**
 > **무엇을**: 아이만의 AI 친구와 대화하고, 새벽 Agent가 하루 미션을 준비하며, 보호자에게는 **대화 원문이 아닌 요약만** 전하는 프라이버시 우선 돌봄 플랫폼
@@ -9,7 +9,7 @@
 ![AI](https://img.shields.io/badge/AI-LLM%20%2B%20Agent%20%2B%20RAG-8A2BE2)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-**2026 강원 LRS 공유대학 AWS 해커톤 대상 프로젝트** · 비임상(진단·처방 금지) · Guardrail + Bridge 프라이버시
+**2026 강원 LRS 공유대학 AWS 프롬프톤 수상 프로젝트** · 비임상(진단·처방 금지) · Guardrail + Bridge 프라이버시
 
 ![시스템 파이프라인](docs/architecture/pipeline-user-to-discharge.png)
 
@@ -67,41 +67,55 @@
 > **Agent**는 도구를 골라 하루를 준비하고, **RAG**는 보호자에게 근거 있는 요약만 제공한다.  
 > 단순 `입력 → LLM 1회 → 출력`이 아니라 **역할이 갈라진 멀티 파이프라인**이다.
 
+```mermaid
+flowchart TB
+  Auth["Auth Role<br/>child | guardian"]
+
+  subgraph Child["① Child"]
+    direction TB
+    Persona["Persona<br/>설문 → 템플릿<br/>energy · interaction<br/>동물 매칭 → 아바타"]
+    Chat["실시간 채팅 LLM<br/>Haiku + Guardrail<br/>SSE 스트림<br/>위기 시 도움 UI"]
+    XP["경험 축적<br/>정원 · 소원 · 미션 · 대화 메모리"]
+    Persona --> XP
+    Chat --> XP
+  end
+
+  subgraph Dawn["② Dawn · KST ~05:00"]
+    direction TB
+    EB["EventBridge<br/>POST /api/cron/daily"]
+    Agent["Mission AI Agent · tool-use<br/>emotional guidance<br/>recent titles<br/>submit plan"]
+    Loop["generate → validate → repair<br/>→ rule fallback"]
+    KB["KB 요약 MD · S3<br/>memory · emotion · mission<br/>timeline · interests<br/>Bridge: 원문·좌표 제거"]
+    EB --> Agent --> Loop --> KB
+  end
+
+  subgraph Guardian["③ Guardian · RAG"]
+    direction TB
+    Link["아이 연동"]
+    UI["Parent Home / Empathy / Q&A"]
+    RAG["Query rewrite → KB Retrieve<br/>→ Bridge 재필터 → 요약 답변"]
+    Link --> UI --> RAG
+  end
+
+  Out["④ Discharge Storybook<br/>동화형 타임라인 요약"]
+
+  Auth -->|child| Child
+  Auth -->|guardian| Guardian
+  XP --> Dawn
+  KB --> Guardian
+  XP --> Out
+  RAG --> Out
 ```
-[Auth Role: child | guardian]
-        │
-        ├──────────── child ──────────────┐
-        │                                 │
-        │                                 │
-        ▼                                 ▼
-  Persona(설문→템플릿)              실시간 채팅 경로
-  · energy / interaction           · Haiku + Bedrock Guardrail
-  · 동물 키워드 매칭 → 아바타        · SSE 토큰 스트림
-        │                          · 위기 시 crisis 이벤트 + 도움 UI
-        ▼                                │
-  경험 축적 (정원·소원·미션·대화 메모리) ───┘
-        │
-        ▼
- ═══════════════ Dawn (KST ~05:00) ═══════════════
- EventBridge → POST /api/cron/daily (CRON_SECRET)
-        │
-        ▼
- Mission AI Agent (tool-use)
-   · lookup_emotional_guidance
-   · list_recent_quest_titles
-   · submit_mission_plan
-        → generate → validate → repair → rule fallback
-        │
-        ▼
- KB 요약 MD (S3)  memory · emotion · mission · timeline · interests
-        │          ※ Bridge: 원문 대화·좌표 형태 제거
-        ▼
- ═══════════════ guardian ═══════════════
- 연동 → Parent Home / Empathy / Q&A
-   Query rewrite → KB Retrieve → Bridge 재필터 → 요약 답변
-        │
-        ▼
- Discharge Storybook (아이·보호자 기록의 동화형 타임라인)
+
+**한 줄 흐름**
+
+```text
+Login (child | guardian)
+  ├─ Child  → Persona + LLM 채팅 → 경험 축적
+  ├─ Dawn   → EventBridge → Mission Agent (tool-use) → KB 요약 (Bridge)
+  └─ Guardian → 연동 → RAG(요약만) → Home / Q&A / 편지
+                         ↓
+                   Discharge Storybook
 ```
 
 ### 세 능력의 역할 분리
