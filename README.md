@@ -9,7 +9,7 @@
 ![AI](https://img.shields.io/badge/AI-LLM%20%2B%20Agent%20%2B%20RAG-8A2BE2)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-**2026 강원 LRS 공유대학 AWS 프롬프톤 수상 프로젝트** · 비임상(진단·처방 금지) · Guardrail + Bridge 프라이버시
+**AWS 해커톤 수상 프로젝트** · 비임상(진단·처방 금지) · Guardrail + Bridge 프라이버시
 
 ![시스템 파이프라인](docs/architecture/pipeline-user-to-discharge.png)
 
@@ -67,56 +67,34 @@
 > **Agent**는 도구를 골라 하루를 준비하고, **RAG**는 보호자에게 근거 있는 요약만 제공한다.  
 > 단순 `입력 → LLM 1회 → 출력`이 아니라 **역할이 갈라진 멀티 파이프라인**이다.
 
-```mermaid
-flowchart TB
-  Auth["Auth Role<br/>child | guardian"]
-
-  subgraph Child["① Child"]
-    direction TB
-    Persona["Persona<br/>설문 → 템플릿<br/>energy · interaction<br/>동물 매칭 → 아바타"]
-    Chat["실시간 채팅 LLM<br/>Haiku + Guardrail<br/>SSE 스트림<br/>위기 시 도움 UI"]
-    XP["경험 축적<br/>정원 · 소원 · 미션 · 대화 메모리"]
-    Persona --> XP
-    Chat --> XP
-  end
-
-  subgraph Dawn["② Dawn · KST ~05:00"]
-    direction TB
-    EB["EventBridge<br/>POST /api/cron/daily"]
-    Agent["Mission AI Agent · tool-use<br/>emotional guidance<br/>recent titles<br/>submit plan"]
-    Loop["generate → validate → repair<br/>→ rule fallback"]
-    KB["KB 요약 MD · S3<br/>memory · emotion · mission<br/>timeline · interests<br/>Bridge: 원문·좌표 제거"]
-    EB --> Agent --> Loop --> KB
-  end
-
-  subgraph Guardian["③ Guardian · RAG"]
-    direction TB
-    Link["아이 연동"]
-    UI["Parent Home / Empathy / Q&A"]
-    RAG["Query rewrite → KB Retrieve<br/>→ Bridge 재필터 → 요약 답변"]
-    Link --> UI --> RAG
-  end
-
-  Out["④ Discharge Storybook<br/>동화형 타임라인 요약"]
-
-  Auth -->|child| Child
-  Auth -->|guardian| Guardian
-  XP --> Dawn
-  KB --> Guardian
-  XP --> Out
-  RAG --> Out
-```
-
-**한 줄 흐름**
+상단 아키텍처 이미지가 전체 구조입니다. 흐름만 요약하면:
 
 ```text
-Login (child | guardian)
-  ├─ Child  → Persona + LLM 채팅 → 경험 축적
-  ├─ Dawn   → EventBridge → Mission Agent (tool-use) → KB 요약 (Bridge)
-  └─ Guardian → 연동 → RAG(요약만) → Home / Q&A / 편지
-                         ↓
-                   Discharge Storybook
+Login
+  │
+  ├── CHILD ────── Persona → LLM 채팅(Guardrail·SSE) → 정원·소원·미션
+  │                      │
+  │                      ▼
+  │               경험 데이터 축적
+  │                      │
+  │                      ▼
+  │         DAWN 05:00  EventBridge → Mission Agent (tool-use)
+  │                      │              plan → validate → repair
+  │                      ▼
+  │               KB 요약 MD (Bridge: 원문·좌표 제거)
+  │                      │
+  └── GUARDIAN ◄── RAG (요약만) ── Home · Empathy · Q&A · 편지
+                         │
+                         ▼
+                Discharge Storybook
 ```
+
+| Stage | 역할 | 핵심 |
+|:-----:|------|------|
+| **Child** | 낮 경험 | Persona + Guardrail LLM + 미션·정원·소원 |
+| **Dawn** | 새벽 준비 | Agent가 도구를 골라 오늘 미션·KB 요약을 준비 |
+| **Guardian** | 보호자 | 원문 없이 요약만 RAG로 확인 |
+| **Storybook** | 퇴원 | 두 경로의 기록이 동화형 타임라인으로 합류 |
 
 ### 세 능력의 역할 분리
 
@@ -133,9 +111,7 @@ Login (child | guardian)
 - **멀티스텝(Agent)**: 도구 호출 루프 → 플랜 제출 → 검증/수리
 - **검증·안전**: Guardrail 토픽 DENY + 프롬프트 프로토콜 + 앱 위기 UI
 
-> 채팅 진입점: `POST /api/conversation?stream=1` → `streamMessage()` → `streamCompanionChat()`  
-> Agent 진입점: `prepareMissionsForUser()` → `runMissionAgent()`  
-> RAG 진입점: `retrieveGuardianContext()` (Bridge 필터 포함)
+> 채팅: `POST /api/conversation?stream=1` · Agent: `runMissionAgent()` · RAG: `retrieveGuardianContext()`
 
 ---
 
