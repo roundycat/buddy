@@ -9,7 +9,7 @@
 ![AI](https://img.shields.io/badge/AI-LLM%20%2B%20Agent%20%2B%20RAG-8A2BE2)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-**AWS 해커톤 수상 프로젝트** · 비임상(진단·처방 금지) · Guardrail + Bridge 프라이버시
+**2026 강원 LRS 공유대학 AWS 해커톤 수상 프로젝트** · 비임상(진단·처방 금지) · Guardrail + Bridge 프라이버시
 
 ![시스템 파이프라인](docs/architecture/pipeline-user-to-discharge.png)
 
