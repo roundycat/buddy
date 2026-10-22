@@ -57,3 +57,6 @@ mcp.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local agent worktrees
+.claude/
