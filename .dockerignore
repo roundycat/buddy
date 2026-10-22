@@ -11,3 +11,4 @@ scripts
 .cursor
 coverage
 npm-debug.log*
+.claude
