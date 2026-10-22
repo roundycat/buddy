@@ -1,16 +1,20 @@
-FROM public.ecr.aws/docker/library/node:20-alpine AS deps
+# Base image. AWS builds pull from ECR Public; other hosts can override it
+# (Render passes environment variables as build args: NODE_IMAGE in render.yaml).
+ARG NODE_IMAGE=public.ecr.aws/docker/library/node:20-alpine
+
+FROM ${NODE_IMAGE} AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install
 
-FROM public.ecr.aws/docker/library/node:20-alpine AS builder
+FROM ${NODE_IMAGE} AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-FROM public.ecr.aws/docker/library/node:20-alpine AS runner
+FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

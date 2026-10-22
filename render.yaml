@@ -59,6 +59,9 @@ services:
         sync: false
 
       # --- Runtime ---
+      # Docker Hub official image through Google's public mirror (spares shared build IPs from anonymous pull limits)
+      - key: NODE_IMAGE
+        value: mirror.gcr.io/library/node:20-alpine
       - key: INPROCESS_SCHEDULER
         value: "1"
       - key: BEDDY_METRICS
