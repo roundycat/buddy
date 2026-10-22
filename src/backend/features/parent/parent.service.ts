@@ -196,11 +196,13 @@ function guardEmpathyGuide(
 export async function getParentSafetyAlert(
   guardianUserId: string
 ): Promise<ParentSafetyAlert | null> {
-  const childUserId = await resolveLinkedChildUserId(guardianUserId);
-  if (!childUserId) return null;
+  const link = await resolveChild(guardianUserId);
+  if (!link.linked || !link.childUserId) return null;
   const [alert, childWording] = await Promise.all([
-    getActiveChildSafetyAlert(childUserId),
-    recentChildWording(childUserId),
+    getActiveChildSafetyAlert(link.childUserId),
+    recentChildWording(link.childUserId, {
+      exclude: [link.childName, ...ownNames(link.persona)],
+    }),
   ]);
   return toGuardianSafetyAlert(alert, childWording);
 }
@@ -1032,10 +1034,11 @@ export async function getParentTimeline(
 
   const childId = link.childUserId;
   if (await isChildConsentPending(childId)) {
+    const consent = await getGuardianConsentView(guardianUserId);
     return {
       linked: true,
       consentRequired: true,
-      childName: link.childName,
+      childName: consent.childName ?? link.childName,
       monthKey,
       monthLabel: monthLabelKo(year, month),
       calendarDays: buildMonthGrid(year, month, new Map()),
@@ -1239,10 +1242,11 @@ export async function askParentReport(
 
   const childId = link.childUserId;
   if (await isChildConsentPending(childId)) {
+    const consent = await getGuardianConsentView(guardianUserId);
     return {
       linked: true,
       consentRequired: true,
-      childName: link.childName,
+      childName: consent.childName ?? link.childName,
       suggestedQuestions: pickFollowUpQuestions(),
       answer: null,
     };
