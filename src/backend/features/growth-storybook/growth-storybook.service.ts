@@ -23,6 +23,7 @@ import type {
   StorybookCover,
   StorybookPage,
 } from "./growth-storybook.types";
+import { subject, topic } from "@/shared/text/josa";
 
 function emptyBook(): GrowthStorybookResponse {
   return {
@@ -103,7 +104,7 @@ function ruleBasedOpening(
     date: "",
     title: "하얀 복도 숲에 들어서던 날",
     headline: "프롤로그",
-    body: `어느 날, ${childName}는 하얀 복도 숲에 들어왔어요. 낯설고 조금 조용한 곳이었지. 그런데 ${companionName}가 옆에 서서 말했어요. “괜찮아. 작은 모험부터 같이 가자.” 그렇게 이야기가 시작됐어.`,
+    body: `어느 날, ${topic(childName)} 하얀 복도 숲에 들어왔어요. 낯설고 조금 조용한 곳이었지. 그런데 ${subject(companionName)} 옆에 서서 말했어요. “괜찮아. 작은 모험부터 같이 가자.” 그렇게 이야기가 시작됐어.`,
     missions: [],
     kind: "opening",
   };
@@ -121,7 +122,7 @@ function ruleBasedEpilogue(
     date: "",
     title: "문은 끝이 아니라, 시작이야",
     headline: "에필로그",
-    body: `${days}일 동안의 작은 모험이 모였어요. ${companionName}는 ${childName}에게 속삭였어. “네가 지나온 길은 사라지지 않아. 내일의 햇살도, 네가 심은 꽃도, 네가 건 소원도 남아 있어.” 이제 문은 바깥으로 열려. 이야기는 여기서 끝나지 않고, 희망찬 내일로 이어져.`,
+    body: `${days}일 동안의 작은 모험이 모였어요. ${topic(companionName)} ${childName}에게 속삭였어. “네가 지나온 길은 사라지지 않아. 내일의 햇살도, 네가 심은 꽃도, 네가 건 소원도 남아 있어.” 이제 문은 바깥으로 열려. 이야기는 여기서 끝나지 않고, 희망찬 내일로 이어져.`,
     missions: [{ emoji: "🌅", title: "희망찬 내일" }],
     kind: "epilogue",
   };

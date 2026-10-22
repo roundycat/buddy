@@ -17,6 +17,7 @@ import {
 } from "@/frontend/features/consent/lib/consent-copy";
 import type { GuardianRelationship } from "@/backend/features/consent/consent.types";
 import { cn } from "@/frontend/shared/lib/utils";
+import { topic } from "@/shared/text/josa";
 
 /**
  * Legal-guardian consent for an under-14 child (개인정보 보호법 제22조의2).
@@ -81,7 +82,7 @@ export function GuardianConsentForm({
               보호자(법정대리인) 동의가 필요해요
             </h2>
             <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
-              {childName}는 만 14세 미만이라, 법정대리인의 동의가 있어야
+              {topic(childName)} 만 14세 미만이라, 법정대리인의 동의가 있어야
               Beddy를 이용할 수 있어요. 동의하기 전까지 아이의 대화·기록 기능은
               잠겨 있어요.
             </p>

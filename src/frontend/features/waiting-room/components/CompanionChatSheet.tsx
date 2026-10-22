@@ -8,6 +8,7 @@ import type {
   ConversationCrisisDto,
   ConversationMessageDto,
 } from "@/frontend/shared/types/api";
+import { topic } from "@/shared/text/josa";
 
 const SUGGESTIONS = [
   "오늘 조금 피곤해요",
@@ -170,7 +171,7 @@ export function CompanionChatSheet({
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 py-4">
           <p className="rounded-xl bg-bedi-slate/[0.04] px-3 py-2 text-[11px] leading-relaxed text-bedi-slate/55">
-            {companionName}는 사람이 아닌 AI 친구예요. 아프거나 무섭거나 위험할 때는 꼭
+            {topic(companionName)} 사람이 아닌 AI 친구예요. 아프거나 무섭거나 위험할 때는 꼭
             간호사 선생님이나 곁에 있는 어른에게 말해 줘요.
           </p>
           {messages.map((message) => {

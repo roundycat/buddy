@@ -77,6 +77,7 @@ import type {
   ParentTimelineResponse,
   ParentTimelineScheduleItem,
 } from "./parent.types";
+import { subject } from "@/shared/text/josa";
 
 function moodMeta(mood: MoodId | null) {
   return mood ? MOOD_OPTIONS.find((m) => m.id === mood) ?? null : null;
@@ -1481,7 +1482,7 @@ function composeReportAnswer(input: {
         }`;
   } else if (/활동|좋아|모험|취미/.test(input.question)) {
     answer = input.completed.length
-      ? `${input.childName}가 최근에 잘 해낸 활동은 ${input.completed
+      ? `${subject(input.childName)} 최근에 잘 해낸 활동은 ${input.completed
           .slice(0, 3)
           .map((t) => `“${t}”`)
           .join(", ")} 쪽이에요.`

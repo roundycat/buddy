@@ -10,6 +10,7 @@ import {
 import { withdrawGuardianConsent } from "@/frontend/features/consent/lib/consent-api";
 import type { GuardianConsentView } from "@/backend/features/consent/consent.types";
 import { formatKoreanMonthDay } from "@/frontend/shared/lib/date";
+import { topic } from "@/shared/text/josa";
 
 /**
  * Guardian profile: legal-guardian consent status + 동의 철회.
@@ -58,7 +59,7 @@ export function GuardianConsentCard({
             동의가 필요해요
           </p>
           <p className="mt-1 text-sm leading-relaxed text-slate-500">
-            {consent.childName ?? "아이"}는 만 14세 미만이라 보호자(법정대리인)
+            {topic(consent.childName ?? "아이")} 만 14세 미만이라 보호자(법정대리인)
             동의가 있어야 Beddy를 쓸 수 있어요.
           </p>
           <Link
