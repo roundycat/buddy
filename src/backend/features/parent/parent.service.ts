@@ -78,6 +78,7 @@ import type {
   ParentTimelineScheduleItem,
 } from "./parent.types";
 import { subject } from "@/shared/text/josa";
+import { presetChoices } from "@/shared/onboarding/profile-options";
 
 function moodMeta(mood: MoodId | null) {
   return mood ? MOOD_OPTIONS.find((m) => m.id === mood) ?? null : null;
@@ -545,14 +546,21 @@ function buildEmpathyChildProfile(persona: {
 }): EmpathyChildProfile {
   const self = persona.self;
   const fallback = persona.profile;
+  // Only the app's own chip labels reach the guardian — never what the child
+  // typed under "기타" (that is the child's own words).
+  const chips = (value: string | undefined) =>
+    presetChoices(value).join(", ") || undefined;
+  const pick = (key: "disposition" | "hobbies" | "favoriteHobby" | "stressRelief" | "favoriteFood" | "mainActivity") =>
+    chips(self?.[key]) ?? chips(fallback?.[key]);
+  const mbti = (self?.mbti || fallback?.mbti || "").trim().toUpperCase();
   return {
-    disposition: self?.disposition || fallback?.disposition || undefined,
-    mbti: self?.mbti || fallback?.mbti || undefined,
-    hobbies: self?.hobbies || fallback?.hobbies || undefined,
-    favoriteHobby: self?.favoriteHobby || fallback?.favoriteHobby || undefined,
-    stressRelief: self?.stressRelief || fallback?.stressRelief || undefined,
-    favoriteFood: self?.favoriteFood || fallback?.favoriteFood || undefined,
-    mainActivity: self?.mainActivity || fallback?.mainActivity || undefined,
+    disposition: pick("disposition"),
+    mbti: /^[EI][NS][TF][JP]$/.test(mbti) ? mbti : undefined,
+    hobbies: pick("hobbies"),
+    favoriteHobby: pick("favoriteHobby"),
+    stressRelief: pick("stressRelief"),
+    favoriteFood: pick("favoriteFood"),
+    mainActivity: pick("mainActivity"),
     energy: persona.energy,
     interaction: persona.interaction,
   };

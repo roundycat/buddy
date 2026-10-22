@@ -20,3 +20,13 @@ export function topic(word: string): string {
 export function subject(word: string): string {
   return `${word}${endsWithBatchim(word) ? "이" : "가"}`;
 }
+
+/** 을/를 — object marker */
+export function object(word: string): string {
+  return `${word}${objectParticle(word)}`;
+}
+
+/** Just the 을/를 for a word — for when the word is quoted: ‘산책’을 */
+export function objectParticle(word: string): "을" | "를" {
+  return endsWithBatchim(word) ? "을" : "를";
+}

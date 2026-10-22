@@ -17,6 +17,8 @@ import { getPersonaForUser } from "@/backend/features/persona/persona.store";
 import { filterBridgeText } from "@/backend/ai/bridge/privacy-filter";
 import { guardGuardianText } from "@/backend/ai/bridge/leak-guard";
 import { recentChildWording } from "@/backend/ai/bridge/child-wording";
+import { presetChoices } from "@/shared/onboarding/profile-options";
+import type { WishKind } from "@/shared/wish-tree/types";
 import { clearLocalSummariesForChild, isLocalKbMode, putLocalSummaryDoc } from "./local-kb";
 
 /**
@@ -26,6 +28,21 @@ import { clearLocalSummariesForChild, isLocalKbMode, putLocalSummaryDoc } from "
  * searched by ./local-kb.
  * Never writes raw chat transcripts.
  */
+
+/**
+ * Wish kinds as short nouns for the guardian's Q&A — not the leaf labels
+ * ("집에 가고 싶어요"), which a child's own wish often repeats word for word.
+ */
+const WISH_KIND_NOUN: Record<WishKind, string> = {
+  play: "놀이",
+  meet: "보고 싶은 사람",
+  home: "집",
+  outside: "바깥 나들이",
+  taste: "먹고 싶은 것",
+  heal: "회복",
+  make: "해 보고 싶은 일",
+  rest: "쉼",
+};
 
 let s3: S3Client | null = null;
 
@@ -205,11 +222,21 @@ export async function indexChildSummariesForKb(
     )
       docs += 1;
 
+    // Chip labels and wish kinds only: a wish or a "기타" answer is the child's
+    // own words, and these documents feed the guardian's Q&A.
+    const wishKinds = new Map<string, number>();
+    for (const w of (wishes.wishes ?? []).slice(-20)) {
+      const label = w.kind ? WISH_KIND_NOUN[w.kind] : undefined;
+      if (label) wishKinds.set(label, (wishKinds.get(label) ?? 0) + 1);
+    }
+    const disposition = presetChoices(persona.self?.disposition);
+    const likes = presetChoices(persona.self?.favoriteHobby || persona.self?.hobbies);
     const interests = [
-      persona.self?.disposition,
-      ...(wishes.wishes ?? [])
-        .slice(0, 8)
-        .map((w) => `소원: ${w.text.slice(0, 80)}`),
+      disposition.length ? `성향(아이가 고른 보기): ${disposition.join(", ")}` : "",
+      likes.length ? `좋아하는 것(아이가 고른 보기): ${likes.join(", ")}` : "",
+      wishKinds.size
+        ? `소원 종류: ${Array.from(wishKinds, ([label, n]) => `${label} ${n}개`).join(", ")}`
+        : "",
     ]
       .filter(Boolean)
       .join("\n");

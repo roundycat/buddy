@@ -3,6 +3,7 @@ import { runLlm } from "@/backend/ai/orchestrator";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { env } from "@/backend/shared/config/env";
 import type { ParentEmpathyGuide } from "./parent.types";
+import { objectParticle } from "@/shared/text/josa";
 
 /**
  * Privacy-safe child traits from onboarding (self survey).
@@ -56,24 +57,24 @@ export function childProfileFingerprint(profile: EmpathyChildProfile): string {
 }
 
 function personalizedActivities(ctx: EmpathyRagContext): string[] {
-  const hobby =
-    ctx.childProfile.favoriteHobby?.trim() ||
-    ctx.childProfile.hobbies?.split(/[,/·]/)[0]?.trim();
-  const stress = ctx.childProfile.stressRelief?.trim();
-  const food = ctx.childProfile.favoriteFood?.trim();
+  const first = (value?: string) => value?.split(",")[0]?.trim() || undefined;
+  const hobby = first(ctx.childProfile.favoriteHobby) || first(ctx.childProfile.hobbies);
+  const stress = first(ctx.childProfile.stressRelief);
+  const food = first(ctx.childProfile.favoriteFood);
   const items: string[] = [];
 
   if (hobby) {
-    items.push(`좋아하는 “${hobby}” 이야기를 짧게 나눠 보기`);
+    items.push(`좋아하는 ‘${hobby}’ 이야기를 짧게 나눠 보기`);
   }
   if (stress) {
-    items.push(`평소 힘 뺄 때처럼 “${stress}”를 함께 해 보기`);
+    items.push(`평소 힘 뺄 때처럼 ‘${stress}’ 같이 해 보기`);
   }
   if (food) {
-    items.push(`좋아하는 “${food}” 이야기를 하며 기분 전환하기`);
+    items.push(`좋아하는 ‘${food}’ 이야기를 하며 기분 전환하기`);
   }
   if (ctx.completedAdventures[0]) {
-    items.push(`오늘 해낸 “${ctx.completedAdventures[0]}”을(를) 칭찬해 주기`);
+    const done = ctx.completedAdventures[0];
+    items.push(`오늘 해낸 ‘${done}’${objectParticle(done)} 칭찬해 주기`);
   }
 
   const defaults = [
@@ -100,6 +101,8 @@ export function buildEmpathyFallback(
     ctx.themes.some((t) => /불안|걱정|무서|피곤|슬프/.test(t));
 
   const quiet =
+    disposition?.includes("말이 적어요") ||
+    disposition?.includes("혼자 있는 게 좋아요") ||
     disposition?.includes("내향") ||
     disposition?.includes("조용") ||
     ctx.childProfile.interaction === "quiet" ||
