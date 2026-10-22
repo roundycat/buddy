@@ -92,4 +92,19 @@ describe("summary documents for the guardian's Q&A", () => {
     expect(wording).toContain("밤마다 혼자 울어요");
     expect(wording).not.toContain("🤫 말이 적어요");
   });
+
+  it("compares a long chat message whole, so a quote from its end is still caught", async () => {
+    const { appendConversationMessages } = await import("@/backend/features/conversation/conversation.store");
+    const secret = "사실 밤마다 몰래 울면서 집에 가고 싶다고 일기장에 적어 두고 있어";
+    const long = `${"오늘은 검사도 있었고 밥도 먹었고 친구랑 영상 통화도 했어. ".repeat(10)}${secret}`;
+    expect(long.length).toBeGreaterThan(300);
+    await appendConversationMessages(CHILD, [
+      { id: "long-1", role: "user", content: long, createdAt: new Date().toISOString() },
+    ]);
+    const { recentChildWording } = await import("@/backend/ai/bridge/child-wording");
+    const { guardGuardianText } = await import("@/backend/ai/bridge/leak-guard");
+    const wording = await recentChildWording(CHILD);
+    const guarded = guardGuardianText(`아이가 "${secret}"라고 했어요.`, wording, "대체 문장");
+    expect(guarded.text).toBe("대체 문장");
+  });
 });

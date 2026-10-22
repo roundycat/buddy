@@ -136,3 +136,30 @@ describe("consent withdrawn while a reply streams", () => {
   });
 });
 
+describe("a deleted account's cookie on another device", () => {
+  it("is sent to /login?reauth=1, where the cookies are dropped instead of bouncing back", async () => {
+    const { signup } = await import("./auth.service");
+    const g = await signup({
+      email: "loop-guardian@x.test",
+      password: PASSWORD,
+      name: "보호자",
+      role: "guardian",
+      agreements,
+    } as never);
+    const { deleteAccount } = await import("./auth.delete.service");
+    await deleteAccount(g.user);
+
+    jar.token = g.token;
+    const { requirePageUser } = await import("@/app/_server/session");
+    await expect(requirePageUser()).rejects.toThrow(/NEXT_REDIRECT/);
+
+    const { NextRequest } = await import("next/server");
+    const { middleware } = await import("@/middleware");
+    const res = await middleware(
+      new NextRequest("http://localhost/login?reauth=1", { headers: { cookie: `bedi_session=${g.token}` } })
+    );
+    expect(res.headers.get("location")).toBeNull();
+    expect(res.headers.get("set-cookie") ?? "").toMatch(/bedi_session=;/);
+  });
+});
+

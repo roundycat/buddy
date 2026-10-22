@@ -19,8 +19,6 @@ import { freeTextChoices } from "@/shared/onboarding/profile-options";
  * of view (the child's own name, the companion's name) so they are not
  * mistaken for a friend's name.
  */
-const MAX_LINE = 300;
-
 export async function recentChildWording(
   childUserId: string,
   options?: { limit?: number; exclude?: Array<string | null | undefined> }
@@ -65,7 +63,8 @@ export async function recentChildWording(
   ];
 
   return [...chat, ...typed]
-    .map((text) => text.trim().slice(0, MAX_LINE))
+    // Whole lines: a quote from the end of a long message must still be found.
+    .map((text) => text.trim())
     .filter(Boolean)
     .map((text) => exclude.reduce((t, name) => t.split(name).join(" "), text));
 }

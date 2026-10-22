@@ -35,14 +35,41 @@ export function forModelContext(messages: ConversationMessage[]): ConversationMe
   return messages.filter((m) => !m.meta?.refused);
 }
 
-export async function appendConversationMessages(
+/** One child's writes run one after another (read-modify-write must not interleave). */
+const writeChains = new Map<string, Promise<unknown>>();
+
+function serialized<T>(userId: string, task: () => Promise<T>): Promise<T> {
+  const previous = writeChains.get(userId) ?? Promise.resolve();
+  const run = previous.then(task, task);
+  const settled = run.then(
+    () => undefined,
+    () => undefined
+  );
+  writeChains.set(userId, settled);
+  void settled.then(() => {
+    if (writeChains.get(userId) === settled) writeChains.delete(userId);
+  });
+  return run;
+}
+
+/**
+ * Append messages in time order. A turn saved late (the child left mid-reply
+ * and the safety review was still settling) still lands where it happened.
+ */
+export function appendConversationMessages(
   userId: string,
   nextMessages: ConversationMessage[]
 ) {
-  const current = (await messages.get(userId))?.messages ?? [];
-  const next = [...current, ...nextMessages].slice(-MAX_STORED_MESSAGES);
-  await messages.set(userId, { userId, messages: next });
-  return next;
+  return serialized(userId, async () => {
+    const current = (await messages.get(userId))?.messages ?? [];
+    const next = [...current, ...nextMessages]
+      .map((message, index) => ({ message, index }))
+      .sort((a, b) => a.message.createdAt.localeCompare(b.message.createdAt) || a.index - b.index)
+      .map(({ message }) => message)
+      .slice(-MAX_STORED_MESSAGES);
+    await messages.set(userId, { userId, messages: next });
+    return next;
+  });
 }
 
 export async function getConversationMemory(

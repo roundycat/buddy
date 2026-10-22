@@ -244,7 +244,7 @@ export function ParentReportView({
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               rows={1}
-              placeholder="아이에게 대해 물어보세요"
+              placeholder="아이에 대해 물어보세요"
               className="max-h-28 min-h-[40px] flex-1 resize-none bg-transparent py-2 text-[14px] text-slate-800 outline-none placeholder:text-slate-800/35"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {

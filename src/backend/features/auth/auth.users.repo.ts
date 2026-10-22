@@ -46,16 +46,19 @@ export function findUserById(userId: string): Promise<UserProfileRow | null> {
  */
 const EXISTS_TTL_MS = 60_000;
 const knownAccounts = new Map<string, number>();
+/** Deleted in this process: a lookup that raced the delete must not re-cache it. */
+const deletedAccounts = new Set<string>();
 
 export async function accountExists(userId: string): Promise<boolean> {
   if (env.authProvider === "mock") return true;
+  if (deletedAccounts.has(userId)) return false;
   const seen = knownAccounts.get(userId);
   if (seen && Date.now() - seen < EXISTS_TTL_MS) return true;
   try {
     const row = await findUserById(userId);
-    if (row) knownAccounts.set(userId, Date.now());
+    if (row && !deletedAccounts.has(userId)) knownAccounts.set(userId, Date.now());
     else knownAccounts.delete(userId);
-    return Boolean(row);
+    return Boolean(row) && !deletedAccounts.has(userId);
   } catch (error) {
     console.error("[auth] account lookup failed", error);
     return true;
@@ -79,6 +82,7 @@ export function createUser(input: {
 }
 
 export function deleteUser(userId: string): Promise<boolean> {
+  deletedAccounts.add(userId);
   knownAccounts.delete(userId);
   return jsonStore() ? deleteJsonUser(userId) : deleteDynamoUser(userId);
 }
@@ -90,6 +94,8 @@ export function upsertUser(input: {
   role: "child" | "guardian";
   password: string;
 }): Promise<AuthUser> {
+  // Seeding can bring back an account id that was deleted earlier.
+  deletedAccounts.delete(input.id);
   return jsonStore() ? upsertJsonUser(input) : upsertDynamoUser(input);
 }
 

@@ -56,6 +56,8 @@ describe("a pending under-14 child", () => {
       ["garden storybook", async () => (await import("@/app/api/garden/storybook/route")).POST()],
       ["hospital-day GET", async () => (await import("@/app/api/hospital-day/route")).GET(json("/api/hospital-day", "GET"))],
       ["storybook progress", async () => (await import("@/app/api/storybook/progress/route")).PATCH(json("/api/storybook/progress", "PATCH", { page: 1 }))],
+      ["sharing PATCH", async () => (await import("@/app/api/sharing/route")).PATCH(json("/api/sharing", "PATCH", { choices: { media: "share" } }))],
+      ["concern answer", async () => (await import("@/app/api/sharing/concern/route")).POST(json("/api/sharing/concern", "POST", { id: "x", answer: "share" }))],
     ];
     for (const [name, call] of calls) {
       const res = await call();

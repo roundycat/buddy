@@ -6,7 +6,7 @@ import {
   loadHospitalDay,
   loadPersona,
 } from "@/app/_server/loaders";
-import { getSessionUser } from "@/backend/shared/http/auth";
+import { requirePageUser } from "@/app/_server/session";
 import { CompanionRoomSkeleton } from "@/frontend/shared/components/ChildUi";
 import { ChildConsentPendingScreen } from "@/frontend/features/consent/components/ChildConsentPendingScreen";
 
@@ -27,8 +27,8 @@ const WaitingRoom = nextDynamic(
  * 실제 페르소나 데이터가 없으면 온보딩으로 보냅니다.
  */
 export default async function HomePage() {
-  const user = await getSessionUser();
-  if (user?.role === "guardian") {
+  const user = await requirePageUser();
+  if (user.role === "guardian") {
     redirect("/guardian");
   }
 

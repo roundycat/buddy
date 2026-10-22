@@ -18,10 +18,15 @@ afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
 const PASSWORD = "Throttle#2026";
 const agreements = { terms: true, privacy: true, sensitive: true, ageOrGuardian: true, marketing: false };
 
-function post(url: string, body: unknown, ip = "203.0.113.7") {
+/** As on Render: Cloudflare sets CF-Connecting-IP; X-Forwarded-For starts with whatever the client sent. */
+function post(url: string, body: unknown, ip = "203.0.113.7", forged = "198.18.0.1") {
   return new Request(`http://localhost${url}`, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-forwarded-for": `${ip}, 10.0.0.1` },
+    headers: {
+      "content-type": "application/json",
+      "cf-connecting-ip": ip,
+      "x-forwarded-for": `${forged}, ${ip}`,
+    },
     body: JSON.stringify(body),
   });
 }
@@ -42,8 +47,12 @@ describe("login throttling", () => {
     for (let i = 0; i < 12; i++) {
       expect((await POST(post("/api/auth/login", { email: "throttle-guardian@x.test", password: PASSWORD }))).status).toBe(200);
     }
+    // A different forged X-Forwarded-For each time changes nothing.
     for (let i = 0; i < 10; i++) {
-      expect((await POST(post("/api/auth/login", { email: "throttle-guardian@x.test", password: "Wrong#2026x" }))).status).toBe(401);
+      const res = await POST(
+        post("/api/auth/login", { email: "throttle-guardian@x.test", password: "Wrong#2026x" }, "203.0.113.7", `198.18.0.${i + 2}`)
+      );
+      expect(res.status).toBe(401);
     }
     const blocked = await POST(post("/api/auth/login", { email: "THROTTLE-guardian@x.test", password: PASSWORD }));
     expect(blocked.status).toBe(429);
@@ -56,7 +65,7 @@ describe("login throttling", () => {
 });
 
 describe("signup throttling", () => {
-  it("allows ten new accounts an hour from one address", async () => {
+  it("allows twenty new accounts an hour from one address", async () => {
     const { POST } = await import("@/app/api/auth/signup/route");
     const make = (i: number, ip?: string) =>
       POST(
@@ -66,8 +75,21 @@ describe("signup throttling", () => {
           ip
         )
       );
-    for (let i = 0; i < 10; i++) expect((await make(i, "198.51.100.9")).status).toBe(200);
-    expect((await make(10, "198.51.100.9")).status).toBe(429);
-    expect((await make(11, "198.51.100.10")).status).toBe(200);
+    for (let i = 0; i < 20; i++) expect((await make(i, "198.51.100.9")).status).toBe(200);
+    expect((await make(20, "198.51.100.9")).status).toBe(429);
+    expect((await make(21, "198.51.100.10")).status).toBe(200);
   });
 });
+
+describe("client address", () => {
+  it("prefers the edge header and otherwise reads X-Forwarded-For from the right", async () => {
+    const { clientAddress } = await import("@/backend/shared/http/rate-limit");
+    const req = (headers: Record<string, string>) => new Request("http://localhost/", { headers });
+    expect(clientAddress(req({ "cf-connecting-ip": "203.0.113.9", "x-forwarded-for": "1.2.3.4, 203.0.113.9" }))).toBe(
+      "203.0.113.9"
+    );
+    expect(clientAddress(req({ "x-forwarded-for": "1.2.3.4, 203.0.113.9" }))).toBe("203.0.113.9");
+    expect(clientAddress(req({}))).toBe("unknown");
+  });
+});
+

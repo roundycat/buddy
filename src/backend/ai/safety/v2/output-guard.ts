@@ -21,30 +21,77 @@ const MOBILE = /(?<!\d)(?:\+?82[-.\s]?)?0?1[016789][-.\s]?\d{3,4}[-.\s]?\d{4}(?!
 const LANDLINE = /(?<!\d)0(?:2|[3-6][1-5])[-.\s]?\d{3,4}[-.\s]?\d{4}(?!\d)/g;
 const RRN = /(?<!\d)\d{6}[-\s]?[1-8]\d{6}(?!\d)/g;
 
-const DOSE_UNIT = /\d+(?:\.\d+)?\s*(?:mg|밀리그램|ml|㎖|cc|알|정|캡슐|포|방울|스푼|숟가락)/i;
-/** "두 알", "반 알" — counted in words; only with a medicine noun (포도 한 알 is food). */
-const DOSE_WORDS = /(한|두|세|네|다섯|여섯|반)\s?(알|정|캡슐|포|방울)/;
-const MED_NOUN =
-  /((^|[^가-힣])약(?=[을를은는이가도만\s,.!?]|$)|진통제|수면제|해열제|항생제|스테로이드|항암제|알약|안정제|진정제|캡슐|시럽)/;
+/** Medicine words. "약" only as a word of its own (not 약속, 예약, 절약). */
+const DRUG =
+  "(?:(?<![가-힣])약|진통제|수면제|해열제|항생제|스테로이드|항암제|알약|안정제|진정제|감기약|기침약|물약|타이레놀|부루펜|이부프로펜|아세트아미노펜)";
+const COUNT = "(?:\\d+(?:\\.\\d+)?|한|두|세|네|다섯|여섯|일곱|여덟|아홉|열|스무|몇|여러|반)";
+const UNIT = "(?:알|정|캡슐|포|방울|스푼|숟가락|mg|밀리그램|ml|㎖|cc)";
+/** A medicine and an amount close together: "진통제 두 알", "약을 2정", "해열제를 반 알". */
+const MED_DOSE = new RegExp(`${DRUG}[을를은는이가도]?\\s?(?:[가-힣]{1,4}\\s){0,2}${COUNT}\\s?${UNIT}`, "i");
+/** Milligrams are always medicine. */
+const MG_DOSE = /\d+(?:\.\d+)?\s?(?:mg|밀리그램)/i;
 const INTAKE = /(먹어|먹으|먹으면|드세요|드시|복용|투여|넣어|발라|늘려|줄여|두\s?배|더\s?먹)/;
 const MED_CHANGE =
   /(약|진통제|수면제|해열제|항생제|스테로이드|항암제)[을를은는이가]?\s?(끊어도\s?돼|끊어|그만\s?먹어도\s?돼|그만\s?먹어|안\s?먹어도\s?돼|줄여도\s?돼|늘려도\s?돼|두\s?배로|더\s?먹어도\s?돼)/;
 
-/** Any self-harm method word — a method instruction together with how-to wording. */
-const METHOD_WORDS =
-  /(목을?\s?매|목\s?매달|뛰어\s?내리|투신|손목을?\s?(긋|그어|그으|그었)|(약|수면제|진통제|알약|안정제)[을를]?\s?(한꺼번에|많이\s?모아|모아서|모아\s?두|왕창|통째로)|과다\s?복용|질식|번개탄|농약|칼로\s?(긋|그어|그으|베))/;
 /**
- * Words that name a self-harm method on their own. In a reply to a child they
- * are replaced unless the sentence is a plain warning ("절대 안 돼").
+ * Self-harm method words, in two kinds.
+ * Strong — only ever a method (hanging, cutting a wrist, charcoal, stockpiling
+ * or overdosing medicine): replaced unless the sentence is a plain warning.
+ * Weak — everyday words (jumping down, choking, pesticide): a method only next to
+ * a high place, death words, how-to wording, or after method talk in the reply.
  */
-const METHOD_STRONG =
-  /(목을\s?매|목\s?매달|투신|손목을?\s?(긋|그어|그으|그었)|(약|수면제|진통제|알약|안정제|해열제)[을를]?\s?(한꺼번에|한\s?번에\s?(많이|다)|많이\s?모아|모아서|모아\s?두|왕창|통째로)|과다\s?복용|번개탄|칼로\s?(긋|그어|그으|베))/;
-/** Everyday words that name a method only next to death words. */
-const METHOD_WEAK = /(뛰어\s?내리|질식|농약|목\s?졸)/;
-const DEATH_WORDS = /(죽|자살|목숨|생을|끝내|끝낼|끝나|끝날|편해질|편해져)/;
-const PROHIBITION =
-  /(절대|지\s?(마|말아|말자|말고)|하면\s?안|면\s?안\s?(돼|된다|됩니다)|안\s?돼|위험(해|한|하)|않아도|않았으면|하지\s?않|멈춰|그만둬|그만\s?둬)/;
-const HOW_TO = /(방법|하는\s?법|하려면|하면\s?(돼|된다|됩니다)|순서|단계|이렇게\s?하|먼저\s|그다음|그\s?다음)/;
+const MED_GROUP = "(?:(?<![가-힣])약|수면제|진통제|알약|안정제|진정제|해열제|감기약)";
+const STRONG_METHOD = [
+  /(목을\s?(매다|매고|매면|매는|매서|맸|맬|매려|매자)|목\s?매달|목매달)/,
+  /((손목|팔목|팔|피부|몸|살)[을를에]?\s?(?:[가-힣]{1,4}\s){0,2}(긋|그어|그으|그었|그을|베어|베면|베는|벴)|칼로\s?(긋|그어|그으|그었|그을))/,
+  new RegExp(
+    `${MED_GROUP}[을를은는이가]?\\s?(?:[가-힣]{1,4}\\s){0,2}(?:한꺼번에|한\\s?번에\\s?(?:많이|다|전부|몽땅)|많이\\s?모아|모아서|모아\\s?두|모아\\s?놓|왕창|잔뜩|통째로|한\\s?통|몽땅|(?:전부|다)\\s?삼키|(?:전부|다)\\s?삼켜)`
+  ),
+  /(과다\s?복용|과량\s?복용|약물\s?과다)/,
+  /(번개탄|연탄을?\s?피우)/,
+  /투신/,
+];
+const WEAK_METHOD = [
+  /뛰어\s?내(리|려|릴|린|렸)/,
+  /(질식|농약|목\s?졸|목을\s?졸)/,
+  new RegExp(`${MED_GROUP}[을를]?\\s?(?:[가-힣]{1,4}\\s){0,2}많이\\s?(먹|삼키|삼켜)`),
+];
+const HIGH_PLACE = /(옥상|창문|창밖으로|아파트|베란다|난간|다리\s?위|한강|건물|높은\s?(곳|데)|\d+\s?층|꼭대기)/;
+const DEATH_WORDS =
+  /(죽고\s?싶|죽을래|죽을\s?거|죽으면|죽어\s?버|죽는\s?(게|법|방법)|죽게|자살|목숨을?\s?끊|생을\s?마감|세상을\s?떠나고|다\s?끝내|끝내고\s?싶|끝내\s?버|사라지고\s?싶|영원히\s?잠|안\s?깨어나)/;
+/** Wording that teaches or recommends — wins over any warning word in the sentence. */
+const ENDORSE = new RegExp(
+  [
+    "(?:으면|면)\\s?(?:돼|된다|됩니다|되거든|될\\s?거야|되잖아)",
+    "확실(?:해|히|하게)",
+    "편해(?:질|져)",
+    "편하게\\s?(?:갈|죽|잠)",
+    "안\\s?아파|아프지\\s?않",
+    "금방\\s?끝|빨리\\s?끝|한\\s?번에\\s?끝",
+    "안\\s?깨어나|깨어나지\\s?않|다시\\s?안\\s?깨|영원히\\s?잠|잠들\\s?수",
+    "(?<!안\\s?)좋아(?!하)",
+    "방법(?:은|이\\s?있|을\\s?알려)|하는\\s?법|이렇게\\s?하",
+  ].join("|")
+);
+/** How-to wording that only counts with a strong method word. */
+const STEPS = /(순서|단계|먼저\s|그다음|그\s?다음)/;
+const METHOD_TALK = /(방법(?:은|이|을)|하는\s?법|이렇게\s?하)/;
+/** A plain warning about the method. */
+const PROHIBITION = new RegExp(
+  [
+    "(?:으면|면)\\s?(?:절대\\s?)?안\\s?(?:돼|된다|됩니다|되|되는)",
+    "지\\s?(?:마|말아|말자|말아요|마세요)",
+    "지\\s?않(?:아도|았으면|기를|게|도록)",
+    "하지\\s?않",
+    "그만\\s?둬|멈춰",
+    "해로(?:우|워|운)",
+    "위험하니까|위험하니|위험해서|위험하대|위험한\\s?(?:일|행동|거|짓)",
+    "위험해(?:\\.|!|요|$)",
+    "다칠\\s?수|크게\\s?다쳐|큰일\\s?(?:나|날)",
+    "정해진\\s?만큼|주신\\s?대로|처방대로",
+  ].join("|")
+);
 
 export const MEDICATION_LINE =
   "약이나 치료는 꼭 의사·간호사 선생님과 함께 정해야 해. 궁금한 건 선생님께 같이 여쭤보자.";
@@ -106,26 +153,40 @@ function maskPii(sentence: string): { text: string; masked: boolean } {
 }
 
 function isMedicationInstruction(s: string): boolean {
-  return (
-    (DOSE_UNIT.test(s) && INTAKE.test(s)) ||
-    (DOSE_WORDS.test(s) && MED_NOUN.test(s) && INTAKE.test(s)) ||
-    MED_CHANGE.test(s)
-  );
+  return ((MED_DOSE.test(s) || MG_DOSE.test(s)) && INTAKE.test(s)) || MED_CHANGE.test(s);
 }
 
-function isMethodInstruction(s: string): boolean {
-  if (METHOD_WORDS.test(s) && HOW_TO.test(s)) return true;
-  if (PROHIBITION.test(s)) return false;
-  return METHOD_STRONG.test(s) || (METHOD_WEAK.test(s) && DEATH_WORDS.test(s));
+/**
+ * Method instruction or recommendation. `state.methodTalk` remembers that the
+ * reply already talked about dying and a "way" ("죽고 싶다면 방법이 있어."), so a
+ * weak method word in a later sentence counts too.
+ */
+function isMethodInstruction(s: string, state: OutputGuardState): boolean {
+  const strong = STRONG_METHOD.some((re) => re.test(s));
+  const weak = !strong && WEAK_METHOD.some((re) => re.test(s));
+  if (!strong && !weak) {
+    if (DEATH_WORDS.test(s) && METHOD_TALK.test(s)) state.methodTalk = true;
+    return false;
+  }
+  if (strong) {
+    if (ENDORSE.test(s) || STEPS.test(s)) return true;
+    return !PROHIBITION.test(s);
+  }
+  const anchored = HIGH_PLACE.test(s) || DEATH_WORDS.test(s) || METHOD_TALK.test(s) || state.methodTalk;
+  if (!anchored) return false;
+  if (ENDORSE.test(s)) return true;
+  return !PROHIBITION.test(s);
 }
 
 export interface OutputGuardState {
   used: Set<"medication" | "method" | "relationship">;
   flags: Set<OutputFlag>;
+  /** An earlier sentence talked about dying and a way to do it. */
+  methodTalk: boolean;
 }
 
 export function newOutputGuardState(): OutputGuardState {
-  return { used: new Set(), flags: new Set() };
+  return { used: new Set(), flags: new Set(), methodTalk: false };
 }
 
 function trailingSpace(sentence: string): string {
@@ -158,8 +219,9 @@ function guardOne(sentence: string, judged: string, state: OutputGuardState): st
     state.used.add(kind);
     return line + trailingSpace(sentence);
   };
-  if (isMethodInstruction(judged)) {
+  if (isMethodInstruction(judged, state)) {
     state.flags.add("method");
+    state.methodTalk = true;
     return once("method", METHOD_LINE);
   }
   if (isMedicationInstruction(judged)) {
@@ -235,22 +297,30 @@ export function createOutputGuardStream() {
   };
 }
 
+/** The JSON in a model answer: whole, fenced, or between the first "{" and the last "}". */
 function parseJsonAnswer(text: string): unknown | undefined {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
   const raw = (fenced?.[1] ?? text).trim();
-  if (!/^[[{]/.test(raw)) return undefined;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return undefined;
+  const candidates = [raw];
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start > 0 && end > start) candidates.push(raw.slice(start, end + 1));
+  for (const candidate of candidates) {
+    if (!/^[[{]/.test(candidate)) continue;
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      /* try the next one */
+    }
   }
+  return undefined;
 }
 
 /**
  * Other child-facing model text (stories, missions, wish ideas, journal,
  * schedule copy): the same rules as the chat reply. A JSON answer has every
- * string value guarded and is re-serialised only when something changed;
- * anything else is guarded as prose.
+ * string value guarded and is re-serialised (JSON only, any prose around it
+ * dropped) only when something changed; anything else is guarded as prose.
  */
 export function guardChildFacingOutput(content: string): { text: string; flags: OutputFlag[] } {
   const json = parseJsonAnswer(content);

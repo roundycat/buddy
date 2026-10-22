@@ -46,7 +46,15 @@ export async function isChildConsentPending(
   if (!id || role === "guardian") return false;
   const state = await getChildConsentState(id);
   if (state) return state.status === "pending";
-  return env.authProvider !== "mock";
+  return !mockAccountsAllowed();
+}
+
+/** Local development with the built-in mock accounts (which have no consent rows). */
+export function mockAccountsAllowed(): boolean {
+  return (
+    env.authProvider === "mock" ||
+    (env.authProvider === "auto" && process.env.NODE_ENV !== "production")
+  );
 }
 
 /**

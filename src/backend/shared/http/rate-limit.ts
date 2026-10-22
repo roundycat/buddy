@@ -20,13 +20,32 @@ export const CHILD_CHAT_LIMITS: WindowLimit[] = [
 export const LOGIN_FAILURE_LIMITS: WindowLimit[] = [{ windowMs: 10 * 60_000, max: 10 }];
 /** Login attempts from one address — judges in one room share an address. */
 export const LOGIN_IP_LIMITS: WindowLimit[] = [{ windowMs: 10 * 60_000, max: 60 }];
-/** New accounts from one address. */
+/** New accounts from one address (a ward's or office's Wi-Fi is one address). */
 export const SIGNUP_IP_LIMITS: WindowLimit[] = [
-  { windowMs: 60 * 60_000, max: 10 },
-  { windowMs: 24 * 60 * 60_000, max: 30 },
+  { windowMs: 60 * 60_000, max: 20 },
+  { windowMs: 24 * 60 * 60_000, max: 60 },
 ];
 
 const MAX_KEYS = 50_000;
+const LONGEST_WINDOW_MS = 24 * 60 * 60_000;
+
+/**
+ * Over the key cap: drop keys whose last hit is older than any window, then the
+ * least recently used fifth. Never everything at once — that would let a flood
+ * of new keys reset every counter.
+ */
+function evict(now: number) {
+  if (hits.size <= MAX_KEYS) return;
+  const byLastHit: Array<[string, number]> = [];
+  hits.forEach((times, key) => {
+    const last = times[times.length - 1] ?? 0;
+    if (now - last >= LONGEST_WINDOW_MS) hits.delete(key);
+    else byLastHit.push([key, last]);
+  });
+  if (hits.size <= MAX_KEYS) return;
+  byLastHit.sort((a, b) => a[1] - b[1]);
+  for (const [key] of byLastHit.slice(0, Math.ceil(byLastHit.length / 5))) hits.delete(key);
+}
 
 function recentHits(key: string, limits: WindowLimit[], now: number): number[] {
   const longest = Math.max(...limits.map((l) => l.windowMs));
@@ -52,7 +71,7 @@ export function allowRequest(
   }
   recent.push(now);
   hits.set(key, recent);
-  if (hits.size > MAX_KEYS) hits.clear();
+  evict(now);
   return true;
 }
 
@@ -65,20 +84,40 @@ export function hasRequestRoom(
   return hasRoom(recentHits(key, limits, now), limits, now);
 }
 
-export function recordHit(key: string, limits: WindowLimit[], now = Date.now()) {
+/** Record one hit; returns its time so a later success can take it back. */
+export function recordHit(key: string, limits: WindowLimit[], now = Date.now()): number {
   const recent = recentHits(key, limits, now);
   recent.push(now);
   hits.set(key, recent);
-  if (hits.size > MAX_KEYS) hits.clear();
+  evict(now);
+  return now;
+}
+
+/** Take back a hit recorded before the outcome was known (e.g. a correct password). */
+export function forgetHit(key: string, at: number) {
+  const times = hits.get(key);
+  if (!times) return;
+  const i = times.lastIndexOf(at);
+  if (i >= 0) times.splice(i, 1);
+  if (!times.length) hits.delete(key);
 }
 
 /**
- * The caller's address behind the hosting proxy (Render and most PaaS put the
- * client first in X-Forwarded-For).
+ * The caller's address. On Render every request comes through Cloudflare,
+ * which sets CF-Connecting-IP itself (a value sent by the client is replaced).
+ * Otherwise X-Forwarded-For is read from the right: proxies append, so the
+ * left side is whatever the client sent. TRUSTED_PROXY_HOPS is how many
+ * proxies of ours sit in front of the app (default 1).
  */
 export function clientAddress(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || request.headers.get("x-real-ip")?.trim() || "unknown";
+  const edge = request.headers.get("cf-connecting-ip")?.trim();
+  if (edge) return edge;
+  const chain = (request.headers.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const hops = Math.max(1, Number(process.env.TRUSTED_PROXY_HOPS ?? "1") || 1);
+  return chain[chain.length - hops] || request.headers.get("x-real-ip")?.trim() || "unknown";
 }
 
 export function resetRateLimits() {

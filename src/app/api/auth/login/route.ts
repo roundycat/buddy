@@ -10,6 +10,7 @@ import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/rou
 import {
   allowRequest,
   clientAddress,
+  forgetHit,
   hasRequestRoom,
   LOGIN_FAILURE_LIMITS,
   LOGIN_IP_LIMITS,
@@ -47,15 +48,17 @@ export async function POST(request: Request) {
         throw new HttpError(TOO_MANY, 429);
       }
 
+      // Counted as a failure until the password checks out, so a burst of
+      // parallel guesses cannot all slip past the limit.
+      const attempt = recordHit(emailKey, LOGIN_FAILURE_LIMITS);
       let result: Awaited<ReturnType<typeof login>>;
       try {
         result = await login({ email, password });
       } catch (error) {
-        if (error instanceof AuthError && error.status === 401) {
-          recordHit(emailKey, LOGIN_FAILURE_LIMITS);
-        }
+        if (!(error instanceof AuthError && error.status === 401)) forgetHit(emailKey, attempt);
         throw error;
       }
+      forgetHit(emailKey, attempt);
       const isGuardian = result.user.role === "guardian";
       const needsOnboarding =
         !isGuardian && !(await isPersonaSetupCompleted(result.user.id));

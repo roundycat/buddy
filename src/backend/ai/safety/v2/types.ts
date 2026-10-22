@@ -46,7 +46,11 @@ export interface SafetyAssessment {
   thirdParty: boolean;
   /** Earlier messages in the same conversation raised the level. */
   contextRaised: boolean;
-  /** Abuse disclosure seen — guardian must not be auto-notified. */
+  /**
+   * Harm by someone was disclosed — in this message, a few messages earlier, or
+   * in the last days (SafetyInput.priorAbuse). The guardian must not be
+   * auto-notified of this signal.
+   */
   abuse: boolean;
   /** Soft risk words with no clear reading — worth a second (LLM) look. */
   ambiguous: boolean;
@@ -56,6 +60,8 @@ export interface SafetyInput {
   text: string;
   /** Up to 3 earlier child messages from the same conversation, oldest first. */
   context?: string[];
+  /** The child disclosed harm by someone recently (signal log, past days). */
+  priorAbuse?: boolean;
 }
 
 export const LEVEL_RANK: Record<Exclude<SafetyLevel, "protect">, number> = {

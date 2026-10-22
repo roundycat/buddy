@@ -215,6 +215,23 @@ describe("harm by someone together with a death wish", () => {
   });
 });
 
+describe("harm by someone told in an earlier turn", () => {
+  it("keeps the guardian out of the alert for a later death wish", async () => {
+    as("child-harmed-earlier");
+    const { POST } = await import("@/app/api/conversation/route");
+    await readEvents(await POST(streamRequest("새아빠가 맨날 때려")));
+    const events = await readEvents(await POST(streamRequest("죽고 싶어")));
+    const panel = events.find((e) => e.type === "crisis") as { actions: Array<{ id: string }> };
+    expect(panel.actions.map((a) => a.id)).not.toContain("notify_guardian");
+    const { alerts, signals } = await stores();
+    await waitFor(
+      () => signals.getSafetySignalLog("child-harmed-earlier"),
+      (l) => (l?.events.length ?? 0) >= 2
+    );
+    expect(await alerts.getActiveChildSafetyAlert("child-harmed-earlier")).toBeNull();
+  });
+});
+
 describe("the LLM review window", () => {
   it("a raise that arrives in time shows the panel after the reply and alerts once", async () => {
     as("child-review-in-time");

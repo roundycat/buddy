@@ -35,7 +35,10 @@ import {
   reviewWithLlm,
   shouldReview,
 } from "@/backend/ai/safety/v2/llm-review";
-import { recordSafetySignal } from "@/backend/ai/safety/v2/signal-log.store";
+import {
+  hadRecentAbuseDisclosure,
+  recordSafetySignal,
+} from "@/backend/ai/safety/v2/signal-log.store";
 import { rhythmAddendum } from "@/backend/ai/safety/v2/relationship";
 import {
   createOutputGuardStream,
@@ -124,8 +127,12 @@ export interface ChildSafetyCheck {
   plan: SafetyResponsePlan;
 }
 
-function checkChildSafety(message: string, context: string[]): ChildSafetyCheck {
-  const assessment = assessChildMessage({ text: message, context });
+function checkChildSafety(
+  message: string,
+  context: string[],
+  priorAbuse = false
+): ChildSafetyCheck {
+  const assessment = assessChildMessage({ text: message, context, priorAbuse });
   return { assessment, plan: planSafetyResponse(assessment) };
 }
 
@@ -193,6 +200,9 @@ function recordSafetyOutcome(userId: string | undefined, check: ChildSafetyCheck
   });
   if (!userId) return;
   void (async () => {
+    // Consent withdrawn (and records erased) while this turn ran: write nothing.
+    // The child still saw the help panel; a pending child has no guardian view.
+    if (await isChildConsentPending(userId)) return;
     // The share policy is the single place that decides what reaches a guardian:
     // urgent/elevated → minimal alert; protect, or harm by someone → hospital route.
     const share = decideShare({
@@ -262,17 +272,22 @@ async function withinReviewWindow(
 function startTurnSafety(
   userId: string | undefined,
   message: string,
-  context: string[]
+  context: string[],
+  priorAbuse = false
 ): { rules: ChildSafetyCheck; settle: () => Promise<ChildSafetyCheck> } {
   const startedAt = Date.now();
-  const rules = checkChildSafety(message, context);
+  const rules = checkChildSafety(message, context, priorAbuse);
   const review = shouldReview(rules.assessment)
     ? reviewWithLlm({ text: message, context })
     : null;
   let final: Promise<ChildSafetyCheck> | null = null;
   const settle = () =>
     (final ??= (async () => {
-      const check = review ? applyReview(rules, await withinReviewWindow(review, startedAt)) : rules;
+      // A failed review leaves the rules' reading (raise-only: nothing is lost).
+      const reviewed = review
+        ? await withinReviewWindow(review.catch(() => null), startedAt)
+        : null;
+      const check = review ? applyReview(rules, reviewed) : rules;
       recordSafetyOutcome(userId, check);
       return check;
     })());
@@ -299,12 +314,17 @@ function concernSummary(categories: SignalCategory[]): string {
 
 const EMPTY_REPLY = "응, 여기 있을게.";
 
-function buildReply(text: string, provider: string, model: string): ConversationMessage {
+function buildReply(
+  text: string,
+  provider: string,
+  model: string,
+  createdAt = new Date().toISOString()
+): ConversationMessage {
   return {
-    id: `msg-${Date.now()}`,
+    id: `msg-${Date.parse(createdAt)}`,
     role: "assistant",
     content: text.trim() || EMPTY_REPLY,
-    createdAt: new Date().toISOString(),
+    createdAt,
     meta: { provider, model },
   };
 }
@@ -340,7 +360,12 @@ export async function sendMessage(
     createdAt: new Date().toISOString(),
   };
 
-  const safety = startTurnSafety(userId, request.message, childContext);
+  const safety = startTurnSafety(
+    userId,
+    request.message,
+    childContext,
+    userId ? await hadRecentAbuseDisclosure(userId).catch(() => false) : false
+  );
   let llm: Awaited<ReturnType<typeof companionChat>>;
   try {
     llm = await companionChat(
@@ -407,7 +432,9 @@ export async function* streamMessage(
   };
 
   // Safety writes start here, before anything streams (see startTurnSafety).
-  const safety = startTurnSafety(userId, request.message, childContext);
+  // Harm told in the last days keeps the guardian out of a later alert too.
+  const priorAbuse = userId ? await hadRecentAbuseDisclosure(userId).catch(() => false) : false;
+  const safety = startTurnSafety(userId, request.message, childContext, priorAbuse);
   const { rules } = safety;
 
   const chatModel = resolveModelForPurpose("chat");
@@ -465,9 +492,11 @@ export async function* streamMessage(
       const partial = full;
       const finished = reply;
       const shown = delivered;
+      // Stamped now, when the reply stopped — not when the review settles.
+      const endedAt = new Date().toISOString();
       void settled
         .then((final) => {
-          let saved = finished ?? buildReply(partial, env.llmProvider, chatModel);
+          let saved = finished ?? buildReply(partial, env.llmProvider, chatModel, endedAt);
           // The child left before the help panel reached them: the saved reply
           // says what was shared, so they read it when they come back.
           const note = final.plan.transparency;

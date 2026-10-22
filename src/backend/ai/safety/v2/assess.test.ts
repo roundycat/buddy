@@ -172,3 +172,31 @@ describe("mergeReviewedAssessment levels", () => {
     );
   });
 });
+
+describe("harm by someone told earlier", () => {
+  const route = (text: string, context: string[] = [], priorAbuse = false) => {
+    const a = assessChildMessage({ text, context, priorAbuse });
+    return {
+      level: a.level,
+      abuse: a.abuse,
+      share: decideShare({ kind: "safety", crisisLevel: a.level, abuse: a.abuse }).decision,
+      guardianAlert: Boolean(planSafetyResponse(a).guardianAlert),
+    };
+  };
+  it("a death wish after an abuse disclosure in the conversation is protect-routed", () => {
+    expect(route("죽고 싶어", ["새아빠가 맨날 때려"])).toEqual({
+      level: "elevated",
+      abuse: true,
+      share: "protect_route",
+      guardianAlert: false,
+    });
+    expect(route("그냥 사라지고 싶어", ["아빠가 때렸어", "아무한테도 말하지 말래"]).guardianAlert).toBe(false);
+  });
+  it("a disclosure from the last days (signal log) keeps the guardian out too", () => {
+    expect(route("죽고 싶어", [], true)).toMatchObject({ abuse: true, guardianAlert: false });
+  });
+  it("everyday talk after a disclosure is not flagged", () => {
+    expect(route("오늘 점심 맛있었어", ["새아빠가 맨날 때려"])).toMatchObject({ level: "none", abuse: false });
+  });
+});
+

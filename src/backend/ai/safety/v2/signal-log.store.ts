@@ -72,6 +72,22 @@ export async function recordSafetySignal(
   return { persistentDistress, recentCount: recent.length };
 }
 
+/**
+ * Did the child tell of harm by someone in the last 72 hours? Then a later
+ * death wish is routed to the hospital, not to the guardian, as well.
+ */
+export async function hadRecentAbuseDisclosure(
+  childUserId: string,
+  now = new Date()
+): Promise<boolean> {
+  const log = await store.get(childUserId);
+  if (!log) return false;
+  const since = now.getTime() - WINDOW_MS;
+  return log.events.some(
+    (e) => e.categories.includes("S6_abuse") && new Date(e.at).getTime() >= since
+  );
+}
+
 export async function getSafetySignalLog(
   childUserId: string
 ): Promise<SafetySignalLog | null> {

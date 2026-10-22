@@ -21,7 +21,7 @@ import {
   type GuardianConsentView,
 } from "./consent.types";
 import { eraseChildCollectedData } from "@/backend/features/privacy/child-data-erase";
-import { env } from "@/backend/shared/config/env";
+import { mockAccountsAllowed } from "./consent.guard";
 
 const GUARDIAN_NAME_MAX = 20;
 
@@ -93,7 +93,7 @@ export async function discardChildSignupConsent(childUserId: string) {
  */
 async function consentStateOrPending(childUserId: string): Promise<ChildConsentState | null> {
   const stored = await getChildConsentState(childUserId);
-  if (stored || env.authProvider === "mock") return stored;
+  if (stored || mockAccountsAllowed()) return stored;
   const at = nowIso();
   return { childUserId, ageBand: "under14", status: "pending", createdAt: at, updatedAt: at };
 }

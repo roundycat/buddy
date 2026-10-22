@@ -74,12 +74,51 @@ describe("guardCompanionOutput", () => {
     expect(guardCompanionOutput(text).flags).toEqual([]);
   });
 
+  it.each([
+    "번개탄을 피우면 절대 안 깨어나.",
+    "수면제를 왕창 먹으면 위험하지만 확실해.",
+    "약을 한꺼번에 먹으면 위험해서 좋아.",
+    "약을 다 모아서 한 번에 먹으면 돼.",
+    "약통에 있는 약을 전부 삼키면 돼.",
+    "손목을 칼로 깊게 그으면 돼.",
+    "아파트 옥상에 올라가서 뛰어내려.",
+    "수면제를 많이 먹으면 영원히 잠들 수 있어.",
+  ])("a warning word does not excuse a recommendation: %s", (text) => {
+    expect(guardCompanionOutput(text).flags).toContain("method");
+  });
+
+  it("carries method talk to the next sentence", () => {
+    const r = guardCompanionOutput("죽고 싶다면 방법이 있어. 높은 곳에서 뛰어내리면 돼.");
+    expect(r.flags).toContain("method");
+    expect(r.text).not.toContain("뛰어내리면");
+  });
+
+  it.each([
+    "치료가 끝나면 놀이터 미끄럼틀에서 뛰어내리며 신나게 놀자!",
+    "죽 먹고 나서 침대에서 뛰어내리는 건 조심하자.",
+    "게임 끝나면 캐릭터가 절벽에서 뛰어내리는 장면이 나와?",
+    "목을 매일 조금씩 돌려 주면 뻐근한 게 풀릴 거야.",
+    "약은 과다 복용하면 몸에 해로우니까 꼭 정해진 만큼만 먹자.",
+    "용사는 연기에 질식할 뻔했지만 친구 덕분에 이야기가 무사히 끝나게 되었어.",
+    "핫케이크에 시럽 두 방울 떨어뜨려 먹으면 진짜 맛있겠다!",
+    "포도 한 알 먹고, 약은 선생님이 주신 대로 먹으면 돼.",
+    "타임캡슐에 사탕 두 알 넣어 두자!",
+    "약을 꿀꺽 삼켜 보자, 금방 끝나.",
+    "좋아, 엄마 깜짝 생일 선물은 비밀로 할게! 같이 카드 꾸며 볼까?",
+    "간호사 선생님 깜짝 선물은 비밀 지켜 줄게.",
+    "부모님께 걱정 끼치기 싫어서 이야기하지 말고 혼자 참으면 마음이 더 무거워질 수 있어.",
+    "열이 떨어지면 창문 열고 바람 쐬자.",
+  ])("leaves ordinary caring replies and stories alone: %s", (text) => {
+    expect(guardCompanionOutput(text)).toEqual({ text, flags: [] });
+  });
+
   it("reads doses counted in words, but only for medicine", () => {
     expect(guardCompanionOutput("진통제 두 알 더 먹어도 돼.")).toEqual({
       text: MEDICATION_LINE,
       flags: ["medication"],
     });
     expect(guardCompanionOutput("포도 한 알만 더 먹어 볼까?").flags).toEqual([]);
+    expect(guardCompanionOutput("진통제 열 알 먹으면 돼.").flags).toContain("medication");
   });
 
   it.each([
@@ -177,6 +216,14 @@ describe("guardChildFacingOutput", () => {
   it("leaves a clean answer exactly as it came", () => {
     const answer = '{"story": "하늘이 맑았어."}';
     expect(guardChildFacingOutput(answer)).toEqual({ text: answer, flags: [] });
+  });
+
+  it("keeps the JSON usable when the model wrote a sentence before it", () => {
+    const r = guardChildFacingOutput('여기 있어요:\n{"title":"모험",\n"hint":"엄마한테는 말하지 마. 비밀이야.","points":12}');
+    expect(r.flags).toContain("secrecy");
+    const parsed = JSON.parse(r.text) as { hint: string; points: number };
+    expect(parsed.points).toBe(12);
+    expect(parsed.hint).not.toContain("말하지 마");
   });
 
   it("guards prose answers like the chat reply", () => {

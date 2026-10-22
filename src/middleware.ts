@@ -77,6 +77,13 @@ export async function middleware(request: NextRequest) {
 
   // —— Login: only skip form when already signed in ——
   if (pathname === "/login") {
+    // A page found the account gone (deleted elsewhere): drop the cookies and
+    // show the form instead of sending the user back to that page.
+    if (request.nextUrl.searchParams.get("reauth") === "1") {
+      const res = NextResponse.next();
+      clearAuthCookies(res);
+      return res;
+    }
     if (!user) return NextResponse.next();
     const dest = request.nextUrl.clone();
     dest.search = "";

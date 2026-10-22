@@ -4,6 +4,7 @@ import {
   getPendingConcernRequest,
 } from "@/backend/features/sharing/concern-request.service";
 import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/route";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ export async function GET() {
 export async function POST(request: Request) {
   return withApiGuard(async () => {
     const user = await requireChildUser();
+    await assertChildConsented(user);
     const body = await readJsonBody<{ requestId?: unknown; approve?: unknown }>(
       request
     );

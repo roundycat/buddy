@@ -366,8 +366,12 @@ export function assessChildMessage(input: SafetyInput): SafetyAssessment {
   const categories = new Set<SignalCategory>(current.hits.map((h) => h.category));
 
   const context = (input.context ?? []).slice(-3).filter((c) => c && c.trim());
+  // Harm by someone told a little earlier still decides who may be told now:
+  // a death wish after "새아빠가 맨날 때려" must not alert the guardian either.
+  let earlierAbuse = Boolean(input.priorAbuse);
   if (context.length) {
     const ctxScans = context.map((c) => scanMessage(c));
+    if (ctxScans.some((scan) => scan.abuse)) earlierAbuse = true;
     const ctxLevels = ctxScans.map((s) => levelOf(s.hits));
     const ctxMax = ctxLevels.reduce<CrisisLevel>((a, b) => maxLevel(a, b), "none");
     const ctxRiskCount = ctxLevels.filter((l) => LEVEL_RANK[l] >= LEVEL_RANK.watch).length;
@@ -427,6 +431,8 @@ export function assessChildMessage(input: SafetyInput): SafetyAssessment {
     categories.add("S6_abuse");
     rules.push("abuse_disclosure");
     if (LEVEL_RANK[level] < LEVEL_RANK.elevated) finalLevel = "protect";
+  } else if (earlierAbuse && LEVEL_RANK[level] >= LEVEL_RANK.watch) {
+    rules.push("abuse_earlier");
   }
 
   const compactAll = normalizeMessage(input.text).compact;
@@ -442,7 +448,7 @@ export function assessChildMessage(input: SafetyInput): SafetyAssessment {
     suppressors: Array.from(current.suppressors),
     thirdParty: current.thirdParty,
     contextRaised,
-    abuse: current.abuse,
+    abuse: current.abuse || (earlierAbuse && finalLevel !== "none"),
     ambiguous,
   };
 }

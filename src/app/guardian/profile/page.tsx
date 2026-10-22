@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function GuardianProfilePage() {
   const user = await getSessionUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/login?reauth=1");
   if (user.role !== "guardian") redirect("/");
 
   const data = await getParentProfile(user.id, {

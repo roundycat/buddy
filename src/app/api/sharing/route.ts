@@ -4,6 +4,7 @@ import {
   updateChildShareChoices,
 } from "@/backend/features/sharing/sharing.service";
 import { readJsonBody, withApiGuard } from "@/backend/shared/http/route";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export async function GET() {
 export async function PATCH(request: Request) {
   return withApiGuard(async () => {
     const user = await requireChildUser();
+    await assertChildConsented(user);
     const body = await readJsonBody<{ choices?: unknown }>(request);
     const choices =
       body?.choices && typeof body.choices === "object"
