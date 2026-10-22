@@ -103,8 +103,13 @@ export interface ConversationCrisisActionDto {
 }
 
 export interface ConversationCrisisDto {
+  /** urgent | elevated | protect */
   level: string;
   empathyHint: string;
+  /** One line telling the child who to talk to (server copy, level-aware) */
+  guidance?: string;
+  /** What was shared and with whom — never a secret from the child */
+  transparency?: string;
   actions: ConversationCrisisActionDto[];
 }
 

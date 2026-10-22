@@ -13,7 +13,8 @@
     "danger:wipe-fresh": "node --env-file=.env.local scripts/seed/wipe-fresh-start.js",
     "check:bedrock": "node --env-file=.env.local scripts/seed/check-bedrock.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "eval:safety": "vitest run --config vitest.eval.config.mts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock": "^3.1102.0",

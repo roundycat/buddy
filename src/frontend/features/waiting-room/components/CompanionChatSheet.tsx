@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Phone, Send, Siren, Stethoscope, UserRound, X } from "lucide-react";
+import { HeartHandshake, Phone, Send, ShieldAlert, Siren, Stethoscope, UserRound, X } from "lucide-react";
 import { cn } from "@/frontend/shared/lib/utils";
 import type {
   ConversationCrisisDto,
@@ -38,6 +38,10 @@ function actionIcon(id: string) {
       return Phone;
     case "emergency":
       return Siren;
+    case "social_worker":
+      return HeartHandshake;
+    case "police":
+      return ShieldAlert;
     default:
       return Phone;
   }
@@ -109,7 +113,7 @@ export function CompanionChatSheet({
     }
     if (action.id === "notify_guardian") {
       setActionNote(
-        "보호자에게 안전 알림을 보냈어요. 옆에 계신 엄마·아빠·보호자에게도 지금 마음이 힘들다고 말해 주세요."
+        "보호자에게는 이미 '도움이 필요하다'는 신호만 갔어요. 옆에 계시면 지금 마음이 힘들다고 직접 말해 주세요."
       );
       return;
     }
@@ -194,9 +198,14 @@ export function CompanionChatSheet({
                 {crisis.empathyHint}
               </p>
               <p className="mt-2 text-xs leading-relaxed text-bedi-slate/70">
-                이런 마음은 혼자 견디지 않아도 괜찮아. 지금 엄마, 아빠, 보호자나
-                간호사 선생님께 이야기해 보자.
+                {crisis.guidance ??
+                  "이런 마음은 혼자 견디지 않아도 괜찮아. 지금 엄마, 아빠, 보호자나 간호사 선생님께 이야기해 보자."}
               </p>
+              {crisis.transparency ? (
+                <p className="mt-2 rounded-xl bg-white/70 px-3 py-2 text-[11px] leading-relaxed text-bedi-slate/65">
+                  {crisis.transparency}
+                </p>
+              ) : null}
               <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {crisis.actions.map((action) => {
                   const Icon = actionIcon(action.id);

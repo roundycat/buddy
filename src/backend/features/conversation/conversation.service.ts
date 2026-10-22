@@ -20,9 +20,20 @@ import {
 import { getChildName } from "@/backend/features/persona/persona.store";
 import { env } from "@/backend/shared/config/env";
 import { logObservation, newRequestId } from "@/backend/shared/observability";
-import { detectCrisisSignal } from "@/backend/ai/safety/crisis-detect";
-import { CRISIS_TURN_SYSTEM_ADDENDUM } from "@/backend/ai/prompts/safety";
+import {
+  assessChildMessage,
+  planSafetyResponse,
+  type SafetyAssessment,
+  type SafetyResponsePlan,
+} from "@/backend/ai/safety/v2";
+import {
+  mergeReviewedLevel,
+  reviewWithLlm,
+  shouldReview,
+} from "@/backend/ai/safety/v2/llm-review";
+import { recordSafetySignal } from "@/backend/ai/safety/v2/signal-log.store";
 import { createChildSafetyAlert } from "@/backend/features/safety/safety-alert.store";
+import { recordCount } from "@/backend/shared/observability";
 
 /**
  * Conversation Service
@@ -71,17 +82,69 @@ function schedulePersistTurn(params: {
   });
 }
 
-function scheduleCrisisAlert(params: {
+/** The child's last few messages — context for the safety layer. */
+function recentChildMessages(
+  history: Array<{ role: string; content: string }>,
+  max = 3
+): string[] {
+  return history
+    .filter((m) => m.role === "user" && m.content?.trim())
+    .slice(-max)
+    .map((m) => m.content);
+}
+
+export interface ChildSafetyCheck {
+  assessment: SafetyAssessment;
+  plan: SafetyResponsePlan;
+}
+
+function checkChildSafety(message: string, context: string[]): ChildSafetyCheck {
+  const assessment = assessChildMessage({ text: message, context });
+  return { assessment, plan: planSafetyResponse(assessment) };
+}
+
+function crisisEvent(plan: SafetyResponsePlan) {
+  return {
+    type: "crisis" as const,
+    level: plan.level,
+    empathyHint: plan.empathyHint,
+    guidance: plan.guidance,
+    transparency: plan.transparency,
+    actions: plan.actions,
+  };
+}
+
+/**
+ * After the reply: minimal guardian alert (alert levels only), signal log
+ * (levels and categories, never text), and metrics.
+ */
+function scheduleSafetyFollowUp(params: {
   userId: string;
-  summary: string;
-  level: "elevated" | "urgent";
+  check: ChildSafetyCheck;
 }) {
-  void createChildSafetyAlert({
-    childUserId: params.userId,
-    summary: params.summary,
-    level: params.level,
-  }).catch((error) => {
-    console.error("[conversation] safety alert failed", error);
+  const { assessment, plan } = params.check;
+  recordCount("SafetySignal", 1, {
+    feature: "safety",
+    operation: assessment.level,
+  });
+  if (assessment.level === "none") return;
+  logObservation({
+    feature: "safety.signal",
+    operation: assessment.level,
+    success: true,
+    message: `rules=${assessment.rules.join(",")} sup=${assessment.suppressors.join(",")}`,
+  });
+  void (async () => {
+    if (plan.guardianAlert) {
+      await createChildSafetyAlert({
+        childUserId: params.userId,
+        summary: plan.guardianAlert.summary,
+        level: plan.guardianAlert.level,
+      });
+    }
+    await recordSafetySignal(params.userId, assessment);
+  })().catch((error) => {
+    console.error("[conversation] safety follow-up failed", error);
   });
 }
 
@@ -90,7 +153,6 @@ export async function sendMessage(
 ): Promise<SendMessageResponse> {
   const userId = request.userId;
   const ctx = await resolveChildCompanionContext(userId, request.message);
-  const crisis = detectCrisisSignal(request.message);
 
   const clientHistory = (request.history ?? [])
     .filter((m) => m.role === "user" || m.role === "assistant")
@@ -101,11 +163,15 @@ export async function sendMessage(
       ? ctx.storedHistory.map(({ role, content }) => ({ role, content }))
       : clientHistory;
 
+  const safety = checkChildSafety(request.message, recentChildMessages(historyForLlm));
+
   const llm = await companionChat(
     request.message,
     historyForLlm,
     ctx.companion,
-    crisis.detected ? { systemAddendum: CRISIS_TURN_SYSTEM_ADDENDUM } : undefined
+    safety.plan.systemAddendum
+      ? { systemAddendum: safety.plan.systemAddendum }
+      : undefined
   );
 
   const now = new Date().toISOString();
@@ -134,27 +200,12 @@ export async function sendMessage(
       reply,
       profileSummary: ctx.profileSummary,
     });
-    if (crisis.detected && crisis.level !== "none") {
-      scheduleCrisisAlert({
-        userId,
-        summary: crisis.parentSummary,
-        level: crisis.level,
-      });
-    }
+    scheduleSafetyFollowUp({ userId, check: safety });
   }
 
-  return {
-    reply,
-    ...(crisis.detected
-      ? {
-          crisis: {
-            level: crisis.level,
-            empathyHint: crisis.childEmpathyHint,
-            actions: crisis.actions,
-          },
-        }
-      : {}),
-  };
+  if (!safety.plan.showPanel) return { reply };
+  const { type: _type, ...crisis } = crisisEvent(safety.plan);
+  return { reply, crisis };
 }
 
 /**
@@ -164,7 +215,7 @@ export async function sendMessage(
 export async function* streamMessage(
   request: SendMessageRequest
 ): AsyncGenerator<
-  | { type: "crisis"; level: string; empathyHint: string; actions: unknown }
+  | ReturnType<typeof crisisEvent>
   | { type: "token"; text: string }
   | { type: "done"; reply: ConversationMessage },
   void,
@@ -174,7 +225,6 @@ export async function* streamMessage(
   const requestId = newRequestId();
   const ctxStarted = Date.now();
   const ctx = await resolveChildCompanionContext(userId, request.message);
-  const crisis = detectCrisisSignal(request.message);
   const ctxMs = Date.now() - ctxStarted;
   logObservation({
     feature: "conversation.context",
@@ -183,15 +233,6 @@ export async function* streamMessage(
     success: true,
     requestId,
   });
-
-  if (crisis.detected) {
-    yield {
-      type: "crisis",
-      level: crisis.level,
-      empathyHint: crisis.childEmpathyHint,
-      actions: crisis.actions,
-    };
-  }
 
   const clientHistory = (request.history ?? [])
     .filter((m) => m.role === "user" || m.role === "assistant")
@@ -202,6 +243,18 @@ export async function* streamMessage(
       ? ctx.storedHistory.map(({ role, content }) => ({ role, content }))
       : clientHistory;
 
+  const childContext = recentChildMessages(historyForLlm);
+  let safety = checkChildSafety(request.message, childContext);
+
+  if (safety.plan.showPanel) {
+    yield crisisEvent(safety.plan);
+  }
+
+  // Ambiguous messages get a second look while the reply streams (raise-only).
+  const review = shouldReview(safety.assessment)
+    ? reviewWithLlm({ text: request.message, context: childContext })
+    : null;
+
   const chatModel = resolveModelForPurpose("chat");
   let full = "";
 
@@ -209,10 +262,29 @@ export async function* streamMessage(
     request.message,
     historyForLlm,
     ctx.companion,
-    crisis.detected ? { systemAddendum: CRISIS_TURN_SYSTEM_ADDENDUM } : undefined
+    safety.plan.systemAddendum
+      ? { systemAddendum: safety.plan.systemAddendum }
+      : undefined
   )) {
     full += token;
     yield { type: "token", text: token };
+  }
+
+  if (review) {
+    const reviewed = await review;
+    const merged = mergeReviewedLevel(safety.assessment.level, reviewed);
+    if (merged !== safety.assessment.level) {
+      const assessment: SafetyAssessment = {
+        ...safety.assessment,
+        level: merged,
+        rules: [...safety.assessment.rules, "llm_review"],
+      };
+      const plan = planSafetyResponse(assessment);
+      if (plan.showPanel && !safety.plan.showPanel) {
+        yield crisisEvent(plan);
+      }
+      safety = { assessment, plan };
+    }
   }
 
   const now = new Date().toISOString();
@@ -244,13 +316,7 @@ export async function* streamMessage(
       reply,
       profileSummary: ctx.profileSummary,
     });
-    if (crisis.detected && crisis.level !== "none") {
-      scheduleCrisisAlert({
-        userId,
-        summary: crisis.parentSummary,
-        level: crisis.level,
-      });
-    }
+    scheduleSafetyFollowUp({ userId, check: safety });
   }
 }
 

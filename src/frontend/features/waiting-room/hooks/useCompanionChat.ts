@@ -164,6 +164,8 @@ export function useCompanionChat(
               message?: string;
               level?: string;
               empathyHint?: string;
+              guidance?: string;
+              transparency?: string;
               actions?: ConversationCrisisDto["actions"];
             };
 
@@ -171,6 +173,8 @@ export function useCompanionChat(
               setCrisis({
                 level: event.level ?? "elevated",
                 empathyHint: event.empathyHint,
+                guidance: event.guidance,
+                transparency: event.transparency,
                 actions: event.actions,
               });
             } else if (event.type === "token" && event.text) {
