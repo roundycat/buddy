@@ -20,10 +20,12 @@ export async function POST(request: Request) {
         password?: unknown;
         name?: unknown;
         role?: unknown;
+        childAgeBand?: unknown;
         agreements?: {
           ageOrGuardian?: unknown;
           terms?: unknown;
           privacy?: unknown;
+          sensitive?: unknown;
           marketing?: unknown;
         };
       }>(request);
@@ -35,10 +37,15 @@ export async function POST(request: Request) {
         body?.role === "guardian" || body?.role === "child"
           ? body.role
           : "child";
+      const childAgeBand =
+        body?.childAgeBand === "under14" || body?.childAgeBand === "14plus"
+          ? body.childAgeBand
+          : undefined;
       const agreements = {
         ageOrGuardian: body?.agreements?.ageOrGuardian === true,
         terms: body?.agreements?.terms === true,
         privacy: body?.agreements?.privacy === true,
+        sensitive: body?.agreements?.sensitive === true,
         marketing: body?.agreements?.marketing === true,
       };
 
@@ -46,7 +53,14 @@ export async function POST(request: Request) {
         throw new HttpError("이름, 이메일, 비밀번호를 입력해 주세요.", 400);
       }
 
-      const result = await signup({ email, password, name, role, agreements });
+      const result = await signup({
+        email,
+        password,
+        name,
+        role,
+        childAgeBand,
+        agreements,
+      });
       const isGuardian = result.user.role === "guardian";
       // New child accounts always need onboarding.
       const needsOnboarding = !isGuardian;

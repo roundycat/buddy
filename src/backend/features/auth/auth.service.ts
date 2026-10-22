@@ -13,6 +13,10 @@ import {
   verifyDynamoPassword,
 } from "./auth.users.dynamo.repo";
 import { passwordValidationMessage } from "@/shared/auth/password";
+import {
+  discardChildSignupConsent,
+  recordChildSignupConsent,
+} from "@/backend/features/consent/consent.service";
 
 /**
  * Auth Service
@@ -176,12 +180,32 @@ export async function signup(request: SignupRequest): Promise<LoginResult> {
   }
 
   const agreements = request.agreements;
-  if (
-    !agreements?.ageOrGuardian ||
-    !agreements?.terms ||
-    !agreements?.privacy
-  ) {
-    throw new AuthError("필수 약관에 모두 동의해 주세요.", 400);
+  const childAgeBand = role === "child" ? request.childAgeBand : undefined;
+  if (role === "guardian") {
+    if (
+      !agreements?.ageOrGuardian ||
+      !agreements?.terms ||
+      !agreements?.privacy
+    ) {
+      throw new AuthError("필수 약관에 모두 동의해 주세요.", 400);
+    }
+  } else {
+    if (childAgeBand !== "under14" && childAgeBand !== "14plus") {
+      throw new AuthError("만 14세 미만인지, 이상인지 골라 주세요.", 400);
+    }
+    if (!agreements?.terms) {
+      throw new AuthError("필수 약관에 모두 동의해 주세요.", 400);
+    }
+    // Under 14, privacy + sensitive-data consent comes from the legal guardian.
+    if (
+      childAgeBand === "14plus" &&
+      (!agreements.privacy || !agreements.sensitive)
+    ) {
+      throw new AuthError(
+        "개인정보 수집·이용과 민감정보 처리에 각각 동의해 주세요.",
+        400
+      );
+    }
   }
 
   const passwordError = passwordValidationMessage(password);
@@ -200,9 +224,23 @@ export async function signup(request: SignupRequest): Promise<LoginResult> {
   if (existing) {
     throw new AuthError("이미 가입된 이메일입니다.", 409);
   }
+  const id = `user-${crypto.randomUUID()}`;
+  // Consent state is written before the account exists, so a child can
+  // never end up as an unguarded "legacy" account if this write fails.
+  if (role === "child" && childAgeBand) {
+    await recordChildSignupConsent({
+      childUserId: id,
+      childName: name,
+      ageBand: childAgeBand,
+      selfItems: {
+        privacyCollection: agreements?.privacy === true,
+        sensitiveData: agreements?.sensitive === true,
+      },
+    });
+  }
   try {
     const user = await createDynamoUser({
-      id: `user-${crypto.randomUUID()}`,
+      id,
       email,
       name,
       role,
@@ -211,6 +249,11 @@ export async function signup(request: SignupRequest): Promise<LoginResult> {
     const token = await createSessionToken(user);
     return { user, token };
   } catch (error) {
+    if (role === "child") {
+      await discardChildSignupConsent(id).catch((cleanupError) => {
+        console.error("[auth] signup consent rollback failed:", cleanupError);
+      });
+    }
     if (error instanceof Error && error.message === "DUPLICATE_EMAIL") {
       throw new AuthError("이미 가입된 이메일입니다.", 409);
     }
