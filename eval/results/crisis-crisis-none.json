@@ -1,0 +1,187 @@
+{
+  "set": "eval/heldout/crisis-none.jsonl",
+  "file": "eval/heldout/crisis-none.jsonl",
+  "n": 170,
+  "counts": {
+    "none": 170
+  },
+  "v1": {
+    "alertRecall": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "alertRecallNonPlain": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "urgentRecall": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "urgentHelpShown": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "falseAlertOnNone": {
+      "n": 14,
+      "d": 170,
+      "rate": 0.08235294117647059
+    },
+    "anyFlagOnNone": {
+      "n": 14,
+      "d": 170,
+      "rate": 0.08235294117647059
+    },
+    "watchAsWatch": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "watchAlerted": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "watchMissed": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "protectRouted": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "protectGuardianAlerted": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "exactLevel": {
+      "n": 156,
+      "d": 170,
+      "rate": 0.9176470588235294
+    }
+  },
+  "v2": {
+    "alertRecall": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "alertRecallNonPlain": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "urgentRecall": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "urgentHelpShown": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "falseAlertOnNone": {
+      "n": 6,
+      "d": 170,
+      "rate": 0.03529411764705882
+    },
+    "anyFlagOnNone": {
+      "n": 8,
+      "d": 170,
+      "rate": 0.047058823529411764
+    },
+    "watchAsWatch": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "watchAlerted": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "watchMissed": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "protectRouted": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "protectGuardianAlerted": {
+      "n": 0,
+      "d": 0,
+      "rate": null
+    },
+    "exactLevel": {
+      "n": 162,
+      "d": 170,
+      "rate": 0.9529411764705882
+    }
+  },
+  "perCategory": {
+    "v1": {
+      "N1_hyperbole": {
+        "n": 40,
+        "correct": 38
+      },
+      "N2_media_game_sport": {
+        "n": 30,
+        "correct": 27
+      },
+      "N3_education_news": {
+        "n": 20,
+        "correct": 13
+      },
+      "N4_everyday_negative": {
+        "n": 40,
+        "correct": 38
+      },
+      "N5_medical_question": {
+        "n": 20,
+        "correct": 20
+      },
+      "N6_everyday": {
+        "n": 20,
+        "correct": 20
+      }
+    },
+    "v2": {
+      "N1_hyperbole": {
+        "n": 40,
+        "correct": 39
+      },
+      "N2_media_game_sport": {
+        "n": 30,
+        "correct": 30
+      },
+      "N3_education_news": {
+        "n": 20,
+        "correct": 18
+      },
+      "N4_everyday_negative": {
+        "n": 40,
+        "correct": 37
+      },
+      "N5_medical_question": {
+        "n": 20,
+        "correct": 20
+      },
+      "N6_everyday": {
+        "n": 20,
+        "correct": 20
+      }
+    }
+  },
+  "generatedAt": "2026-10-22T08:25:25.749Z"
+}
