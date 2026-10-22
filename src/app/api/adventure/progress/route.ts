@@ -1,6 +1,7 @@
 import { requireAuthUser } from "@/backend/shared/http/auth";
 import { updateAdventureProgress } from "@/backend/features/adventure-quest/adventure-quest.service";
 import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/route";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
+    await assertChildConsented(user);
     const body = await readJsonBody<{
       questId?: string;
       note?: string;

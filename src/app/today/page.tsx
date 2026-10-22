@@ -2,7 +2,12 @@ import { PersonaGreeting } from "@/frontend/features/persona/components/PersonaG
 import { MedicationLog } from "@/frontend/features/timeline/components/MedicationLog";
 import { MoodCheckIn } from "@/frontend/features/mood/components/MoodCheckIn";
 import { TopBrandBar } from "@/frontend/shared/components/TopBrandBar";
-import { loadPersona, loadTimeline } from "@/app/_server/loaders";
+import {
+  loadChildConsentPending,
+  loadPersona,
+  loadTimeline,
+} from "@/app/_server/loaders";
+import { ChildConsentPendingScreen } from "@/frontend/features/consent/components/ChildConsentPendingScreen";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +15,10 @@ export const dynamic = "force-dynamic";
  * 오늘의 공간 — 복약, 기분 체크인, 동반자 인사.
  */
 export default async function TodayPage() {
+  // Under 14: nothing is collected or generated until a guardian consents.
+  if (await loadChildConsentPending()) {
+    return <ChildConsentPendingScreen showBack />;
+  }
   const [personaData, timelineData] = await Promise.all([
     loadPersona(),
     loadTimeline(),

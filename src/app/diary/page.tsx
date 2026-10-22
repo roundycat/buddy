@@ -2,11 +2,19 @@ import { Suspense } from "react";
 import { PictureDiaryView } from "@/frontend/features/picture-diary/components/PictureDiaryView";
 import { TopBrandBar } from "@/frontend/shared/components/TopBrandBar";
 import { SoftSkeleton } from "@/frontend/shared/components/ChildUi";
-import { loadPictureDiary } from "@/app/_server/loaders";
+import {
+  loadChildConsentPending,
+  loadPictureDiary,
+} from "@/app/_server/loaders";
+import { ChildConsentPendingScreen } from "@/frontend/features/consent/components/ChildConsentPendingScreen";
 
 export const dynamic = "force-dynamic";
 
 export default async function DiaryPage() {
+  // Under 14: nothing is collected or generated until a guardian consents.
+  if (await loadChildConsentPending()) {
+    return <ChildConsentPendingScreen showBack />;
+  }
   const diary = await loadPictureDiary();
 
   return (

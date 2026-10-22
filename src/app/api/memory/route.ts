@@ -1,6 +1,7 @@
 import { getMemoryTimeline } from "@/backend/features/memory-timeline/memory-timeline.service";
 import { getSessionUser } from "@/backend/shared/http/auth";
 import { withApiGuard } from "@/backend/shared/http/route";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   return withApiGuard(async () => {
     const user = await getSessionUser();
+    if (user) await assertChildConsented(user);
     return getMemoryTimeline(user?.id);
   }, "기억 타임라인을 불러올 수 없습니다.", "[api/memory]");
 }

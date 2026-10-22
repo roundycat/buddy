@@ -4,6 +4,7 @@ import {
   getWeatherForUser,
   reportCoarseLocation,
 } from "@/backend/features/weather/weather.service";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 
 /**
  * Server-side weather (STEP 4).
@@ -13,6 +14,7 @@ import {
 export async function GET() {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
+    await assertChildConsented(user);
     const weather = await getWeatherForUser(user.id);
     return {
       emoji: weather.emoji,
@@ -27,6 +29,7 @@ export async function GET() {
 export async function POST(request: Request) {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
+    await assertChildConsented(user);
     const body = await readJsonBody<{ lat?: unknown; lon?: unknown }>(request);
     const lat = typeof body?.lat === "number" ? body.lat : Number(body?.lat);
     const lon = typeof body?.lon === "number" ? body.lon : Number(body?.lon);

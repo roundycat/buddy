@@ -6,6 +6,7 @@ import {
 } from "@/backend/features/hospital-day/hospital-day.service";
 import { todayKey } from "@/backend/shared/time/date";
 import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/route";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
+    await assertChildConsented(user);
     const { searchParams } = new URL(request.url);
     const month = searchParams.get("month");
     const date = searchParams.get("date");
@@ -41,6 +43,7 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
   return withApiGuard(async () => {
     const user = await requireChildUser();
+    await assertChildConsented(user);
     const body = await readJsonBody<{ id?: unknown; done?: unknown }>(request);
     const id = typeof body?.id === "string" ? body.id : "";
     const done = body?.done === true;

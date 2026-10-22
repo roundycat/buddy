@@ -1,11 +1,13 @@
 import { requireChildUser } from "@/backend/shared/http/auth";
 import { HttpError, withApiGuard } from "@/backend/shared/http/route";
 import { saveStorybookProgress } from "@/backend/features/growth-storybook/growth-storybook.store";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 
 export async function PATCH(request: Request) {
   return withApiGuard(
     async () => {
       const user = await requireChildUser();
+      await assertChildConsented(user);
       const body = (await request.json().catch(() => null)) as {
         pageIndex?: number;
         completed?: boolean;

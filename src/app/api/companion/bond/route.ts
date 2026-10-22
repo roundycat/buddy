@@ -12,6 +12,7 @@ import {
   readJsonBody,
   withApiGuard,
 } from "@/backend/shared/http/route";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ const CARES: CareType[] = ["cheer", "hug", "stay"];
 export async function GET() {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
+    await assertChildConsented(user);
     return getCompanionBond(user.id);
   }, "유대감을 불러오지 못했어요.", "[api/companion/bond GET]");
 }
@@ -29,6 +31,7 @@ export async function POST(request: Request) {
   return withApiGuard(
     async () => {
       const user = await requireAuthUser();
+      await assertChildConsented(user);
       const body = await readJsonBody<{
         action?: unknown;
         careType?: unknown;

@@ -1,13 +1,21 @@
-import { loadHospitalDay } from "@/app/_server/loaders";
+import {
+  loadChildConsentPending,
+  loadHospitalDay,
+} from "@/app/_server/loaders";
 import { getHospitalScheduleMonth } from "@/backend/features/hospital-day/hospital-day.service";
 import { HospitalScheduleView } from "@/frontend/features/hospital-day/components/HospitalScheduleView";
 import { TopBrandBar } from "@/frontend/shared/components/TopBrandBar";
 import { getSessionUser } from "@/backend/shared/http/auth";
 import { todayKey } from "@/backend/shared/time/date";
+import { ChildConsentPendingScreen } from "@/frontend/features/consent/components/ChildConsentPendingScreen";
 
 export const dynamic = "force-dynamic";
 
 export default async function HospitalPage() {
+  // Under 14: nothing is collected or generated until a guardian consents.
+  if (await loadChildConsentPending()) {
+    return <ChildConsentPendingScreen showBack />;
+  }
   const user = await getSessionUser();
   const [day, month] = await Promise.all([
     loadHospitalDay(),

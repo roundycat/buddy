@@ -1,11 +1,19 @@
 import Link from "next/link";
 import { WalletView } from "@/frontend/features/wallet/components/WalletView";
 import { FeaturePageShell } from "@/frontend/shared/components/FeaturePageShell";
-import { loadWallet } from "@/app/_server/loaders";
+import {
+  loadChildConsentPending,
+  loadWallet,
+} from "@/app/_server/loaders";
+import { ChildConsentPendingScreen } from "@/frontend/features/consent/components/ChildConsentPendingScreen";
 
 export const dynamic = "force-dynamic";
 
 export default async function WalletPage() {
+  // Under 14: nothing is collected or generated until a guardian consents.
+  if (await loadChildConsentPending()) {
+    return <ChildConsentPendingScreen showBack />;
+  }
   const wallet = await loadWallet();
 
   return (

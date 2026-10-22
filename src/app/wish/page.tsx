@@ -1,7 +1,11 @@
 import nextDynamic from "next/dynamic";
 import { FeaturePageShell } from "@/frontend/shared/components/FeaturePageShell";
 import { SoftSkeleton } from "@/frontend/shared/components/ChildUi";
-import { loadWishTree } from "@/app/_server/loaders";
+import {
+  loadChildConsentPending,
+  loadWishTree,
+} from "@/app/_server/loaders";
+import { ChildConsentPendingScreen } from "@/frontend/features/consent/components/ChildConsentPendingScreen";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +20,10 @@ const WishTreeView = nextDynamic(
 );
 
 export default async function WishPage() {
+  // Under 14: nothing is collected or generated until a guardian consents.
+  if (await loadChildConsentPending()) {
+    return <ChildConsentPendingScreen showBack />;
+  }
   const tree = await loadWishTree();
 
   return (

@@ -1,7 +1,11 @@
 import nextDynamic from "next/dynamic";
 import { TopBrandBar } from "@/frontend/shared/components/TopBrandBar";
 import { SoftSkeleton } from "@/frontend/shared/components/ChildUi";
-import { loadGrowthStorybook } from "@/app/_server/loaders";
+import {
+  loadChildConsentPending,
+  loadGrowthStorybook,
+} from "@/app/_server/loaders";
+import { ChildConsentPendingScreen } from "@/frontend/features/consent/components/ChildConsentPendingScreen";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +20,10 @@ const GrowthStorybookView = nextDynamic(
 );
 
 export default async function StorybookPage() {
+  // Under 14: nothing is collected or generated until a guardian consents.
+  if (await loadChildConsentPending()) {
+    return <ChildConsentPendingScreen showBack />;
+  }
   const book = await loadGrowthStorybook();
 
   return (

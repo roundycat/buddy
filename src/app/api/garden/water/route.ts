@@ -5,11 +5,13 @@ import {
   readJsonBody,
   withApiGuard,
 } from "@/backend/shared/http/route";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 
 /** Give one plant a gentle watering (mood care). */
 export async function POST(request: Request) {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
+    await assertChildConsented(user);
     const body = await readJsonBody<{ plantId?: string }>(request);
     if (!body?.plantId) {
       throw new HttpError("어떤 자리에 물을 줄지 알려 주세요.", 400);
