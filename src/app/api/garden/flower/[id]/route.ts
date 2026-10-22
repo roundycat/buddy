@@ -2,6 +2,8 @@ import { requireAuthUser } from "@/backend/shared/http/auth";
 import { getFlowerMemoryCard } from "@/backend/features/emotion-garden/emotion-garden.memory";
 import { HttpError, withApiGuard } from "@/backend/shared/http/route";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> | { id: string } }

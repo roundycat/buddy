@@ -9,6 +9,8 @@ import type { WishHorizon } from "@/backend/features/wish-tree/wish-tree.types";
 import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/route";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiGuard(async () => {
     const user = await requireAuthUser();

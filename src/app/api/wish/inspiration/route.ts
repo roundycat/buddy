@@ -3,6 +3,8 @@ import { withApiGuard } from "@/backend/shared/http/route";
 import { suggestWishInspiration } from "@/backend/features/wish-tree/wish-tree.inspiration";
 import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return withApiGuard(async () => {
     const user = await requireAuthUser();

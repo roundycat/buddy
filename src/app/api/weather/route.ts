@@ -6,6 +6,8 @@ import {
 } from "@/backend/features/weather/weather.service";
 import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Server-side weather (STEP 4).
  * POST body: { lat, lon } — rounded to 1 decimal and stored with TTL.

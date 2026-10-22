@@ -2,6 +2,8 @@ import { requireAuthUser } from "@/backend/shared/http/auth";
 import { getLeafMemoryCard } from "@/backend/features/wish-tree/wish-tree.memory";
 import { HttpError, withApiGuard } from "@/backend/shared/http/route";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> | { id: string } }

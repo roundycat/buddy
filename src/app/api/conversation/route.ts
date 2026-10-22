@@ -13,6 +13,8 @@ import { DomainError, domainStatus } from "@/backend/shared/http/domain-error";
 import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 import { MAX_CHAT_MESSAGE_CHARS } from "@/shared/chat/limits";
 
+export const dynamic = "force-dynamic";
+
 const SLOW_DOWN = "오늘 이야기를 정말 많이 나눴어! 조금 쉬었다가 다시 이야기하자.";
 const TOO_LONG = "이야기가 길어서 한 번에 받기 어려워. 조금씩 나눠서 보내 줄래?";
 
