@@ -26,8 +26,10 @@ import {
  * consent (with a consent record), so the gate is open from the first login and
  * judges can try "동의 철회" to see it close.
  *
- *   judge: JUDGE_PASSWORD
+ *   judge:  JUDGE_PASSWORD
  *          → judge-child@beddy.test / judge-guardian@beddy.test
+ *   judge2: JUDGE_PASSWORD (for trying consent withdrawal, which erases records)
+ *          → judge2-child@beddy.test / judge2-guardian@beddy.test
  *   demo:  DEMO_CHILD_PASSWORD / DEMO_GUARDIAN_PASSWORD (or DEMO_PASSWORD for both)
  *          → demo-child@beddy.test / demo-guardian@beddy.test
  *
@@ -39,7 +41,7 @@ import {
 type SeedUser = { id: string; email: string; name: string };
 
 type SeedPair = {
-  label: "judge" | "demo";
+  label: "judge" | "judge2" | "demo";
   childPasswordEnv: string[];
   guardianPasswordEnv: string[];
   child: SeedUser;
@@ -53,6 +55,14 @@ export const SEED_PAIRS: SeedPair[] = [
     guardianPasswordEnv: ["JUDGE_PASSWORD"],
     child: { id: "user-judge-child", email: "judge-child@beddy.test", name: "하늘" },
     guardian: { id: "user-judge-guardian", email: "judge-guardian@beddy.test", name: "하늘 보호자" },
+  },
+  {
+    // For trying consent withdrawal — it erases this pair's records, not judge's.
+    label: "judge2",
+    childPasswordEnv: ["JUDGE_PASSWORD"],
+    guardianPasswordEnv: ["JUDGE_PASSWORD"],
+    child: { id: "user-judge2-child", email: "judge2-child@beddy.test", name: "바다" },
+    guardian: { id: "user-judge2-guardian", email: "judge2-guardian@beddy.test", name: "바다 보호자" },
   },
   {
     label: "demo",

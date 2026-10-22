@@ -29,8 +29,8 @@ describe("file-backed accounts", () => {
 
   it("seeds the judge pair once, skips a password that breaks the rules", async () => {
     const { ensureSeedAccounts } = await import("./seed-accounts");
-    expect(await ensureSeedAccounts()).toEqual(["judge:created/created"]);
-    expect(await ensureSeedAccounts()).toEqual(["judge:kept/kept"]);
+    expect(await ensureSeedAccounts()).toEqual(["judge:created/created", "judge2:created/created"]);
+    expect(await ensureSeedAccounts()).toEqual(["judge:kept/kept", "judge2:kept/kept"]);
 
     const { getLinkForGuardian } = await import("@/backend/features/guardian-link/guardian-link.store");
     expect((await getLinkForGuardian("user-judge-guardian"))?.childUserId).toBe("user-judge-child");

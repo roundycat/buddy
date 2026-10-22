@@ -372,6 +372,7 @@ cat <<DONE
   (CloudFront 배포가 전 세계에 퍼지는 데 5~10분 걸릴 수 있어요)
 
   심사 계정:   judge-child@beddy.test / judge-guardian@beddy.test  (JUDGE_PASSWORD)
+  철회 시험용: judge2-child@beddy.test / judge2-guardian@beddy.test (JUDGE_PASSWORD)
   시연 계정:   demo-child@beddy.test / demo-guardian@beddy.test    (DEMO_CHILD_PASSWORD / DEMO_GUARDIAN_PASSWORD)
   데모·심사 계정 비밀번호 확인:
     aws ssm get-parameters-by-path --path ${PARAM} --with-decryption \\
