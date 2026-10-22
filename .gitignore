@@ -64,3 +64,6 @@ next-env.d.ts
 # python cache
 __pycache__/
 *.pyc
+
+# form previews (docs/contest/forms/preview.sh)
+docs/contest/forms/out/preview/
