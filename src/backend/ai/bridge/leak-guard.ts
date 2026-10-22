@@ -179,9 +179,13 @@ interface Eojeol {
   norm: string;
 }
 
+/** Anything that is not a letter/digit we care about splits eojeol. */
+const TOKEN_SPLIT_RE =
+  /[^0-9A-Za-zÀ-ɏᄀ-ᇿ㄰-㆏가-힣]+/;
+
 function eojeols(text: string): Eojeol[] {
   return text
-    .split(/[^\p{L}\p{N}]+/u)
+    .split(TOKEN_SPLIT_RE)
     .filter((t) => t && /[가-힣A-Za-z0-9]/.test(t))
     .map((raw) => ({ raw, norm: stripParticle(raw.toLowerCase()) }));
 }
@@ -812,7 +816,7 @@ function extractNameCandidates(childTexts: string[]): string[] {
     for (const m of Array.from(msg.matchAll(/[가-힣]OO/g))) out.add(m[0]);
 
     const tokens = msg
-      .split(/[^\p{L}\p{N}]+/u)
+      .split(TOKEN_SPLIT_RE)
       .filter((t) => t && /[가-힣]/.test(t));
     tokens.forEach((tok, i) => {
       const chars = Array.from(tok);
