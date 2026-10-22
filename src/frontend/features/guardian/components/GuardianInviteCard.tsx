@@ -11,7 +11,8 @@ interface InvitePayload {
 }
 
 /**
- * Child invite code panel — opened from settings (TopBrandBar).
+ * Child invite code panel — opened from settings (TopBrandBar), and shown
+ * inline (without 닫기) while waiting for legal-guardian consent.
  */
 export function GuardianInviteCard({
   className,
@@ -20,7 +21,7 @@ export function GuardianInviteCard({
 }: {
   className?: string;
   open: boolean;
-  onClose: () => void;
+  onClose?: () => void;
 }) {
   const [invite, setInvite] = useState<InvitePayload | null>(null);
   const [error, setError] = useState("");
@@ -97,13 +98,15 @@ export function GuardianInviteCard({
           <RefreshCw className="h-3 w-3" strokeWidth={1.75} />
           새 코드
         </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-[11px] text-bedi-slate/35 hover:text-bedi-slate/55"
-        >
-          닫기
-        </button>
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[11px] text-bedi-slate/35 hover:text-bedi-slate/55"
+          >
+            닫기
+          </button>
+        ) : null}
       </div>
     </div>
   );

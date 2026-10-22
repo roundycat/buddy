@@ -11,6 +11,7 @@ import {
   LogOut,
   Palette,
   Settings,
+  ShieldCheck,
   Sparkles,
   UserRound,
   UserX,
@@ -290,6 +291,14 @@ export function TopBrandBar({
                   <Link2 className="h-3.5 w-3.5 text-bedi-slate/40" strokeWidth={1.5} />
                   보호자와 연결하기
                 </button>
+                <Link
+                  href="/sharing"
+                  onClick={() => setOpen(false)}
+                  className={menuItemClass}
+                >
+                  <ShieldCheck className="h-3.5 w-3.5 text-bedi-sage" strokeWidth={1.5} />
+                  보호자와 나누기
+                </Link>
               </MenuSection>
 
               <div className="mx-3 border-t border-bedi-slate/8" />

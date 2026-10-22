@@ -2,7 +2,11 @@ import { Suspense } from "react";
 import nextDynamic from "next/dynamic";
 import { FeaturePageShell } from "@/frontend/shared/components/FeaturePageShell";
 import { SoftSkeleton } from "@/frontend/shared/components/ChildUi";
-import { loadEmotionGarden } from "@/app/_server/loaders";
+import { ChildConsentPendingScreen } from "@/frontend/features/consent/components/ChildConsentPendingScreen";
+import {
+  loadChildConsentPending,
+  loadEmotionGarden,
+} from "@/app/_server/loaders";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +21,10 @@ const EmotionGardenView = nextDynamic(
 );
 
 export default async function GardenPage() {
+  // Today's seed suggestion may come from the LLM
+  if (await loadChildConsentPending()) {
+    return <ChildConsentPendingScreen showBack />;
+  }
   const garden = await loadEmotionGarden();
 
   return (

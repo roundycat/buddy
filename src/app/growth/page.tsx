@@ -1,10 +1,18 @@
 import { GrowthJournalView } from "@/frontend/features/growth-journal/components/GrowthJournalView";
 import { TopBrandBar } from "@/frontend/shared/components/TopBrandBar";
-import { loadGrowthJournal } from "@/app/_server/loaders";
+import { ChildConsentPendingScreen } from "@/frontend/features/consent/components/ChildConsentPendingScreen";
+import {
+  loadChildConsentPending,
+  loadGrowthJournal,
+} from "@/app/_server/loaders";
 
 export const dynamic = "force-dynamic";
 
 export default async function GrowthPage() {
+  // Moments are polished by the LLM on load
+  if (await loadChildConsentPending()) {
+    return <ChildConsentPendingScreen showBack />;
+  }
   const growth = await loadGrowthJournal();
 
   return (

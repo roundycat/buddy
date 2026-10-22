@@ -46,6 +46,11 @@ export function ParentTimelineView({ data }: { data: ParentTimelineResponse }) {
   const selectedCell = payload.calendarDays.find(
     (d) => d.dateKey === selectedKey
   );
+  const childKeepsPrivate = (["mood", "adventures", "memoryHighlights"] as const)
+    .filter((c) => payload.sharing?.[c] === "child_private")
+    .map((c) =>
+      c === "mood" ? "감정" : c === "adventures" ? "모험" : "기억"
+    );
 
   async function loadMonth(nextKey: string) {
     setLoading(true);
@@ -157,6 +162,12 @@ export function ParentTimelineView({ data }: { data: ParentTimelineResponse }) {
           <span>🌱 감정</span>
           <span>· 조용한 날</span>
         </div>
+        {childKeepsPrivate.length > 0 ? (
+          <p className="mt-3 text-[12px] leading-relaxed text-slate-400">
+            🔒 아이가 아직 나누지 않은 {childKeepsPrivate.join("·")} 기록은 보이지
+            않아요.
+          </p>
+        ) : null}
       </ParentCard>
 
       {selectedCell?.inMonth ? (

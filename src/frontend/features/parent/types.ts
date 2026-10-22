@@ -15,4 +15,8 @@ export type {
   ParentCalendarDay,
   ParentCalendarMark,
   ParentTimelineScheduleItem,
+  ParentShareVisibility,
+  ParentSharingFlags,
+  ParentConsentGate,
+  ParentConcernNotice,
 } from "@/backend/features/parent/parent.types";

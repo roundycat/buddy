@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import nextDynamic from "next/dynamic";
 import { getSessionUser } from "@/backend/shared/http/auth";
+import { loadChildConsentPending } from "@/app/_server/loaders";
 import { PageSkeleton } from "@/frontend/shared/components/ChildUi";
 
 export const metadata: Metadata = {
@@ -19,11 +20,18 @@ const OnboardingFlow = nextDynamic(
 );
 
 export default async function OnboardingPage() {
-  const user = await getSessionUser();
+  const [user, consentPending] = await Promise.all([
+    getSessionUser(),
+    loadChildConsentPending(),
+  ]);
 
   return (
     <main className="flex min-h-screen items-center justify-center">
-      <OnboardingFlow accountName={user?.name ?? ""} />
+      <OnboardingFlow
+        accountName={user?.name ?? ""}
+        accountId={user?.id}
+        consentPending={consentPending}
+      />
     </main>
   );
 }

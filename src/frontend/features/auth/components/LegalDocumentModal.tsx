@@ -4,10 +4,15 @@ import { useEffect } from "react";
 import {
   PRIVACY_COLLECTION,
   PRIVACY_POLICY,
+  SENSITIVE_DATA_CONSENT,
   TERMS_OF_SERVICE,
 } from "@/frontend/features/auth/lib/legal-copy";
 
-export type LegalDocId = "terms" | "privacy-collection" | "privacy-policy";
+export type LegalDocId =
+  | "terms"
+  | "privacy-collection"
+  | "sensitive-data"
+  | "privacy-policy";
 
 const DOCS: Record<
   LegalDocId,
@@ -15,7 +20,7 @@ const DOCS: Record<
     title: string;
     updatedAt: string;
     sections: ReadonlyArray<{ heading: string; body: string }>;
-    table?: typeof PRIVACY_COLLECTION.summaryRows;
+    table?: ReadonlyArray<{ purpose: string; items: string; retention: string }>;
     notice?: string;
   }
 > = {
@@ -26,6 +31,13 @@ const DOCS: Record<
     sections: PRIVACY_COLLECTION.sections,
     table: PRIVACY_COLLECTION.summaryRows,
     notice: PRIVACY_COLLECTION.notice,
+  },
+  "sensitive-data": {
+    title: SENSITIVE_DATA_CONSENT.title,
+    updatedAt: SENSITIVE_DATA_CONSENT.updatedAt,
+    sections: SENSITIVE_DATA_CONSENT.sections,
+    table: SENSITIVE_DATA_CONSENT.summaryRows,
+    notice: SENSITIVE_DATA_CONSENT.notice,
   },
   "privacy-policy": PRIVACY_POLICY,
 };

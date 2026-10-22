@@ -22,6 +22,7 @@ import {
 } from "@/frontend/features/companion-bond/lib/companion-bond-api";
 import { fetchAvatarChoices } from "@/frontend/features/persona/lib/fetch-avatar-choices";
 import { selectAvatarChoice } from "@/frontend/features/persona/lib/select-avatar";
+import { ConcernConsentCard } from "@/frontend/features/sharing/components/ConcernConsentCard";
 
 export interface WaitingRoomScheduleItem {
   id: string;
@@ -395,6 +396,9 @@ export function WaitingRoom({
         </p>
         <WaitingRoomWeather />
       </div>
+
+      {/* "May I tell your guardian you're having a hard time?" — only when asked */}
+      <ConcernConsentCard className="mt-3" />
 
       <div className="waiting-room-enter relative z-0 flex min-h-0 flex-1 flex-col items-center justify-end gap-1 pb-2 pt-3">
         <WaitingRoomCategories scheduleCount={scheduleTeaser.length} />

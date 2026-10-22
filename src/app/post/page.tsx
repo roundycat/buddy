@@ -2,11 +2,16 @@ import { Suspense } from "react";
 import { MemoryPostView } from "@/frontend/features/memory-post/components/MemoryPostView";
 import { TopBrandBar } from "@/frontend/shared/components/TopBrandBar";
 import { SoftSkeleton } from "@/frontend/shared/components/ChildUi";
-import { loadMemoryPost } from "@/app/_server/loaders";
+import { ChildConsentPendingScreen } from "@/frontend/features/consent/components/ChildConsentPendingScreen";
+import { loadChildConsentPending, loadMemoryPost } from "@/app/_server/loaders";
 
 export const dynamic = "force-dynamic";
 
 export default async function PostPage() {
+  // Loading the post writes letters and may ask the LLM for one
+  if (await loadChildConsentPending()) {
+    return <ChildConsentPendingScreen showBack />;
+  }
   const post = await loadMemoryPost();
 
   return (
