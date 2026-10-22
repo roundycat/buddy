@@ -118,3 +118,8 @@ export function resolveGuardianVisibility(
   }
   return out;
 }
+
+/** Stable key for caches built from a visibility map (e.g. prepared summaries). */
+export function guardianVisibilityKey(map: GuardianVisibilityMap): string {
+  return SHARE_CATEGORIES.map((c) => `${c}:${map[c]}`).join("|");
+}

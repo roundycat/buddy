@@ -13,6 +13,8 @@ export interface ParentDailyPrepRecord {
   dateKey: string;
   empathyGuide: ParentEmpathyGuide | null;
   todayMessage: string | null;
+  /** Sharing visibility the slices were built with; stale when it changes */
+  visibilityKey?: string;
   preparedAt: string;
 }
 

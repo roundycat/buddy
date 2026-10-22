@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import { requireGuardianUser } from "@/backend/shared/http/auth";
 import {
   readParentChildDiaryImage,
-  requireLinkedChildForGuardian,
+  requireGuardianMediaAccess,
 } from "@/backend/features/parent/parent-media.service";
-import { getParentSettings } from "@/backend/features/parent/parent-settings.store";
 import { HttpError, withApiGuard } from "@/backend/shared/http/route";
 
 export const dynamic = "force-dynamic";
@@ -17,12 +16,8 @@ export async function GET(
   return withApiGuard(
     async () => {
       const guardian = await requireGuardianUser();
-      const settings = await getParentSettings(guardian.id);
-      if (!settings.privacy.shareMemoryHighlights) {
-        throw new HttpError("그림·사진 공유가 꺼져 있어요.", 403);
-      }
-
-      const childUserId = await requireLinkedChildForGuardian(guardian.id);
+      // Child shares media AND guardian toggle on — else 403
+      const childUserId = await requireGuardianMediaAccess(guardian.id);
       const { id } = await context.params;
       const kind =
         new URL(request.url).searchParams.get("kind") === "photo"
