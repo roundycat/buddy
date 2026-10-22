@@ -20,7 +20,9 @@ import {
   newRequestId,
   observeAsync,
   putBeddyMetrics,
+  recordCount,
 } from "@/backend/shared/observability";
+import { guardChildFacingOutput } from "@/backend/ai/safety/v2/output-guard";
 import {
   createStreamingNameFilter,
   fillNamePlaceholders,
@@ -78,6 +80,11 @@ export async function runLlm(input: {
   applyGuardrail?: boolean;
   /** The child's name, used to resolve `{NAME}` placeholders in the answer */
   childName?: string;
+  /**
+   * The answer is shown to a child: it passes the same output filter as the chat
+   * reply (personal data, medication and method instructions, secrecy).
+   */
+  childFacing?: boolean;
 }): Promise<LlmChatResult> {
   const model = resolveModelForPurpose(input.purpose);
   const guardrail =
@@ -103,10 +110,16 @@ export async function runLlm(input: {
     }
   );
 
-  return {
-    ...result,
-    content: fillNamePlaceholders(result.content, input.childName),
-  };
+  const content = fillNamePlaceholders(result.content, input.childName);
+  if (!input.childFacing) return { ...result, content };
+  const guarded = guardChildFacingOutput(content);
+  if (guarded.flags.length) {
+    recordCount("OutputGuard", 1, {
+      feature: input.feature,
+      operation: guarded.flags.slice().sort().join(","),
+    });
+  }
+  return { ...result, content: guarded.text };
 }
 
 /** Raised when the active provider has no tool-use API (e.g. mock). */

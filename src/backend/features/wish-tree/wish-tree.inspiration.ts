@@ -49,6 +49,7 @@ export async function suggestWishInspiration(
   try {
     const result = await runLlm({
       feature: "wish.tree.inspiration",
+      childFacing: true,
       purpose: "analysis",
       childName: persona?.self?.nickname?.trim(),
       temperature: 0.7,

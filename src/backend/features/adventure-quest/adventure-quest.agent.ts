@@ -402,6 +402,7 @@ async function generatePack(
   const result = await run.stepSafe("agent.mission.generate", async () =>
     runLlm({
       feature: input.feature,
+      childFacing: true,
       purpose: GENERATE_PURPOSE,
       childName: await getChildName(input.userId),
       temperature: 0.7,

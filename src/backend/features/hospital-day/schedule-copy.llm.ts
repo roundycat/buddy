@@ -17,6 +17,7 @@ export async function composeChildScheduleCopy(input: {
     const kind = input.type === "treatment" ? "치료" : "검사";
     const result = await runLlm({
       feature: "hospital-day.schedule-copy",
+      childFacing: true,
       purpose: "analysis",
       childName: input.childName,
       temperature: 0.45,

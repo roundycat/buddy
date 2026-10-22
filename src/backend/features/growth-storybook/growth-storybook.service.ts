@@ -145,6 +145,7 @@ async function tryLlmCompose(input: {
   try {
     const result = await runLlm({
       feature: "growth-storybook.compose",
+      childFacing: true,
       purpose: "quality",
       childName: input.childName,
       messages: [

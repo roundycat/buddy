@@ -68,6 +68,7 @@ export async function suggestTodaySeed(
     try {
       const result = await runLlm({
         feature: "emotion.garden.seed",
+        childFacing: true,
         purpose: "analysis",
         childName: await getChildName(userId),
         temperature: 0.3,

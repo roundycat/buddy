@@ -103,6 +103,7 @@ async function maybeCompanionLetter(userId: string): Promise<MemoryLetter | null
 
     const result = await runLlm({
       feature: "memory.post",
+      childFacing: true,
       purpose: "analysis",
       childName,
       temperature: 0.7,

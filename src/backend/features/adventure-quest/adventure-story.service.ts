@@ -54,6 +54,7 @@ async function generateNarrative(
   try {
     const result = await runLlm({
       feature: "adventure.story",
+      childFacing: true,
       purpose: "analysis",
       childName,
       messages: [

@@ -162,6 +162,7 @@ async function enrichMomentsWithLlm(input: {
 
     const result = await runLlm({
       feature: "growth.journal",
+      childFacing: true,
       purpose: "quality",
       childName: input.childName,
       temperature: 0.5,
