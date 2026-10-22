@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CalendarDays, Stethoscope, Syringe, X } from "lucide-react";
 import { cn } from "@/frontend/shared/lib/utils";
 import { useDialogDismiss } from "@/frontend/shared/hooks/useDialogDismiss";
+import { AiMadeBadge } from "@/frontend/shared/components/AiMadeBadge";
 
 export interface ScheduleNotifyItem {
   id: string;
@@ -116,10 +117,11 @@ export function ScheduleItemImage({
 
   if (status === "ready" && url && !failedLoad) {
     return (
-      <div className="mt-3 overflow-hidden rounded-xl bg-[#F7F3EA]">
+      <div className="relative mt-3 overflow-hidden rounded-xl bg-[#F7F3EA]">
         <p className="px-3 pt-2.5 text-[11px] tracking-wide text-bedi-slate/40">
           그림으로 알아보는 일정
         </p>
+        <AiMadeBadge className="right-3 top-2" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={url}

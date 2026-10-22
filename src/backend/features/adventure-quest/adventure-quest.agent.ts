@@ -24,6 +24,7 @@ import { listAdventurePacksForUser } from "./adventure-quest.store";
 import {
   buildFactorChips,
   buildRuleBasedPack,
+  isConnectQuest,
   normalizeQuestKind,
   resolveScene,
 } from "./adventure-quest.rules";
@@ -213,7 +214,8 @@ async function planMission(
 규칙:
 - 의료·진단·처방 금지. 병실·침대 근처에서 할 수 있는 활동만.
 - 야외·무리한 활동은 avoid에 넣으세요.
-- questKinds는 photo|garden|chat|post|observe 중 서로 다르게 최대 3개.`),
+- questKinds는 photo|garden|chat|post|observe 중 서로 다르게 최대 3개.
+- 3개 중 1개는 사람과 마음을 나누는 '사람 연결' 미션이 되도록 observe를 포함하세요.`),
       task: `날짜: ${date}
 아이 이름: ${childName ?? "(미상)"}
 오늘의 컨텍스트(JSON):
@@ -313,6 +315,12 @@ export function validatePack(
     problems.push("kind가 3개 모두 같습니다. 최소 2종으로 나눠 주세요.");
   }
 
+  if (!quests.some((q) => isConnectQuest(q.title, q.hint))) {
+    problems.push(
+      "사람 연결 미션이 없습니다. 간호사·가족·친구 같은 실제 사람과 마음을 나누는 미션을 1개 넣어 주세요."
+    );
+  }
+
   const avoidNorm = new Set(avoidTitles.map(normalizeTitle));
   for (const q of quests) {
     if (avoidNorm.has(normalizeTitle(q.title))) {
@@ -403,6 +411,8 @@ async function generatePack(
           content: withBeddySafety(`당신은 입원 청소년을 위한 앱 Beddy의 오늘의 모험 Agent입니다.
 병실·복도·침대 근처에서 할 수 있는 작고 즐거운 모험을 제안하세요.
 각 모험은 앱 안에서 할 수 있어야 합니다. kind는 photo|garden|chat|post|observe 중 하나.
+3개 중 정확히 1개는 '사람 연결' 미션입니다: 간호사·의사 선생님, 가족·보호자, 병원학교 선생님·친구 같은 실제 사람에게
+한마디 건네거나 고마움·기분을 전하고, 어땠는지 한 줄 남기는 활동(kind: observe). 베디(AI)와의 대화는 사람 연결이 아닙니다.
 위험하거나 무리한 활동만 피하세요. 한국어. JSON만 출력.`),
         },
         {

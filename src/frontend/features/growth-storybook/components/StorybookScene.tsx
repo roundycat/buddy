@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import type { StorybookPage } from "@/frontend/shared/types/growth-storybook";
+import { AiMadeBadge } from "@/frontend/shared/components/AiMadeBadge";
 
 type Motif = NonNullable<StorybookPage["illustration"]>["motif"];
 type PaletteKey = NonNullable<StorybookPage["illustration"]>["palette"];
@@ -709,6 +710,7 @@ export function StoryIllustration({
               className="h-full w-full object-cover"
             />
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,transparent_58%,rgba(92,74,50,0.22)_100%)]" />
+            <AiMadeBadge className="left-1.5 top-1.5" />
             <AvatarActor url={avatarUrl} side={actorSide} size={34} />
           </div>
         ) : (

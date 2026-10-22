@@ -56,11 +56,11 @@ export function buildRuleBasedPack(
           kind: "photo",
         },
         {
-          emoji: "🎵",
-          title: withInterest("가장 좋아하는 노래 이야기하기", interest),
-          hint: "대기실에서 베디에게 노래 이야기를 들려주세요.",
-          points: 10,
-          kind: "chat",
+          emoji: "🤝",
+          title: "간호사 선생님께 날씨 인사 건네기",
+          hint: "\"오늘 햇살 좋아요\"처럼 한마디 건네 보고, 어땠는지 한 줄 남겨요.",
+          points: 15,
+          kind: "observe",
         },
         {
           emoji: "🌱",
@@ -77,9 +77,9 @@ export function buildRuleBasedPack(
       quests: [
         {
           emoji: "☔",
-          title: "빗소리 들으며 한 줄 남기기",
-          hint: "들은 느낌을 짧게 적거나 사진을 남겨도 좋아요.",
-          points: 10,
+          title: "가족에게 빗소리 이야기 들려주기",
+          hint: "빗소리가 어떻게 들렸는지 엄마·아빠나 보호자에게 말해 보고, 한 줄 남겨요.",
+          points: 12,
           kind: "observe",
         },
         {
@@ -106,8 +106,8 @@ export function buildRuleBasedPack(
       quests: [
         {
           emoji: "💪",
-          title: "검사 후 용기 한마디 남기기",
-          hint: "짧은 메모로 용기를 남겨 주세요.",
+          title: "도와준 선생님께 고맙다고 말하기",
+          hint: "검사가 끝나면 도와준 선생님께 고맙다고 말해 보고, 용기 한마디를 남겨요.",
           points: 20,
           kind: "observe",
         },
@@ -139,11 +139,11 @@ export function buildRuleBasedPack(
           kind: "garden",
         },
         {
-          emoji: "🎧",
-          title: withInterest("좋아하는 음악 이야기하기", interest),
-          hint: "대기실에서 베디에게 한 곡만 이야기해 주세요.",
-          points: 10,
-          kind: "chat",
+          emoji: "🤝",
+          title: "곁에 있는 어른에게 기분 한 단어",
+          hint: "\"오늘은 '노곤'\"처럼 한 단어면 충분해요. 말해 보고 한 줄 남겨요.",
+          points: 12,
+          kind: "observe",
         },
         {
           emoji: "📷",
@@ -272,6 +272,17 @@ const KIND_SET = new Set<AdventureQuestKind>([
   "post",
   "observe",
 ]);
+
+/**
+ * Person-connection missions: the AI friend should lead back to people.
+ * At least one of the day's quests must involve someone in the child's life.
+ */
+export const CONNECT_QUEST_RE =
+  /(간호사|선생님|의사|엄마|아빠|가족|보호자|친구|옆\s?침대|동생|형|누나|언니|오빠|할머니|할아버지|어른|사람)/;
+
+export function isConnectQuest(title: string, hint = ""): boolean {
+  return CONNECT_QUEST_RE.test(`${title} ${hint}`) && !/베디/.test(title);
+}
 
 export function normalizeQuestKind(
   raw: unknown,

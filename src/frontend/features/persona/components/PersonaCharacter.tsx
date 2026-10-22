@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { AiMadeBadge } from "@/frontend/shared/components/AiMadeBadge";
 
 const TAP_LINES = [
   "오늘은 어때?",
@@ -292,6 +293,7 @@ export function PersonaCharacter({
                   ♥
                 </span>
               ))}
+              {useGenerated ? <AiMadeBadge className="-bottom-1 right-0" /> : null}
               {useGenerated ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

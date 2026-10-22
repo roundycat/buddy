@@ -32,6 +32,7 @@ import {
   shouldReview,
 } from "@/backend/ai/safety/v2/llm-review";
 import { recordSafetySignal } from "@/backend/ai/safety/v2/signal-log.store";
+import { guardCompanionReply, rhythmAddendum } from "@/backend/ai/safety/v2/relationship";
 import { createChildSafetyAlert } from "@/backend/features/safety/safety-alert.store";
 import { recordCount } from "@/backend/shared/observability";
 
@@ -103,6 +104,32 @@ function checkChildSafety(message: string, context: string[]): ChildSafetyCheck 
   return { assessment, plan: planSafetyResponse(assessment) };
 }
 
+/** Safety guidance first; rhythm nudges only when there is no safety signal. */
+function turnAddendum(
+  check: ChildSafetyCheck,
+  history: Array<{ role: string; createdAt?: string }>
+): { systemAddendum: string } | undefined {
+  const parts: string[] = [];
+  if (check.plan.systemAddendum) parts.push(check.plan.systemAddendum);
+  if (check.assessment.level === "none") {
+    const rhythm = rhythmAddendum({ history });
+    if (rhythm) parts.push(rhythm);
+  }
+  return parts.length ? { systemAddendum: parts.join("\n\n") } : undefined;
+}
+
+/** Drop exclusivity / secrecy / romance sentences from the AI reply. */
+function guardReply(text: string): string {
+  const guarded = guardCompanionReply(text);
+  if (guarded.violations.length) {
+    recordCount("RelationshipGuard", 1, {
+      feature: "safety",
+      operation: guarded.violations.join(","),
+    });
+  }
+  return guarded.text;
+}
+
 function crisisEvent(plan: SafetyResponsePlan) {
   return {
     type: "crisis" as const,
@@ -169,9 +196,7 @@ export async function sendMessage(
     request.message,
     historyForLlm,
     ctx.companion,
-    safety.plan.systemAddendum
-      ? { systemAddendum: safety.plan.systemAddendum }
-      : undefined
+    turnAddendum(safety, ctx.storedHistory)
   );
 
   const now = new Date().toISOString();
@@ -185,7 +210,7 @@ export async function sendMessage(
   const reply: ConversationMessage = {
     id: `msg-${Date.now()}`,
     role: "assistant",
-    content: llm.content,
+    content: guardReply(llm.content),
     createdAt: new Date().toISOString(),
     meta: {
       provider: llm.provider,
@@ -262,9 +287,7 @@ export async function* streamMessage(
     request.message,
     historyForLlm,
     ctx.companion,
-    safety.plan.systemAddendum
-      ? { systemAddendum: safety.plan.systemAddendum }
-      : undefined
+    turnAddendum(safety, ctx.storedHistory)
   )) {
     full += token;
     yield { type: "token", text: token };
@@ -298,7 +321,7 @@ export async function* streamMessage(
   const reply: ConversationMessage = {
     id: `msg-${Date.now()}`,
     role: "assistant",
-    content: full.trim() || "응, 여기 있을게.",
+    content: guardReply(full.trim()) || "응, 여기 있을게.",
     createdAt: new Date().toISOString(),
     meta: {
       provider: env.llmProvider,

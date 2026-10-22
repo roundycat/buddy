@@ -37,6 +37,21 @@ function kindLabel(kind: AdventureQuestKind): string {
   }
 }
 
+/** Missions that lead back to people (nurse, family, friends) — mirrors the backend rule. */
+const CONNECT_QUEST_RE =
+  /(간호사|선생님|의사|엄마|아빠|가족|보호자|친구|옆\s?침대|동생|형|누나|언니|오빠|할머니|할아버지|어른|사람)/;
+
+function questLabel(quest: { kind: AdventureQuestKind; title: string; hint?: string }): string {
+  if (
+    quest.kind === "observe" &&
+    CONNECT_QUEST_RE.test(`${quest.title} ${quest.hint ?? ""}`) &&
+    !quest.title.includes("베디")
+  ) {
+    return "사람과 나누기";
+  }
+  return kindLabel(quest.kind);
+}
+
 function actionLabel(kind: AdventureQuestKind): string {
   switch (kind) {
     case "photo":
@@ -319,7 +334,7 @@ export function AdventureQuestView({ initial }: AdventureQuestViewProps) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
                       <p className="text-[10px] tracking-wide text-bedi-slate/35">
-                        모험 {index + 1} · {kindLabel(quest.kind)}
+                        모험 {index + 1} · {questLabel(quest)}
                       </p>
                       <span className="text-[10px] text-bedi-slate/35">
                         {done

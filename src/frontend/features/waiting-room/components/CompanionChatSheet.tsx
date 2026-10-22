@@ -148,8 +148,11 @@ export function CompanionChatSheet({
             <p className="text-xs tracking-[0.14em] text-bedi-slate/40">
               페르소나 대화
             </p>
-            <p className="mt-0.5 text-sm font-medium text-bedi-slate">
+            <p className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-bedi-slate">
               {companionName}
+              <span className="rounded-full bg-bedi-sage/15 px-1.5 py-0.5 text-[10px] font-medium text-bedi-sage">
+                AI 친구
+              </span>
             </p>
           </div>
           <button
@@ -163,6 +166,10 @@ export function CompanionChatSheet({
         </div>
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 py-4">
+          <p className="rounded-xl bg-bedi-slate/[0.04] px-3 py-2 text-[11px] leading-relaxed text-bedi-slate/55">
+            {companionName}는 사람이 아닌 AI 친구예요. 아프거나 무섭거나 위험할 때는 꼭
+            간호사 선생님이나 곁에 있는 어른에게 말해 줘요.
+          </p>
           {messages.map((message) => {
             const isAssistant = message.role === "assistant";
             const isStreamingEmpty =
