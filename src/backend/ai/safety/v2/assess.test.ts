@@ -45,6 +45,13 @@ describe("assessChildMessage — risk", () => {
     expect(level("아무도 나 보러 안 와")).toBe("watch");
     expect(level("예전에 자해한 적 있는데 지금은 안 해")).toBe("watch");
   });
+  it("reads a single peer hurting the child as abuse, not the child hitting someone", () => {
+    expect(level("같은 반 애가 자꾸 때려")).toBe("protect");
+    expect(level("친구가 맨날 괴롭혀")).toBe("protect");
+    expect(level("옆 침대 애가 돈 뺏어 가")).toBe("protect");
+    expect(level("내가 친구를 때렸어")).toBe("none");
+    expect(level("게임에서 친구가 때려서 졌어ㅋㅋ")).toBe("none");
+  });
   it("routes abuse disclosure to protect, not to the guardian", () => {
     const a = assessChildMessage({ text: "아빠가 술 먹고 또 때렸어" });
     expect(a.level).toBe("protect");

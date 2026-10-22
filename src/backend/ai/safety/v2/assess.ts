@@ -107,6 +107,16 @@ const ABUSE_VIOLENCE = new RegExp(
 const ABUSE_BULLY = new RegExp(
   `${ABUSE_AGENT}[가-힣]{0,8}(괴롭혀|괴롭히|괴롭혔|왕따시|따돌|협박해|겁줘|위협)`
 );
+/**
+ * A single peer as the one doing it ("같은 반 애가 자꾸 때려", "친구가 괴롭혀").
+ * The subject particle is required so "내가 친구를 때렸어" (the child did it) is not read
+ * as the child being hurt.
+ */
+const PEER_AGENT_SUBJECT =
+  "(친구|애|반애|남자애|여자애|동생|형아|옆침대애|옆반애|그애|그친구|걔가)(가|이|들이|이가|들|도)";
+const PEER_HARM = new RegExp(
+  `${PEER_AGENT_SUBJECT}[가-힣]{0,8}(때리|때려|때렸|때림|팼|패고|발로차|발로찼|밀쳤|꼬집|괴롭혀|괴롭히|괴롭혔|따돌|왕따|협박|겁줘|돈뺏|돈을뺏)`
+);
 const ABUSE_HIT_BY =
   /(한테|에게|이랑있으면)[가-힣]{0,4}(맞았|맞아|맞을|맞는|맞고|두들겨|혼나면서맞)/;
 const ABUSE_HOME =
@@ -206,6 +216,8 @@ function scanMessage(message: string): Scan {
   if (test(ABUSE_VIOLENCE, compact)) abuse = true;
   if (test(ABUSE_SEXUAL, compact)) abuse = true;
   if (test(ABUSE_BULLY, compact)) abuse = true;
+  // Peers hurting the child — but not a game or show being described.
+  if (test(PEER_HARM, compact) && !test(MEDIA, compact)) abuse = true;
   if (test(ABUSE_HIT_BY, compact) && !test(/(주사|링거|수액|백신|접종)/, compact)) {
     abuse = true;
   }
