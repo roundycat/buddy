@@ -32,7 +32,12 @@ import {
   shouldReview,
 } from "@/backend/ai/safety/v2/llm-review";
 import { recordSafetySignal } from "@/backend/ai/safety/v2/signal-log.store";
-import { guardCompanionReply, rhythmAddendum } from "@/backend/ai/safety/v2/relationship";
+import { rhythmAddendum } from "@/backend/ai/safety/v2/relationship";
+import {
+  createOutputGuardStream,
+  guardCompanionOutput,
+  type OutputFlag,
+} from "@/backend/ai/safety/v2/output-guard";
 import { createChildSafetyAlert } from "@/backend/features/safety/safety-alert.store";
 import { recordCount } from "@/backend/shared/observability";
 
@@ -118,15 +123,21 @@ function turnAddendum(
   return parts.length ? { systemAddendum: parts.join("\n\n") } : undefined;
 }
 
-/** Drop exclusivity / secrecy / romance sentences from the AI reply. */
+function recordOutputFlags(flags: OutputFlag[]) {
+  if (!flags.length) return;
+  recordCount("OutputGuard", 1, {
+    feature: "safety",
+    operation: flags.slice().sort().join(","),
+  });
+}
+
+/**
+ * Sentence-level output filter: personal data, medication instructions, method
+ * instructions, and relationship rules (exclusivity, secrecy, romance, "I'm human").
+ */
 function guardReply(text: string): string {
-  const guarded = guardCompanionReply(text);
-  if (guarded.violations.length) {
-    recordCount("RelationshipGuard", 1, {
-      feature: "safety",
-      operation: guarded.violations.join(","),
-    });
-  }
+  const guarded = guardCompanionOutput(text);
+  recordOutputFlags(guarded.flags);
   return guarded.text;
 }
 
@@ -282,6 +293,8 @@ export async function* streamMessage(
 
   const chatModel = resolveModelForPurpose("chat");
   let full = "";
+  // Each sentence is checked before it reaches the child's screen.
+  const outputGuard = createOutputGuardStream();
 
   for await (const token of streamCompanionChat(
     request.message,
@@ -289,9 +302,18 @@ export async function* streamMessage(
     ctx.companion,
     turnAddendum(safety, ctx.storedHistory)
   )) {
-    full += token;
-    yield { type: "token", text: token };
+    const safe = outputGuard.push(token);
+    if (safe) {
+      full += safe;
+      yield { type: "token", text: safe };
+    }
   }
+  const tail = outputGuard.flush();
+  if (tail) {
+    full += tail;
+    yield { type: "token", text: tail };
+  }
+  recordOutputFlags(outputGuard.flags());
 
   if (review) {
     const reviewed = await review;
@@ -321,7 +343,7 @@ export async function* streamMessage(
   const reply: ConversationMessage = {
     id: `msg-${Date.now()}`,
     role: "assistant",
-    content: guardReply(full.trim()) || "응, 여기 있을게.",
+    content: full.trim() || "응, 여기 있을게.",
     createdAt: new Date().toISOString(),
     meta: {
       provider: env.llmProvider,
