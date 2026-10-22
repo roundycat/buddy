@@ -13,6 +13,11 @@ export interface ConversationMessage {
   meta?: {
     provider?: string;
     model?: string;
+    /**
+     * The chat model declined this turn. The child still sees it, but it is left
+     * out of what is sent to a model again (chat history, nightly jobs).
+     */
+    refused?: boolean;
   };
 }
 

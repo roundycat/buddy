@@ -5,6 +5,7 @@ import type {
 } from "./conversation.types";
 import {
   appendConversationMessages,
+  forModelContext,
   getConversationHistory,
   getConversationMemory,
 } from "./conversation.store";
@@ -27,7 +28,10 @@ import {
   type SafetyResponsePlan,
 } from "@/backend/ai/safety/v2";
 import {
-  mergeReviewedLevel,
+  mergeReviewedAssessment,
+  REVIEW_GRACE_MS,
+  REVIEW_MIN_WINDOW_MS,
+  REVIEW_TIMEOUT_MS,
   reviewWithLlm,
   shouldReview,
 } from "@/backend/ai/safety/v2/llm-review";
@@ -44,26 +48,37 @@ import {
   DEFAULT_CONCERN_SUMMARY,
   requestChildConsentForConcern,
 } from "@/backend/features/sharing/concern-request.service";
-import type { SignalCategory } from "@/backend/ai/safety/v2/types";
+import type { SafetyLevel, SignalCategory } from "@/backend/ai/safety/v2/types";
 import { recordCount } from "@/backend/shared/observability";
+import { isRefusalReply, REFUSAL_FALLBACK_TEXT } from "@/backend/shared/llm/refusal";
 
 /**
  * Conversation Service
  *
  * Persona-grounded chat + continuous learning + emotion analysis.
- * Immediate path: one Bedrock chat call. Persist/analysis run after SSE done.
+ * Immediate path: one chat call. The safety layer's writes (guardian alert,
+ * signal log) start before the reply streams; the turn is saved when the reply
+ * ends or when the child leaves mid-reply.
  */
 
-async function persistTurn(params: {
+type TurnParams = {
   userId: string;
   userMessage: ConversationMessage;
   reply: ConversationMessage;
   profileSummary: string;
-}) {
+  /** The chat model declined this turn — keep it for the child, out of model context. */
+  refused?: boolean;
+};
+
+async function persistTurn(params: TurnParams) {
+  const mark = (m: ConversationMessage): ConversationMessage =>
+    params.refused ? { ...m, meta: { ...m.meta, refused: true } } : m;
   await appendConversationMessages(params.userId, [
-    params.userMessage,
-    params.reply,
+    mark(params.userMessage),
+    mark(params.reply),
   ]);
+  // A declined turn is not learned from or analysed: both would send it to a model again.
+  if (params.refused) return;
 
   await Promise.all([
     learnFromTurn({
@@ -71,7 +86,7 @@ async function persistTurn(params: {
       userMessage: params.userMessage.content,
       assistantMessage: params.reply.content,
       profileSummary: params.profileSummary,
-      recent: await getConversationHistory(params.userId),
+      recent: forModelContext(await getConversationHistory(params.userId)),
     }),
     analyzeChatEmotion({
       userId: params.userId,
@@ -83,12 +98,7 @@ async function persistTurn(params: {
   ]);
 }
 
-function schedulePersistTurn(params: {
-  userId: string;
-  userMessage: ConversationMessage;
-  reply: ConversationMessage;
-  profileSummary: string;
-}) {
+function schedulePersistTurn(params: TurnParams) {
   void persistTurn(params).catch((error) => {
     console.error("[conversation] persistTurn failed", error);
   });
@@ -159,14 +169,13 @@ function crisisEvent(plan: SafetyResponsePlan) {
 }
 
 /**
- * After the reply: minimal guardian alert (alert levels only), signal log
- * (levels and categories, never text), and metrics.
+ * Everything the safety layer writes for one turn, with its final level:
+ * minimal guardian alert (alert levels, no harm by someone), signal log
+ * (levels and categories, never text), and the child-first concern request.
+ * Runs once per turn and does not depend on the child staying on the page.
  */
-function scheduleSafetyFollowUp(params: {
-  userId: string;
-  check: ChildSafetyCheck;
-}) {
-  const { assessment, plan } = params.check;
+function recordSafetyOutcome(userId: string | undefined, check: ChildSafetyCheck) {
+  const { assessment, plan } = check;
   recordCount("SafetySignal", 1, {
     feature: "safety",
     operation: assessment.level,
@@ -176,34 +185,101 @@ function scheduleSafetyFollowUp(params: {
     feature: "safety.signal",
     operation: assessment.level,
     success: true,
-    message: `rules=${assessment.rules.join(",")} sup=${assessment.suppressors.join(",")}`,
+    message: `rules=${assessment.rules.join(",")} sup=${assessment.suppressors.join(",")} abuse=${assessment.abuse}`,
   });
+  if (!userId) return;
   void (async () => {
     // The share policy is the single place that decides what reaches a guardian:
-    // urgent/elevated → minimal alert, protect → hospital route (no guardian alert).
-    const share = decideShare({ kind: "safety", crisisLevel: assessment.level });
+    // urgent/elevated → minimal alert; protect, or harm by someone → hospital route.
+    const share = decideShare({
+      kind: "safety",
+      crisisLevel: assessment.level,
+      abuse: assessment.abuse,
+    });
     if (share.decision === "minimal" && plan.guardianAlert) {
       await createChildSafetyAlert({
-        childUserId: params.userId,
+        childUserId: userId,
         summary: plan.guardianAlert.summary,
         level: plan.guardianAlert.level,
       });
     }
-    const signal = await recordSafetySignal(params.userId, assessment);
+    const signal = await recordSafetySignal(userId, assessment);
     // Watch signals keep coming back → ask the child before anyone is told.
     if (
       signal.persistentDistress &&
       decideShare({ kind: "concern", persistentDistress: true }).decision === "ask_child"
     ) {
-      await requestChildConsentForConcern(
-        params.userId,
-        concernSummary(assessment.categories)
-      );
+      await requestChildConsentForConcern(userId, concernSummary(assessment.categories));
       recordCount("ConcernConsentRequests", 1, { feature: "safety", operation: "ask_child" });
     }
   })().catch((error) => {
     console.error("[conversation] safety follow-up failed", error);
   });
+}
+
+function applyReview(rules: ChildSafetyCheck, reviewed: SafetyLevel | null): ChildSafetyCheck {
+  const assessment = mergeReviewedAssessment(rules.assessment, reviewed);
+  return assessment === rules.assessment
+    ? rules
+    : { assessment, plan: planSafetyResponse(assessment) };
+}
+
+const LATE = Symbol("review-late");
+
+/**
+ * The review counts if it arrives before the reply ends plus a short grace, and
+ * never gets less than REVIEW_MIN_WINDOW_MS from the start (the admin
+ * evaluation measures with that same minimum). A later result is dropped, so
+ * nothing is sent to a guardian that the child was not shown.
+ */
+async function withinReviewWindow(
+  review: Promise<SafetyLevel | null>,
+  startedAt: number
+): Promise<SafetyLevel | null> {
+  const waitMs = Math.max(REVIEW_GRACE_MS, REVIEW_MIN_WINDOW_MS - (Date.now() - startedAt));
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<typeof LATE>((resolve) => {
+    timer = setTimeout(() => resolve(LATE), waitMs);
+  });
+  const result = await Promise.race([review, late]);
+  clearTimeout(timer);
+  if (result === LATE) {
+    logObservation({ feature: "safety.review", operation: "late", success: false, latencyMs: Date.now() - startedAt });
+    return null;
+  }
+  return result;
+}
+
+/**
+ * Safety for one turn. Without a review the rules' level is final, so the
+ * outcome is written right away — before any reply token streams. With a review,
+ * `settle()` decides once (after the reply, or when the child leaves) and writes it.
+ */
+function startTurnSafety(
+  userId: string | undefined,
+  message: string,
+  context: string[]
+): { rules: ChildSafetyCheck; settle: () => Promise<ChildSafetyCheck> } {
+  const startedAt = Date.now();
+  const rules = checkChildSafety(message, context);
+  const review = shouldReview(rules.assessment)
+    ? reviewWithLlm({ text: message, context })
+    : null;
+  let final: Promise<ChildSafetyCheck> | null = null;
+  const settle = () =>
+    (final ??= (async () => {
+      const check = review ? applyReview(rules, await withinReviewWindow(review, startedAt)) : rules;
+      recordSafetyOutcome(userId, check);
+      return check;
+    })());
+  if (!review) {
+    void settle();
+  } else {
+    // Backstop if a caller never reaches settle() (settle runs once either way).
+    const backstop = setTimeout(() => void settle(), REVIEW_TIMEOUT_MS + REVIEW_GRACE_MS);
+    backstop.unref?.();
+  }
+  return { rules, settle };
 }
 
 /**
@@ -217,48 +293,64 @@ function concernSummary(categories: SignalCategory[]): string {
   return DEFAULT_CONCERN_SUMMARY;
 }
 
+const EMPTY_REPLY = "응, 여기 있을게.";
+
+function buildReply(text: string, provider: string, model: string): ConversationMessage {
+  return {
+    id: `msg-${Date.now()}`,
+    role: "assistant",
+    content: text.trim() || EMPTY_REPLY,
+    createdAt: new Date().toISOString(),
+    meta: { provider, model },
+  };
+}
+
+/** History the model sees, and the child's recent lines the safety layer reads. */
+function turnInputs(
+  stored: ConversationMessage[],
+  requestHistory: SendMessageRequest["history"]
+) {
+  const clientHistory = (requestHistory ?? [])
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .map((m) => ({ role: m.role, content: m.content }));
+  const historyForLlm =
+    stored.length > 0
+      ? forModelContext(stored).map(({ role, content }) => ({ role, content }))
+      : clientHistory;
+  // Declined turns stay in the safety context: they are often the ones that matter.
+  const childContext = recentChildMessages(stored.length > 0 ? stored : clientHistory);
+  return { historyForLlm, childContext };
+}
+
 export async function sendMessage(
   request: SendMessageRequest
 ): Promise<SendMessageResponse> {
   const userId = request.userId;
   const ctx = await resolveChildCompanionContext(userId, request.message);
+  const { historyForLlm, childContext } = turnInputs(ctx.storedHistory, request.history);
 
-  const clientHistory = (request.history ?? [])
-    .filter((m) => m.role === "user" || m.role === "assistant")
-    .map((m) => ({ role: m.role, content: m.content }));
-
-  const historyForLlm =
-    ctx.storedHistory.length > 0
-      ? ctx.storedHistory.map(({ role, content }) => ({ role, content }))
-      : clientHistory;
-
-  const safety = checkChildSafety(request.message, recentChildMessages(historyForLlm));
-
-  const llm = await companionChat(
-    request.message,
-    historyForLlm,
-    ctx.companion,
-    turnAddendum(safety, ctx.storedHistory)
-  );
-
-  const now = new Date().toISOString();
   const userMessage: ConversationMessage = {
     id: `user-${Date.now()}`,
     role: "user",
     content: request.message,
-    createdAt: now,
+    createdAt: new Date().toISOString(),
   };
 
-  const reply: ConversationMessage = {
-    id: `msg-${Date.now()}`,
-    role: "assistant",
-    content: guardReply(llm.content),
-    createdAt: new Date().toISOString(),
-    meta: {
-      provider: llm.provider,
-      model: llm.model,
-    },
-  };
+  const safety = startTurnSafety(userId, request.message, childContext);
+  let llm: Awaited<ReturnType<typeof companionChat>>;
+  try {
+    llm = await companionChat(
+      request.message,
+      historyForLlm,
+      ctx.companion,
+      turnAddendum(safety.rules, ctx.storedHistory)
+    );
+  } finally {
+    // The safety outcome is written even when the reply fails.
+    void safety.settle();
+  }
+  const final = await safety.settle();
+  const reply = buildReply(guardReply(llm.content), llm.provider, llm.model);
 
   if (userId) {
     schedulePersistTurn({
@@ -266,18 +358,19 @@ export async function sendMessage(
       userMessage,
       reply,
       profileSummary: ctx.profileSummary,
+      refused: isRefusalReply(llm.content),
     });
-    scheduleSafetyFollowUp({ userId, check: safety });
   }
 
-  if (!safety.plan.showPanel) return { reply };
-  const { type: _type, ...crisis } = crisisEvent(safety.plan);
+  if (!final.plan.showPanel) return { reply };
+  const { type: _type, ...crisis } = crisisEvent(final.plan);
   return { reply, crisis };
 }
 
 /**
- * Stream assistant tokens; yields `done` before persist/analysis so the
- * child input unlocks immediately (ECS keeps the process alive afterward).
+ * Stream assistant tokens. The guardian alert and signal log do not wait for
+ * the stream; the turn is saved in `finally`, which also runs when the child
+ * leaves mid-reply (the route's write fails and the generator is closed).
  */
 export async function* streamMessage(
   request: SendMessageRequest
@@ -301,98 +394,94 @@ export async function* streamMessage(
     requestId,
   });
 
-  const clientHistory = (request.history ?? [])
-    .filter((m) => m.role === "user" || m.role === "assistant")
-    .map((m) => ({ role: m.role, content: m.content }));
-
-  const historyForLlm =
-    ctx.storedHistory.length > 0
-      ? ctx.storedHistory.map(({ role, content }) => ({ role, content }))
-      : clientHistory;
-
-  const childContext = recentChildMessages(historyForLlm);
-  let safety = checkChildSafety(request.message, childContext);
-
-  if (safety.plan.showPanel) {
-    yield crisisEvent(safety.plan);
-  }
-
-  // Ambiguous messages get a second look while the reply streams (raise-only).
-  const review = shouldReview(safety.assessment)
-    ? reviewWithLlm({ text: request.message, context: childContext })
-    : null;
-
-  const chatModel = resolveModelForPurpose("chat");
-  let full = "";
-  // Each sentence is checked before it reaches the child's screen.
-  const outputGuard = createOutputGuardStream();
-
-  for await (const token of streamCompanionChat(
-    request.message,
-    historyForLlm,
-    ctx.companion,
-    turnAddendum(safety, ctx.storedHistory)
-  )) {
-    const safe = outputGuard.push(token);
-    if (safe) {
-      full += safe;
-      yield { type: "token", text: safe };
-    }
-  }
-  const tail = outputGuard.flush();
-  if (tail) {
-    full += tail;
-    yield { type: "token", text: tail };
-  }
-  recordOutputFlags(outputGuard.flags());
-
-  if (review) {
-    const reviewed = await review;
-    const merged = mergeReviewedLevel(safety.assessment.level, reviewed);
-    if (merged !== safety.assessment.level) {
-      const assessment: SafetyAssessment = {
-        ...safety.assessment,
-        level: merged,
-        rules: [...safety.assessment.rules, "llm_review"],
-      };
-      const plan = planSafetyResponse(assessment);
-      if (plan.showPanel && !safety.plan.showPanel) {
-        yield crisisEvent(plan);
-      }
-      safety = { assessment, plan };
-    }
-  }
-
-  const now = new Date().toISOString();
+  const { historyForLlm, childContext } = turnInputs(ctx.storedHistory, request.history);
   const userMessage: ConversationMessage = {
     id: `user-${Date.now()}`,
     role: "user",
     content: request.message,
-    createdAt: now,
-  };
-
-  const reply: ConversationMessage = {
-    id: `msg-${Date.now()}`,
-    role: "assistant",
-    content: full.trim() || "응, 여기 있을게.",
     createdAt: new Date().toISOString(),
-    meta: {
-      provider: env.llmProvider,
-      model: chatModel,
-    },
   };
 
-  // Unlock the child UI before memory/emotion LLM work.
-  yield { type: "done", reply };
+  // Safety writes start here, before anything streams (see startTurnSafety).
+  const safety = startTurnSafety(userId, request.message, childContext);
+  const { rules } = safety;
 
-  if (userId) {
-    schedulePersistTurn({
-      userId,
-      userMessage,
-      reply,
-      profileSummary: ctx.profileSummary,
-    });
-    scheduleSafetyFollowUp({ userId, check: safety });
+  const chatModel = resolveModelForPurpose("chat");
+  // Each sentence is checked before it reaches the child's screen.
+  const outputGuard = createOutputGuardStream();
+  let full = "";
+  let raw = "";
+  /** The last help panel the client took (the route wrote it to the stream). */
+  let delivered: SafetyResponsePlan | null = null;
+  let reply: ConversationMessage | null = null;
+  let failed = false;
+
+  try {
+    if (rules.plan.showPanel) {
+      yield crisisEvent(rules.plan);
+      delivered = rules.plan;
+    }
+
+    for await (const token of streamCompanionChat(
+      request.message,
+      historyForLlm,
+      ctx.companion,
+      turnAddendum(rules, ctx.storedHistory)
+    )) {
+      raw += token;
+      const safe = outputGuard.push(token);
+      if (safe) {
+        full += safe;
+        yield { type: "token", text: safe };
+      }
+    }
+    const tail = outputGuard.flush();
+    if (tail) {
+      full += tail;
+      yield { type: "token", text: tail };
+    }
+
+    // An ambiguous message may have been raised by the review (raise-only).
+    const final = await safety.settle();
+    if (final !== rules && final.plan.showPanel) {
+      yield crisisEvent(final.plan);
+      delivered = final.plan;
+    }
+
+    reply = buildReply(full, env.llmProvider, chatModel);
+    yield { type: "done", reply };
+  } catch (error) {
+    failed = true;
+    throw error;
+  } finally {
+    recordOutputFlags(outputGuard.flags());
+    const settled = safety.settle();
+    if (userId && !failed) {
+      const refused = raw.includes(REFUSAL_FALLBACK_TEXT) || isRefusalReply(full);
+      const partial = full;
+      const finished = reply;
+      const shown = delivered;
+      void settled
+        .then((final) => {
+          let saved = finished ?? buildReply(partial, env.llmProvider, chatModel);
+          // The child left before the help panel reached them: the saved reply
+          // says what was shared, so they read it when they come back.
+          const note = final.plan.transparency;
+          if (!finished && note && shown?.transparency !== note) {
+            saved = { ...saved, content: `${saved.content}\n\n${note}` };
+          }
+          schedulePersistTurn({
+            userId,
+            userMessage,
+            reply: saved,
+            profileSummary: ctx.profileSummary,
+            refused,
+          });
+        })
+        .catch((error) => {
+          console.error("[conversation] finishing the turn failed", error);
+        });
+    }
   }
 }
 

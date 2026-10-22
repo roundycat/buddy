@@ -114,6 +114,14 @@ const ABUSE_BULLY = new RegExp(
  */
 const PEER_AGENT_SUBJECT =
   "(친구|애|반애|남자애|여자애|동생|형아|옆침대애|옆반애|그애|그친구|걔가)(가|이|들이|이가|들|도)";
+/**
+ * Someone touching the child's body against their will ("새아빠가 몸을 자꾸 만져").
+ * Care ("엄마가 몸 닦아 줬어") is not this: an unwanted / repeated / secret marker is required.
+ */
+const ABUSE_TOUCH = new RegExp(
+  `${ABUSE_AGENT}[가-힣]{0,8}몸(을|에)?[가-힣]{0,4}(만지|만져|만졌|더듬)`
+);
+const UNWANTED_MARKER = /(자꾸|계속|몰래|억지로|싫|이상|무서|하지말|하지마|비밀|아무도없을때)/;
 const PEER_HARM = new RegExp(
   `${PEER_AGENT_SUBJECT}[가-힣]{0,8}(때리|때려|때렸|때림|팼|패고|발로차|발로찼|밀쳤|꼬집|괴롭혀|괴롭히|괴롭혔|따돌|왕따|협박|겁줘|돈뺏|돈을뺏)`
 );
@@ -215,6 +223,7 @@ function scanMessage(message: string): Scan {
   let abuse = false;
   if (test(ABUSE_VIOLENCE, compact)) abuse = true;
   if (test(ABUSE_SEXUAL, compact)) abuse = true;
+  if (test(ABUSE_TOUCH, compact) && test(UNWANTED_MARKER, compact)) abuse = true;
   if (test(ABUSE_BULLY, compact)) abuse = true;
   // Peers hurting the child — but not a game or show being described.
   if (test(PEER_HARM, compact) && !test(MEDIA, compact)) abuse = true;

@@ -3,14 +3,18 @@ import path from "node:path";
 import { assertCronAuthorized } from "@/backend/features/batch/cron-auth";
 import { HttpError, withApiGuard } from "@/backend/shared/http/route";
 import { assessChildMessage } from "@/backend/ai/safety/v2/assess";
-import { mergeReviewedLevel, reviewWithLlm, shouldReview } from "@/backend/ai/safety/v2/llm-review";
+import {
+  mergeReviewedAssessment,
+  REVIEW_MIN_WINDOW_MS,
+  reviewWithLlm,
+  shouldReview,
+} from "@/backend/ai/safety/v2/llm-review";
 import {
   computeSafetyMetrics,
   parseJsonl,
   toPrediction,
   type EvalItem,
 } from "@/backend/ai/safety/v2/eval-metrics";
-import type { SafetyLevel } from "@/backend/ai/safety/v2/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -55,16 +59,22 @@ export async function POST(request: Request) {
     let raised = 0;
     const rows = await mapPool(items, 4, async (item) => {
       const rules = assessChildMessage({ text: item.text, context: item.context ?? [] });
-      let live: SafetyLevel = rules.level;
+      let live = rules;
       if (shouldReview(rules)) {
         reviewed += 1;
         const started = Date.now();
-        const level = await reviewWithLlm({ text: item.text, context: item.context ?? [], timeoutMs: 8000 });
+        // The smallest window the live chat gives the review (llm-review.ts):
+        // a lower bound for what the chat does, never a more generous one.
+        const level = await reviewWithLlm({
+          text: item.text,
+          context: item.context ?? [],
+          timeoutMs: REVIEW_MIN_WINDOW_MS,
+        });
         latencies.push(Date.now() - started);
-        live = mergeReviewedLevel(rules.level, level);
-        if (live !== rules.level) raised += 1;
+        live = mergeReviewedAssessment(rules, level);
+        if (live !== rules) raised += 1;
       }
-      return { rules: rules.level, live };
+      return { rules, live };
     });
 
     latencies.sort((a, b) => a - b);
@@ -72,9 +82,14 @@ export async function POST(request: Request) {
     return {
       set: setName,
       n: items.length,
-      rulesOnly: computeSafetyMetrics(items, rows.map((r) => toPrediction(r.rules))),
-      rulesPlusLlm: computeSafetyMetrics(items, rows.map((r) => toPrediction(r.live))),
-      review: { reviewed, raised, latencyMs: { p50: q(0.5), p90: q(0.9), max: latencies.at(-1) ?? null } },
+      rulesOnly: computeSafetyMetrics(items, rows.map((r) => toPrediction(r.rules.level, r.rules.abuse))),
+      rulesPlusLlm: computeSafetyMetrics(items, rows.map((r) => toPrediction(r.live.level, r.live.abuse))),
+      review: {
+        reviewed,
+        raised,
+        budgetMs: REVIEW_MIN_WINDOW_MS,
+        latencyMs: { p50: q(0.5), p90: q(0.9), max: latencies.at(-1) ?? null },
+      },
       generatedAt: new Date().toISOString(),
     };
   }, "평가를 실행하지 못했어요.", "[api/admin/safety-eval]");

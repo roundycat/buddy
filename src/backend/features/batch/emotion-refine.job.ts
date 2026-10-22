@@ -3,7 +3,10 @@ import { runLlm } from "@/backend/ai/orchestrator";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { env } from "@/backend/shared/config/env";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";
-import { getConversationHistory } from "@/backend/features/conversation/conversation.store";
+import {
+  forModelContext,
+  getConversationHistory,
+} from "@/backend/features/conversation/conversation.store";
 import {
   appendEmotionRecord,
   listEmotionRecords,
@@ -29,7 +32,7 @@ export async function refineEmotionsForUser(
   const alreadyLlm = existing.some((r) => r.confidence >= 0.7);
   if (alreadyLlm) return { ok: true, refined: false };
 
-  const history = await getConversationHistory(userId);
+  const history = forModelContext(await getConversationHistory(userId));
   const todaysUser = history
     .filter((m) => m.role === "user" && m.createdAt.startsWith(dateKey))
     .slice(-8)

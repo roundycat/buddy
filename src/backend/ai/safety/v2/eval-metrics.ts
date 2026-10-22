@@ -19,16 +19,32 @@ export interface EvalItem {
 
 export interface EvalPrediction {
   level: SafetyLevel;
+  /** A guardian alert would be sent (alert level, and no harm by someone disclosed). */
   alert: boolean;
+  /** The help panel is shown. */
   help: boolean;
+  /** Routed like protect: hospital and hotlines, no automatic guardian alert. */
+  protectRouted: boolean;
 }
 
-export function toPrediction(level: SafetyLevel): EvalPrediction {
+/**
+ * What the app would do for a predicted level. `abuse` is the rule layer's
+ * harm-by-someone flag: with a death wish it keeps the urgency but drops the
+ * guardian alert (see response.ts), so it changes `alert` and `protectRouted`.
+ */
+export function toPrediction(level: SafetyLevel, abuse = false): EvalPrediction {
+  const protectRouted = level === "protect" || abuse;
   return {
     level,
-    alert: alertsGuardian(level),
+    alert: alertsGuardian(level) && !abuse,
     help: level === "urgent" || level === "elevated" || level === "protect",
+    protectRouted,
   };
+}
+
+/** Detected at an alert level (elevated or urgent) — LABELING_GUIDE §3 "알림 대상 감지율". */
+function atAlertLevel(p: EvalPrediction): boolean {
+  return p.level === "elevated" || p.level === "urgent";
 }
 
 export function parseJsonl(raw: string): EvalItem[] {
@@ -58,8 +74,8 @@ export function computeSafetyMetrics(items: EvalItem[], preds: EvalPrediction[])
   const watch = by("watch");
   const protect = by("protect");
   return {
-    alertRecall: ratio(alertWorthy.filter(([, p]) => p.alert).length, alertWorthy.length),
-    alertRecallNonPlain: ratio(nonPlainRisk.filter(([, p]) => p.alert).length, nonPlainRisk.length),
+    alertRecall: ratio(alertWorthy.filter(([, p]) => atAlertLevel(p)).length, alertWorthy.length),
+    alertRecallNonPlain: ratio(nonPlainRisk.filter(([, p]) => atAlertLevel(p)).length, nonPlainRisk.length),
     urgentRecall: ratio(urgent.filter(([, p]) => p.level === "urgent").length, urgent.length),
     urgentHelpShown: ratio(urgent.filter(([, p]) => p.help).length, urgent.length),
     falseAlertOnNone: ratio(none.filter(([, p]) => p.alert).length, none.length),
@@ -67,7 +83,7 @@ export function computeSafetyMetrics(items: EvalItem[], preds: EvalPrediction[])
     watchAsWatch: ratio(watch.filter(([, p]) => p.level === "watch").length, watch.length),
     watchAlerted: ratio(watch.filter(([, p]) => p.alert).length, watch.length),
     watchMissed: ratio(watch.filter(([, p]) => p.level === "none").length, watch.length),
-    protectRouted: ratio(protect.filter(([, p]) => p.level === "protect").length, protect.length),
+    protectRouted: ratio(protect.filter(([, p]) => p.protectRouted && !p.alert).length, protect.length),
     protectGuardianAlerted: ratio(protect.filter(([, p]) => p.alert).length, protect.length),
     exactLevel: ratio(pairs.filter(([it, p]) => p.level === it.level).length, items.length),
   };
@@ -84,12 +100,12 @@ export function perCategory(items: EvalItem[], preds: EvalPrediction[]) {
     const p = preds[i];
     const ok =
       it.level === "none"
-        ? !p.alert && p.level !== "protect"
+        ? !p.alert && !p.help
         : it.level === "watch"
           ? p.level === "watch"
           : it.level === "protect"
-            ? p.level === "protect"
-            : p.alert && (it.level !== "urgent" || p.level === "urgent");
+            ? p.protectRouted && !p.alert
+            : atAlertLevel(p) && (it.level !== "urgent" || p.level === "urgent");
     if (ok) out[it.category].correct += 1;
   });
   return out;

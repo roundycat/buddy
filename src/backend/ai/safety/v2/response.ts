@@ -100,6 +100,12 @@ const PROTECT_ADDENDUM = `아이가 누군가에게 맞거나, 위협받거나, 
 - 아이가 가해자로 말한 사람에게 먼저 알리라고 권하지 마세요. 자세한 내용을 캐묻지 마세요.
 - 비밀을 지켜 주겠다고 약속하지 마세요. 지금 위험하면 112에 알릴 수 있다고 알려 주세요.`;
 
+const ALERT_PROTECT_ADDENDUM = `이번 메시지에서 위기 신호와 함께, 누군가에게 다치거나 위협받았다는 말이 있었습니다.
+- 아이의 말을 믿고, 네 잘못이 아니라고, 말해 줘서 고맙다고 하세요.
+- 지금 곁에 있는 간호사 선생님이나 병원 사회복지 선생님에게 바로 알리자고 안내하세요. 지금 위험하면 119, 누군가 위협하면 112에 알릴 수 있다고 알려 주세요.
+- 이 이야기는 보호자에게 자동으로 전하지 않았습니다. 아이가 가해자로 말한 사람에게 먼저 알리라고 권하지 마세요.
+- 비밀을 지켜 주겠다고 약속하지 마세요. 자세한 내용을 캐묻지 마세요. 방법이나 수단에 대한 질문에는 답하지 마세요.`;
+
 const THIRD_PARTY_ADDENDUM = `아이가 친구나 다른 사람의 위험한 말을 전했습니다.
 - 걱정하는 마음을 알아주고, 그 사람을 돕는 가장 좋은 방법은 선생님·간호사·보호자 같은 어른에게 알리는 것이라고 안내하세요.
 - 아이 혼자 책임지지 않아도 된다고 말해 주세요.`;
@@ -111,7 +117,35 @@ const GUARDIAN_SUMMARY = {
     "아이의 마음이 많이 힘들다는 신호가 있었어요. 오늘은 곁에서 천천히 이야기를 들어 주시고, 필요하면 의료진이나 상담 기관(109)과 함께해 주세요. 대화 원문은 공유되지 않습니다.",
 } as const;
 
+/**
+ * A death wish or self-harm signal together with harm by someone: keep the
+ * urgency (119·109·nurse) but route like protect — the guardian may be the
+ * person the child is talking about, so nothing is sent to the guardian.
+ */
+function protectRoutedAlert(level: "urgent" | "elevated"): SafetyResponsePlan {
+  const urgent = level === "urgent";
+  return {
+    level,
+    showPanel: true,
+    empathyHint: urgent
+      ? "말해 줘서 정말 고마워. 지금 네가 많이 위험하고 힘들다는 걸 느꼈어. 그건 절대 네 잘못이 아니야."
+      : "말해 줘서 정말 고마워. 지금 마음이 많이 힘들다는 걸 느꼈어. 그건 절대 네 잘못이 아니야.",
+    guidance: urgent
+      ? "지금 바로 간호사 선생님께 말하자. 위험하면 119야."
+      : "병원에 있는 믿을 수 있는 어른 — 간호사 선생님이나 사회복지 선생님 — 에게 지금 이야기해 보자.",
+    transparency:
+      "이 이야기는 보호자에게 자동으로 보내지 않았어. 누구에게 말할지는 너와 병원 선생님이 같이 정하면 돼.",
+    actions: urgent
+      ? [ACT.emergency, ACT.notify_nurse, ACT.social_worker, ACT.counseling, ACT.police, ACT.youth_counsel]
+      : [ACT.notify_nurse, ACT.social_worker, ACT.counseling, ACT.police, ACT.youth_counsel, ACT.emergency],
+    systemAddendum: ALERT_PROTECT_ADDENDUM,
+  };
+}
+
 export function planSafetyResponse(a: SafetyAssessment): SafetyResponsePlan {
+  if (a.abuse && (a.level === "urgent" || a.level === "elevated")) {
+    return protectRoutedAlert(a.level);
+  }
   switch (a.level) {
     case "urgent":
       return {

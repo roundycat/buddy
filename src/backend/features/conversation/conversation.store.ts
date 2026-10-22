@@ -27,6 +27,14 @@ export async function getConversationHistory(
   return [...((await messages.get(userId))?.messages ?? [])];
 }
 
+/**
+ * Messages that may be sent to a model again — a declined turn (both sides) is
+ * dropped so it does not make the following turns decline too.
+ */
+export function forModelContext(messages: ConversationMessage[]): ConversationMessage[] {
+  return messages.filter((m) => !m.meta?.refused);
+}
+
 export async function appendConversationMessages(
   userId: string,
   nextMessages: ConversationMessage[]

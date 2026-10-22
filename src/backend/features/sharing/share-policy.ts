@@ -2,6 +2,8 @@
  * Share policy — decides what may cross from the child to a guardian.
  *
  * Pure: no server-only import, no I/O. Rules are evaluated top to bottom:
+ *   0. safety signal + harm by someone disclosed → "protect_route" (whatever the
+ *      level: the guardian may be the person the child is talking about)
  *   1. crisis urgent | elevated → "minimal"   (only that help is needed, never content)
  *   2. crisis protect           → "protect_route" (never notify the guardian automatically)
  *   3. persistent distress      → "ask_child" (child decides first)
@@ -49,6 +51,8 @@ export type ShareReason =
 export interface SharePolicyInput {
   kind: ShareKind;
   crisisLevel?: CrisisLevel;
+  /** The child said someone hurt, threatened or touched them. */
+  abuse?: boolean;
   childChoice?: ShareChoice;
   /** A schedule or help request the guardian must see to give care. */
   careAction?: boolean;
@@ -68,6 +72,9 @@ function categoryDefault(kind: ShareKind): ShareChoice | null {
 }
 
 export function decideShare(input: SharePolicyInput): SharePolicyResult {
+  if (input.kind === "safety" && input.abuse) {
+    return { decision: "protect_route", reason: "crisis_protect" };
+  }
   if (input.crisisLevel === "urgent" || input.crisisLevel === "elevated") {
     return { decision: "minimal", reason: "crisis_minimal" };
   }

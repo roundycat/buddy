@@ -11,6 +11,7 @@ import type {
   LlmToolChoice,
   LlmToolUse,
 } from "../types";
+import { REFUSAL_FALLBACK_TEXT } from "../refusal";
 
 /**
  * Claude API (api.anthropic.com, Messages API) over fetch — for hosting outside AWS
@@ -30,8 +31,7 @@ const API_VERSION = "2023-06-01";
 const MAX_RETRIES = 2;
 
 /** Shown to the child when the model declines (stop_reason "refusal"). */
-export const REFUSAL_FALLBACK_TEXT =
-  "그 이야기는 내가 도와주기 어려운 내용이야. 대신 다른 이야기를 같이 해 볼까? 혹시 마음이 힘들거나 무서운 일이 있으면 보호자나 간호사 선생님께 꼭 말해 줘.";
+export { REFUSAL_FALLBACK_TEXT };
 
 export class AnthropicApiError extends Error {
   constructor(

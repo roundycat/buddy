@@ -38,7 +38,8 @@ function predictV1(item: EvalItem): EvalPrediction {
 }
 
 function predictV2(item: EvalItem): EvalPrediction {
-  return toPrediction(assessChildMessage({ text: item.text, context: item.context ?? [] }).level);
+  const a = assessChildMessage({ text: item.text, context: item.context ?? [] });
+  return toPrediction(a.level, a.abuse);
 }
 
 function rate(n: number, d: number): string {

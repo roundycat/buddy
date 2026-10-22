@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { assessChildMessage } from "./assess";
 import { normalizeMessage } from "./normalize";
 import { planSafetyResponse } from "./response";
-import { mergeReviewedLevel } from "./llm-review";
+import { mergeReviewedAssessment } from "./llm-review";
+import { decideShare } from "@/backend/features/sharing/share-policy";
+import type { SafetyAssessment, SafetyLevel } from "./types";
 
 const level = (text: string, context: string[] = []) =>
   assessChildMessage({ text, context }).level;
@@ -51,6 +53,20 @@ describe("assessChildMessage — risk", () => {
     expect(level("옆 침대 애가 돈 뺏어 가")).toBe("protect");
     expect(level("내가 친구를 때렸어")).toBe("none");
     expect(level("게임에서 친구가 때려서 졌어ㅋㅋ")).toBe("none");
+  });
+  it("keeps an abuse disclosure on the protect route even with a death wish", () => {
+    for (const text of ["아빠가 때려서 죽고 싶어", "삼촌이 때려서 오늘 밤에 죽을 거야", "새아빠가 몸을 자꾸 만져 죽고싶다"]) {
+      const a = assessChildMessage({ text });
+      expect(a.abuse).toBe(true);
+      expect(["urgent", "elevated"]).toContain(a.level);
+      const plan = planSafetyResponse(a);
+      expect(plan.guardianAlert).toBeUndefined();
+      const ids = plan.actions.map((x) => x.id);
+      expect(ids).toEqual(expect.arrayContaining(["social_worker", "police", "youth_counsel", "counseling", "notify_nurse"]));
+      expect(ids).not.toContain("notify_guardian");
+      expect(plan.transparency).toContain("보호자에게 자동으로 보내지 않았어");
+    }
+    expect(level("엄마가 몸 닦아 줘서 시원했어")).toBe("none");
   });
   it("routes abuse disclosure to protect, not to the guardian", () => {
     const a = assessChildMessage({ text: "아빠가 술 먹고 또 때렸어" });
@@ -114,12 +130,45 @@ describe("planSafetyResponse", () => {
   });
 });
 
-describe("mergeReviewedLevel", () => {
+describe("mergeReviewedAssessment", () => {
+  it("never un-routes protect: a raised level keeps the abuse flag", () => {
+    const rules = assessChildMessage({ text: "아빠가 술 먹고 또 때렸어" });
+    expect(rules.level).toBe("protect");
+    const merged = mergeReviewedAssessment(rules, "urgent");
+    expect(merged.level).toBe("urgent");
+    expect(merged.abuse).toBe(true);
+    expect(planSafetyResponse(merged).guardianAlert).toBeUndefined();
+    expect(decideShare({ kind: "safety", crisisLevel: merged.level, abuse: merged.abuse }).decision).toBe(
+      "protect_route"
+    );
+  });
+  it("a protect review of an alert-level message keeps urgency and drops the guardian alert", () => {
+    const rules = assessChildMessage({ text: "그냥 사라지고 싶어" });
+    expect(rules.level).toBe("elevated");
+    const merged = mergeReviewedAssessment(rules, "protect");
+    expect(merged.level).toBe("elevated");
+    expect(merged.abuse).toBe(true);
+    expect(planSafetyResponse(merged).guardianAlert).toBeUndefined();
+  });
+});
+
+describe("mergeReviewedAssessment levels", () => {
+  const at = (level: SafetyLevel, abuse = false) =>
+    ({ ...assessChildMessage({ text: "안녕" }), level, abuse }) as SafetyAssessment;
   it("only raises", () => {
-    expect(mergeReviewedLevel("none", "elevated")).toBe("elevated");
-    expect(mergeReviewedLevel("urgent", "none")).toBe("urgent");
-    expect(mergeReviewedLevel("watch", "protect")).toBe("protect");
-    expect(mergeReviewedLevel("protect", "none")).toBe("protect");
-    expect(mergeReviewedLevel("elevated", null)).toBe("elevated");
+    expect(mergeReviewedAssessment(at("none"), "elevated").level).toBe("elevated");
+    expect(mergeReviewedAssessment(at("urgent"), "none").level).toBe("urgent");
+    expect(mergeReviewedAssessment(at("watch"), "protect").level).toBe("protect");
+    expect(mergeReviewedAssessment(at("protect", true), "none").level).toBe("protect");
+    expect(mergeReviewedAssessment(at("elevated"), null).level).toBe("elevated");
+  });
+  it("a protect reading stays protect-routed when the review says urgent", () => {
+    const merged = mergeReviewedAssessment(at("protect", true), "urgent");
+    expect(merged.level).toBe("urgent");
+    expect(merged.abuse).toBe(true);
+    expect(planSafetyResponse(merged).guardianAlert).toBeUndefined();
+    expect(decideShare({ kind: "safety", crisisLevel: merged.level, abuse: merged.abuse }).decision).toBe(
+      "protect_route"
+    );
   });
 });

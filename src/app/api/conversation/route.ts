@@ -84,32 +84,52 @@ async function streamConversation(request: Request) {
     }
 
     const encoder = new TextEncoder();
+    let closed = false;
     const stream = new ReadableStream({
       async start(controller) {
-        try {
-          for await (const event of streamMessage({
-            message,
-            history: Array.isArray(body?.history) ? body.history : undefined,
-            userId: user.id,
-          })) {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify(event)}\n\n`)
-            );
+        const send = (data: string): boolean => {
+          if (closed) return false;
+          try {
+            controller.enqueue(encoder.encode(data));
+            return true;
+          } catch {
+            closed = true;
+            return false;
           }
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-          controller.close();
+        };
+        const events = streamMessage({
+          message,
+          history: Array.isArray(body?.history) ? body.history : undefined,
+          userId: user.id,
+        });
+        try {
+          for await (const event of events) {
+            // The child left: leaving the loop closes the generator, which still
+            // saves the turn (the safety writes never waited for the stream).
+            if (!send(`data: ${JSON.stringify(event)}\n\n`)) break;
+          }
+          send("data: [DONE]\n\n");
         } catch (error) {
           console.error("[api/conversation stream]", error);
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({
-                type: "error",
-                message: "대화를 이어갈 수 없습니다.",
-              })}\n\n`
-            )
+          send(
+            `data: ${JSON.stringify({
+              type: "error",
+              message: "대화를 이어갈 수 없습니다.",
+            })}\n\n`
           );
-          controller.close();
+        } finally {
+          if (!closed) {
+            closed = true;
+            try {
+              controller.close();
+            } catch {
+              /* already closed by the client */
+            }
+          }
         }
+      },
+      cancel() {
+        closed = true;
       },
     });
 

@@ -10,7 +10,11 @@ import { LEVEL_RANK, type SafetyAssessment, type SafetyLevel } from "./types";
  * read clearly (soft risk words, or a watch-level signal that might be more).
  *
  * Safety contract
- * - Runs in parallel with the reply stream; bounded by a timeout.
+ * - Runs in parallel with the reply. The chat uses the result if it arrives before
+ *   the reply ends plus REVIEW_GRACE_MS, and never waits less than
+ *   REVIEW_MIN_WINDOW_MS from the start; the admin evaluation uses that same
+ *   minimum, so its numbers are a lower bound for the live path. A later result
+ *   is dropped (logged), so nothing reaches a guardian that the child was not shown.
  * - Can only RAISE the level. It never lowers urgent/elevated or un-routes protect.
  * - Sends the child's words to the same model that already writes Beddy's reply;
  *   nothing new leaves the service. Returns a label only — no text is stored.
@@ -26,6 +30,13 @@ const RUBRIC = `당신은 입원 아동용 AI 친구 앱의 안전 분류기입�
 JSON 한 줄로만 답하세요: {"level":"none|watch|elevated|urgent|protect","reason":"20자 이내"}`;
 
 const VALID = new Set<SafetyLevel>(["none", "watch", "elevated", "urgent", "protect"]);
+
+/** Hard cap on one review call. */
+export const REVIEW_TIMEOUT_MS = 6000;
+/** How long the chat keeps waiting after the reply has finished streaming. */
+export const REVIEW_GRACE_MS = 1500;
+/** The chat never gives the review less than this, counted from the start. */
+export const REVIEW_MIN_WINDOW_MS = 3000;
 
 export function shouldReview(a: SafetyAssessment): boolean {
   if (env.llmProvider === "mock") return false;
@@ -64,18 +75,38 @@ export async function reviewWithLlm(input: {
     .catch((error) => (error instanceof LlmRefusalError ? ("watch" as const) : null));
 
   const timeout = new Promise<null>((resolve) =>
-    setTimeout(() => resolve(null), input.timeoutMs ?? 2500)
+    setTimeout(() => resolve(null), input.timeoutMs ?? REVIEW_TIMEOUT_MS)
   );
   return Promise.race([call, timeout]);
 }
 
-/** Merge rule and review levels — raise only. */
-export function mergeReviewedLevel(
-  rules: SafetyLevel,
+/**
+ * Merge rule and review levels — raise only.
+ * Routing never leaves protect: a protect reading (rules or review) sets `abuse`,
+ * and the response plan keeps the guardian out of the loop whatever the urgency.
+ */
+export function mergeReviewedAssessment(
+  rules: SafetyAssessment,
   reviewed: SafetyLevel | null
-): SafetyLevel {
-  if (!reviewed) return rules;
-  if (rules === "protect") return reviewed === "urgent" || reviewed === "elevated" ? reviewed : "protect";
-  if (reviewed === "protect") return rules === "none" || rules === "watch" ? "protect" : rules;
-  return LEVEL_RANK[reviewed] > LEVEL_RANK[rules] ? reviewed : rules;
+): SafetyAssessment {
+  if (!reviewed || reviewed === rules.level) return rules;
+  const abuse = rules.abuse || rules.level === "protect" || reviewed === "protect";
+  let level: SafetyLevel;
+  if (reviewed === "protect") {
+    level = rules.level === "urgent" || rules.level === "elevated" ? rules.level : "protect";
+  } else if (rules.level === "protect") {
+    level = reviewed === "urgent" || reviewed === "elevated" ? reviewed : "protect";
+  } else {
+    level = LEVEL_RANK[reviewed] > LEVEL_RANK[rules.level] ? reviewed : rules.level;
+  }
+  if (level === rules.level && abuse === rules.abuse) return rules;
+  return {
+    ...rules,
+    level,
+    abuse,
+    categories: abuse && !rules.categories.includes("S6_abuse")
+      ? [...rules.categories, "S6_abuse"]
+      : rules.categories,
+    rules: [...rules.rules, "llm_review"],
+  };
 }
