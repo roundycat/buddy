@@ -107,7 +107,7 @@ export function CompanionInlineChat({
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onFocus={onOpenSheet}
-            placeholder="한 마디 남겨 보세요…"
+            placeholder="한마디 남겨 보세요…"
             disabled={pending}
             enterKeyHint="send"
             className="h-10 flex-1 rounded-full border border-bedi-slate/10 bg-white px-3.5 text-sm text-bedi-slate outline-none transition-colors placeholder:text-bedi-slate/35 focus:border-bedi-sage/50 disabled:opacity-60"

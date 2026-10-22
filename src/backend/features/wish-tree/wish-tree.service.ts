@@ -300,7 +300,7 @@ export async function addWish(
   const account = await getWishTreeAccount(userId);
   if (account.wishes.length >= MAX_WISHES) {
     throw new DomainError(
-      "나무가 잎으로 가득 찼어요. 하나씩 천천히 이뤄 보자.",
+      "나무가 잎으로 가득 찼어요. 하나씩 천천히 이뤄 봐요.",
       "CONFLICT"
     );
   }

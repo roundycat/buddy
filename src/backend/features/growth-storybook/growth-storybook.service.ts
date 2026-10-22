@@ -23,11 +23,11 @@ import type {
   StorybookCover,
   StorybookPage,
 } from "./growth-storybook.types";
-import { subject, topic } from "@/shared/text/josa";
+import { subject, topic, withAnd } from "@/shared/text/josa";
 
 function emptyBook(): GrowthStorybookResponse {
   return {
-    title: "우리의 이야기 책",
+    title: "우리의 이야기책",
     companionNote:
       "모험과 정원, 소원이 쌓이면 희망찬 내일로 이어지는 동화가 됩니다.",
     sealed: false,
@@ -55,7 +55,7 @@ function buildLivingPages(
       id: pack.dayStory!.memoryEventId,
       pageNumber: index + 2, // 1 = opening
       date: pack.date,
-      title: `${pack.date.slice(5).replace("-", "월 ")}일 · 작은 모험`,
+      title: `${Number(pack.date.slice(5, 7))}월 ${Number(pack.date.slice(8, 10))}일 · 작은 모험`,
       body: pack.dayStory!.narrative,
       missions: pack.quests.map((q) => ({
         emoji: q.emoji,
@@ -86,11 +86,11 @@ function ruleBasedCover(
   companionName: string
 ): StorybookCover {
   return {
-    title: `${childName}와 ${companionName}의 모험 이야기`,
+    title: `${withAnd(childName)} ${companionName}의 모험 이야기`,
     subtitle: "병원 숲을 지나, 내일의 문으로",
     childName,
     companionName,
-    dedication: `${childName}에게. 여기까지 온 용기, 내가 기억할게. 내일도 괜찮아요.`,
+    dedication: `${childName}에게. 여기까지 온 용기, 내가 기억할게. 내일도 괜찮아.`,
   };
 }
 
@@ -104,7 +104,7 @@ function ruleBasedOpening(
     date: "",
     title: "하얀 복도 숲에 들어서던 날",
     headline: "프롤로그",
-    body: `어느 날, ${topic(childName)} 하얀 복도 숲에 들어왔어요. 낯설고 조금 조용한 곳이었지. 그런데 ${subject(companionName)} 옆에 서서 말했어요. “괜찮아. 작은 모험부터 같이 가자.” 그렇게 이야기가 시작됐어.`,
+    body: `어느 날, ${topic(childName)} 하얀 복도 숲에 들어왔어. 낯설고 조금 조용한 곳이었지. 그런데 ${subject(companionName)} 옆에 서서 말했어. “괜찮아. 작은 모험부터 같이 가자.” 그렇게 이야기가 시작됐어.`,
     missions: [],
     kind: "opening",
   };
@@ -122,7 +122,7 @@ function ruleBasedEpilogue(
     date: "",
     title: "문은 끝이 아니라, 시작이야",
     headline: "에필로그",
-    body: `${days}일 동안의 작은 모험이 모였어요. ${topic(companionName)} ${childName}에게 속삭였어. “네가 지나온 길은 사라지지 않아. 내일의 햇살도, 네가 심은 꽃도, 네가 건 소원도 남아 있어.” 이제 문은 바깥으로 열려. 이야기는 여기서 끝나지 않고, 희망찬 내일로 이어져.`,
+    body: `${days}일 동안의 작은 모험이 모였어. ${topic(companionName)} ${childName}에게 속삭였어. “네가 지나온 길은 사라지지 않아. 내일의 햇살도, 네가 심은 꽃도, 네가 건 소원도 남아 있어.” 이제 문은 바깥으로 열려. 이야기는 여기서 끝나지 않고, 희망찬 내일로 이어져.`,
     missions: [{ emoji: "🌅", title: "희망찬 내일" }],
     kind: "epilogue",
   };
@@ -193,7 +193,7 @@ ${input.adventureSummaries.map((s) => `- ${s}`).join("\n") || "- (아직 적음)
       cover: {
         title:
           parsed.coverTitle?.trim() ||
-          `${input.childName}와 ${input.companionName}의 모험 이야기`,
+          `${withAnd(input.childName)} ${input.companionName}의 모험 이야기`,
         subtitle: parsed.coverSubtitle?.trim() || "병원 숲을 지나, 내일의 문으로",
         childName: input.childName,
         companionName: input.companionName,

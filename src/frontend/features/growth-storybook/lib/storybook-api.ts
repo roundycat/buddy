@@ -17,7 +17,7 @@ export async function patchStorybookProgress(input: {
 }
 
 export async function composeStorybook(): Promise<GrowthStorybookResponse> {
-  const fallback = "이야기 책을 완성하지 못했어요.";
+  const fallback = "이야기책을 완성하지 못했어요.";
   const data = await fetchJson<{ book?: GrowthStorybookResponse }>(
     "/api/storybook/compose",
     { method: "POST" },

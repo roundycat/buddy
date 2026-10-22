@@ -39,6 +39,8 @@ export type CompanionBondView = {
   affinityLabel: string;
   moodId: CompanionMoodId;
   moodLabel: string;
+  /** The same mood in the friend's own voice: "나 오늘은 포근해." */
+  moodLine: string;
   moodHint: string;
   visitStreak: number;
   totalPets: number;

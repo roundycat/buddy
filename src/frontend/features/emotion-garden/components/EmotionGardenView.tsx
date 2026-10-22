@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { fetchJson } from "@/frontend/shared/api/fetch-json";
+import { subject, withRo } from "@/shared/text/josa";
 import { useTransientToast } from "@/frontend/shared/hooks/useTransientToast";
 import { useSoftMotion } from "@/frontend/shared/lib/motion";
 import { SoftErrorState } from "@/frontend/shared/components/ChildUi";
@@ -142,8 +143,8 @@ export function EmotionGardenView({ initial }: EmotionGardenViewProps) {
         setGrowingId(data.watered.id);
         setFlash(
           data.watered.stage === "bloom"
-            ? `${data.watered.flowerName}이(가) 활짝 피었어요.`
-            : `${data.watered.stageLabel}(으)로 자랐어요.`
+            ? `${subject(data.watered.flowerName)} 활짝 피었어요.`
+            : `${withRo(data.watered.stageLabel)} 자랐어요.`
         );
       } else {
         setFlash("마음이 촉촉해졌어요.");

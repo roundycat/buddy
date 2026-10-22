@@ -36,7 +36,7 @@ export function PersonaCharacter({
   name,
   avatarUrl,
   speaking = false,
-  moodLabel,
+  moodLine,
   replyLine,
   replyKey = 0,
   announce = null,
@@ -47,7 +47,8 @@ export function PersonaCharacter({
   name: string;
   avatarUrl?: string | null;
   speaking?: boolean;
-  moodLabel?: string | null;
+  /** Today's mood in the friend's voice — "나 오늘은 포근해." */
+  moodLine?: string | null;
   replyLine?: string | null;
   replyKey?: number;
   announce?: PersonaAnnounce | null;
@@ -155,7 +156,7 @@ export function PersonaCharacter({
   function showFallbackLine() {
     setLineIndex((i) => {
       const next = (i + 1) % TAP_LINES.length;
-      const moodBit = moodLabel ? `나 오늘은 ${moodLabel}.` : null;
+      const moodBit = moodLine || null;
       setBubbleText(moodBit && next % 2 === 0 ? moodBit : TAP_LINES[next]!);
       return next;
     });

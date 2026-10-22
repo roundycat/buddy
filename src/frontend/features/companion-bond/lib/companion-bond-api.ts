@@ -5,6 +5,7 @@ export type CompanionBondView = {
   affinityLabel: string;
   moodId: string;
   moodLabel: string;
+  moodLine: string;
   moodHint: string;
   visitStreak: number;
   totalPets: number;

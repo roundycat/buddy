@@ -238,7 +238,7 @@ export function ParentTimelineView({ data }: { data: ParentTimelineResponse }) {
                 🌱
               </p>
               <p className="mt-2 text-sm text-slate-800/50">
-                이 날은 특별한 기록이 없어요. 쉬는 날도 소중한 하루예요.
+                이날은 특별한 기록이 없어요. 쉬는 날도 소중한 하루예요.
               </p>
             </div>
           )}

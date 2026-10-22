@@ -34,7 +34,7 @@ export function useAuthActions(options?: { redirectTo?: string }) {
       await fetchJson(
         "/api/auth/delete-account",
         { method: "POST" },
-        "회원 탈퇴에 실패했습니다."
+        "회원 탈퇴를 하지 못했어요. 잠시 뒤에 다시 해 주세요."
       );
       const dest = resolveRedirect(opts?.redirect, defaultRedirect);
       if (dest) window.location.assign(dest);

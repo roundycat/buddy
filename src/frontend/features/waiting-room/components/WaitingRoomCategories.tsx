@@ -45,7 +45,7 @@ const leftCategories: CategoryItem[] = [
   },
   {
     href: "/diary",
-    label: "그림 일기 — 그림·사진으로 남기기",
+    label: "그림일기 — 그림·사진으로 남기기",
     short: "일기",
     icon: Palette,
   },

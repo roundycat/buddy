@@ -15,17 +15,19 @@ const CHAT_GAIN = 1;
 const VISIT_GAIN = 2;
 const QUEST_GAIN = 5;
 
+/** `label` is the panel caption; `line` is the friend saying it (반말). */
 const MOODS: Array<{
   id: CompanionMoodId;
   label: string;
+  line: string;
   hint: string;
 }> = [
-  { id: "cozy", label: "포근해요", hint: "오늘 옆에만 있어도 든든해." },
-  { id: "sleepy", label: "나른해요", hint: "천천히 숨 쉬어도 괜찮아." },
-  { id: "sparkly", label: "반짝여요", hint: "작은 일도 반짝일 수 있어." },
-  { id: "brave", label: "용기가 나요", hint: "조금만 더, 같이 가 보자." },
-  { id: "calm", label: "고요해요", hint: "조용히 곁에 있을게." },
-  { id: "curious", label: "궁금해요", hint: "네 이야기, 듣고 싶어." },
+  { id: "cozy", label: "포근해요", line: "나 오늘은 포근해.", hint: "오늘 옆에만 있어도 든든해." },
+  { id: "sleepy", label: "나른해요", line: "나 오늘은 좀 나른해.", hint: "천천히 숨 쉬어도 괜찮아." },
+  { id: "sparkly", label: "반짝여요", line: "나 오늘은 반짝반짝해.", hint: "작은 일도 반짝일 수 있어." },
+  { id: "brave", label: "용기가 나요", line: "나 오늘은 용기가 나.", hint: "조금만 더, 같이 가 보자." },
+  { id: "calm", label: "고요해요", line: "나 오늘은 마음이 고요해.", hint: "조용히 곁에 있을게." },
+  { id: "curious", label: "궁금해요", line: "나 오늘은 궁금한 게 많아.", hint: "네 이야기, 듣고 싶어." },
 ];
 
 const AFFINITY_LABELS: Array<{ min: number; label: string }> = [
@@ -48,7 +50,7 @@ const ACTION_LINES: Record<BondAction | CareType, string[]> = {
   ],
   care: ["챙겨 줘서 고마워.", "네가 챙겨 주니까 힘이 나."],
   cheer: [
-    "응원 받아 챙이네. 너도 잘하고 있어.",
+    "응원받으니 힘이 나네. 너도 잘하고 있어.",
     "네 응원이 나한테도 닿았어.",
   ],
   hug: ["꼭 안아 줘서 든든해.", "이 안아줌, 오래 기억할게."],
@@ -171,6 +173,7 @@ function toView(
     affinityLabel: affinityLabel(record.affinity),
     moodId: record.moodId,
     moodLabel: mood.label,
+    moodLine: mood.line,
     moodHint: mood.hint,
     visitStreak: record.visitStreak,
     totalPets: record.totalPets,

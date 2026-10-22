@@ -15,7 +15,7 @@ export async function GET() {
       const user = await requireAuthUser();
       return getPictureDiary(user.id);
     },
-    "그림 일기를 불러오지 못했어요.",
+    "그림일기를 불러오지 못했어요.",
     "[api/diary GET]"
   );
 }

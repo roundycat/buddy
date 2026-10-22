@@ -67,7 +67,8 @@ export function ReminderSettings({
         </div>
       ) : (
         <p className="text-[11px] text-slate-400">
-          일정 시각 전에 알려 드려요 (기기 알림은 추후 연동).
+          알림 시각을 일정과 함께 저장해 둘 수 있어요. 휴대폰 알림은 다음
+          버전에서 지원해요.
         </p>
       )}
     </div>

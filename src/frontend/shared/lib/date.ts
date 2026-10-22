@@ -10,6 +10,13 @@ export function formatKoreanMonthDay(isoOrDate: string | Date): string {
   return `${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
 
+/** A calendar day key "2026-08-04" → "8월 4일" (no time-zone shift) */
+export function formatDateKeyMonthDay(dateKey: string): string {
+  const [, month, day] = dateKey.split("-").map(Number);
+  if (!month || !day) return "";
+  return `${month}월 ${day}일`;
+}
+
 /** Wallet ledger style: M/D HH:mm */
 export function formatKoreanShortDateTime(iso: string): string {
   const d = new Date(iso);

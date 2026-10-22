@@ -241,7 +241,7 @@ async function friendSurvey(page) {
     await clickText(page, chip, { after: 300 });
   }
   await next(page);
-  for (const chip of ["🎧 음악 듣기", "🎨 그림", "🖍️ 그림 그리기", "🏥 치료 받기", "🍓 과일"]) {
+  for (const chip of ["🎧 음악 듣기", "🎨 그림", "🖍️ 그림 그리기", "🏥 치료받기", "🍓 과일"]) {
     await clickText(page, chip, { after: 300 });
   }
   await next(page);

@@ -10,6 +10,7 @@ import {
   STAGE_LABEL,
 } from "./emotion-garden.growth";
 import type { FlowerMemoryCard } from "./emotion-garden.types";
+import { subject } from "@/shared/text/josa";
 
 function isAdventureComplete(
   pack: Awaited<ReturnType<typeof getAdventurePack>>
@@ -63,7 +64,7 @@ export async function getFlowerMemoryCard(
   const reflection =
     narrative ||
     emotionSummaries[emotionSummaries.length - 1] ||
-    `${species.emotionLabel}이(가) ${species.flowerName}이(가) 되어 정원에 남았어요.`;
+    `${subject(species.emotionLabel)} ${subject(species.flowerName)} 되어 정원에 남았어요.`;
 
   return {
     flowerId: flower.id,

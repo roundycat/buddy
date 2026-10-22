@@ -479,7 +479,7 @@ export function AdventureQuestView({ initial }: AdventureQuestViewProps) {
                           {claimingId === quest.id
                             ? "받는 중…"
                             : quest.readyToClaim
-                              ? "보상 받기"
+                              ? "보상받기"
                               : "미션 먼저 하기"}
                         </button>
                       ) : null}
@@ -513,7 +513,7 @@ export function AdventureQuestView({ initial }: AdventureQuestViewProps) {
               href="/memory"
               className="rounded-full border border-bedi-slate/10 bg-white/80 px-3 py-1.5 text-bedi-slate/60 transition-colors hover:border-bedi-sage/30 hover:text-bedi-slate"
             >
-              Memory Timeline에 저장됨
+              기억 타임라인에 저장됨
             </Link>
           </div>
         </section>

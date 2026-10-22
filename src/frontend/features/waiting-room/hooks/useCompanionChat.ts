@@ -209,7 +209,7 @@ export function useCompanionChat(
           m.id === streamId
             ? {
                 ...m,
-                content: "잠시 연결이 불안정해요. 조금 뒤에 다시 말해 주세요.",
+                content: "잠시 연결이 불안정해. 조금 뒤에 다시 말해 줘.",
               }
             : m
         )

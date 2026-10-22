@@ -15,6 +15,7 @@ import type {
 } from "./adventure-quest.types";
 import { todayKey } from "@/backend/shared/time/date";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";
+import { objectParticle } from "@/shared/text/josa";
 
 function ruleBasedNarrative(pack: AdventureDayPack): string {
   const titles = pack.quests
@@ -35,7 +36,7 @@ function ruleBasedNarrative(pack: AdventureDayPack): string {
 
   let middle = "";
   if (missionBit.length >= 3) {
-    middle = `베디와 함께 ${missionBit[0]}을 하고, ${missionBit[1]}도 해 봤고, ${missionBit[2]}까지 해냈어.`;
+    middle = `베디와 함께 ${missionBit[0]}${objectParticle(missionBit[0]!)} 하고, ${missionBit[1]}도 해 봤고, ${missionBit[2]}까지 해냈어.`;
   } else {
     middle = `베디와 함께 작은 모험(${titles})을 했어.`;
   }

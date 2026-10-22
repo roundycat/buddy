@@ -173,7 +173,7 @@ export function TopBrandBar({
       setInviteOpen(false);
       await deleteAccountSession();
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "회원 탈퇴에 실패했습니다.");
+      window.alert(err instanceof Error ? err.message : "회원 탈퇴를 하지 못했어요. 잠시 뒤에 다시 해 주세요.");
     } finally {
       setBusy(false);
     }
@@ -278,7 +278,7 @@ export function TopBrandBar({
                   className={menuItemClass}
                 >
                   <BookOpen className="h-3.5 w-3.5 text-bedi-sage" strokeWidth={1.5} />
-                  우리의 이야기 책
+                  우리의 이야기책
                 </Link>
                 <button
                   type="button"

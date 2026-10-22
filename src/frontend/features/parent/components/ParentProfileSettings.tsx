@@ -282,7 +282,7 @@ export function ParentProfileSettings({
           />
           <SettingRow
             title="기억 · 사진 · 그림"
-            description="하이라이트와 아이가 올린 사진·그림 일기를 보여 줘요"
+            description="하이라이트와 아이가 올린 사진·그림일기를 보여 줘요"
             checked={privacy.shareMemoryHighlights}
             childNote={privateNote("memoryHighlights", "media")}
             disabled={saving}

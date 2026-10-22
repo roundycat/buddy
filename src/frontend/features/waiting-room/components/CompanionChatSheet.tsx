@@ -8,7 +8,7 @@ import type {
   ConversationCrisisDto,
   ConversationMessageDto,
 } from "@/frontend/shared/types/api";
-import { topic } from "@/shared/text/josa";
+import { topic, withAnd } from "@/shared/text/josa";
 import { MAX_CHAT_MESSAGE_CHARS } from "@/shared/chat/limits";
 
 const SUGGESTIONS = [
@@ -118,13 +118,13 @@ export function CompanionChatSheet({
     }
     if (action.id === "notify_guardian") {
       setActionNote(
-        "보호자에게는 이미 '도움이 필요하다'는 신호만 갔어요. 옆에 계시면 지금 마음이 힘들다고 직접 말해 주세요."
+        "보호자에게는 이미 '도움이 필요하다'는 신호만 갔어. 옆에 계시면 지금 마음이 힘들다고 직접 말해 줘."
       );
       return;
     }
     if (action.id === "notify_nurse") {
       setActionNote(
-        "병실·복도에 있는 간호사 선생님께 가서 “지금 기분이 많이 힘들어요. 도와주세요”라고 말해 주세요."
+        "병실·복도에 있는 간호사 선생님께 가서 “지금 기분이 많이 힘들어요. 도와주세요”라고 말해 줘."
       );
       return;
     }
@@ -138,7 +138,7 @@ export function CompanionChatSheet({
       className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
       role="dialog"
       aria-modal="true"
-      aria-label={`${companionName}와 대화`}
+      aria-label={`${withAnd(companionName)} 대화`}
     >
       <button
         type="button"

@@ -45,7 +45,7 @@ export async function getPictureDiary(
   const savedToday = entries.some((entry) => entry.dateKey === today);
 
   return {
-    title: "그림 일기",
+    title: "그림일기",
     companionNote: savedToday
       ? "오늘 일기를 남겼구나. 한 장 더 그려도 괜찮아."
       : "오늘 마음을 그림으로 남겨 볼까? 잘 그리지 않아도 괜찮아.",

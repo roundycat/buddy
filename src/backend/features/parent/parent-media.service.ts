@@ -77,7 +77,7 @@ export async function listParentChildMedia(
       items.push({
         id: `diary-drawing-${entry.id}`,
         kind: "drawing",
-        title: "그림 일기",
+        title: "그림일기",
         caption: "아이가 그린 그림",
         imageUrl: `/api/parent/media/diary/${entry.id}?kind=drawing`,
         createdAt: entry.createdAt,
@@ -88,7 +88,7 @@ export async function listParentChildMedia(
       items.push({
         id: `diary-photo-${entry.id}`,
         kind: "diary_photo",
-        title: "그림 일기",
+        title: "그림일기",
         caption: "일기에 올린 사진",
         imageUrl: `/api/parent/media/diary/${entry.id}?kind=photo`,
         createdAt: entry.createdAt,

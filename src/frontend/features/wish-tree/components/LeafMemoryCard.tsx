@@ -6,6 +6,7 @@ import { MemoryCardSkeleton } from "@/frontend/shared/components/ChildUi";
 import { useDialogDismiss } from "@/frontend/shared/hooks/useDialogDismiss";
 import { useSoftMotion } from "@/frontend/shared/lib/motion";
 import type { LeafMemoryCard as LeafMemoryCardData } from "@/frontend/shared/catalogs";
+import { formatDateKeyMonthDay } from "@/frontend/shared/lib/date";
 
 const HORIZON_LABEL: Record<string, string> = {
   hospital: "병원에서도",
@@ -76,7 +77,7 @@ export function LeafMemoryCard({
                     sway
                   />
                   <p className="mt-3 text-[11px] tracking-wide text-bedi-sage">
-                    {card.dateKey.slice(5).replace("-", "월 ")}일 ·{" "}
+                    {formatDateKeyMonthDay(card.dateKey)} ·{" "}
                     {HORIZON_LABEL[card.horizon] ?? "언젠가"}
                   </p>
                   <h3 className="mt-2 text-center text-[17px] font-medium leading-snug text-bedi-slate">

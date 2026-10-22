@@ -78,7 +78,7 @@ function ruleReasoning(
 
   const reasoning =
     scene === "treatment"
-      ? "오늘 검사·치료 일정이 있어 짧은 부담의 실내 모험으로 잡았어요."
+      ? "오늘 검사·치료 일정이 있어 부담이 적은 짧은 실내 모험으로 잡았어요."
       : scene === "low_energy"
         ? "에너지가 낮아 보여 쉬는 날 맞춤 모험으로 골랐어요."
         : scene === "rainy"

@@ -14,5 +14,5 @@ export async function POST() {
     await assertChildConsented(user);
     const book = await composeDischargeTale(user.id);
     return { book };
-  }, "이야기 책을 완성하지 못했어요.", "[api/storybook/compose POST]");
+  }, "이야기책을 완성하지 못했어요.", "[api/storybook/compose POST]");
 }

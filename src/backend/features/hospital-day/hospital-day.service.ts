@@ -24,13 +24,14 @@ import {
   shouldEnrichScheduleWithLlm,
 } from "./schedule-copy.llm";
 import { kickoffScheduleImage } from "./schedule-image.generate";
+import { objectParticle } from "@/shared/text/josa";
 
 function softExplanation(type: "exam" | "treatment", title: string, note?: string) {
   if (note?.trim()) return note.trim();
   if (type === "exam") {
-    return `오늘은 “${title}”을(를) 살펴보는 시간이에요. 아프게 하려는 게 아니라, 지금 몸을 알아보기 위함이에요. 긴장되면 베디에게 말해도 괜찮아요.`;
+    return `오늘은 “${title}”${objectParticle(title)} 살펴보는 시간이에요. 아프게 하려는 게 아니라, 지금 몸을 알아보기 위함이에요. 긴장되면 베디에게 말해도 괜찮아요.`;
   }
-  return `오늘은 “${title}”을(를) 도와주는 시간이에요. 중간에 힘들면 말해도 괜찮아요. 보호자 분도 함께 알고 있어요.`;
+  return `오늘은 “${title}”${objectParticle(title)} 도와주는 시간이에요. 중간에 힘들면 말해도 괜찮아요. 보호자분도 함께 알고 있어요.`;
 }
 
 function parseDateKey(dateKey: string): Date {
@@ -155,7 +156,7 @@ function systemCheerItems(childUserId: string, dateKey: string): HospitalDayItem
       type: "cheer",
       title: "오늘의 응원",
       explanation:
-        "오늘도 여기까지 온 것만으로 충분해요. 당신은 혼자가 아니에요.",
+        "오늘도 여기까지 온 것만으로 충분해요. 혼자가 아니에요.",
       source: "system",
       dateKey,
       childUserId,
@@ -222,11 +223,11 @@ export async function getHospitalDay(
   const companionNote =
     pending.length > 0
       ? nextUp?.time
-        ? `보호자가 ${nextUp.time}에 “${nextUp.childTitle || nextUp.title}”을(를) 알려 줬어요. 천천히 같이 준비해 볼까요?`
+        ? `보호자가 ${nextUp.time}에 “${nextUp.childTitle || nextUp.title}” 일정을 알려 줬어요. 천천히 같이 준비해 볼까요?`
         : `보호자가 알려 준 일정이 ${pending.length}개 있어요. 천천히, 하나씩 같이 살펴봐요.`
       : isToday
         ? "오늘은 특별한 병원 일정이 아직 없어요. 쉬는 것도 괜찮은 하루예요."
-        : "이 날에는 아직 알려 준 일정이 없어요. 쉬는 날도 괜찮아요.";
+        : "이날에는 아직 알려 준 일정이 없어요. 쉬는 날도 괜찮아요.";
 
   // Copy written before placeholder scrubbing existed is still on disk.
   return fillNamePlaceholdersDeep(
@@ -479,16 +480,13 @@ export async function createParentScheduleItems(
   const now = new Date().toISOString();
   const fallbackWhat =
     type === "exam"
-      ? `“${title}”을(를) 살펴보는 시간이에요.`
-      : `“${title}”을(를) 도와주는 시간이에요.`;
+      ? `“${title}”${objectParticle(title)} 살펴보는 시간이에요.`
+      : `“${title}”${objectParticle(title)} 도와주는 시간이에요.`;
   const fallbackWhy = softExplanation(type, title, input.note);
 
   let whatText = fallbackWhat;
   let whyText = fallbackWhy;
-  let notifyText =
-    type === "exam"
-      ? `보호자가 ${title} 검사를 알려 줬어요`
-      : `보호자가 ${title} 치료를 알려 줬어요`;
+  let notifyText = `보호자가 “${title}” 일정을 알려 줬어요`;
 
   if (shouldEnrichScheduleWithLlm(title, input.note)) {
     const llmCopy = await composeChildScheduleCopy({
@@ -623,17 +621,14 @@ export async function updateParentScheduleItem(
     const noteForCopy = noteChanged ? note : undefined;
     const fallbackWhat =
       type === "exam"
-        ? `“${title}”을(를) 살펴보는 시간이에요.`
-        : `“${title}”을(를) 도와주는 시간이에요.`;
+        ? `“${title}”${objectParticle(title)} 살펴보는 시간이에요.`
+        : `“${title}”${objectParticle(title)} 도와주는 시간이에요.`;
     const fallbackWhy = softExplanation(type, title, noteForCopy);
 
     whatText = fallbackWhat;
     whyText = fallbackWhy;
     explanation = fallbackWhy;
-    notifyText =
-      type === "exam"
-        ? `보호자가 ${title} 검사를 알려 줬어요`
-        : `보호자가 ${title} 치료를 알려 줬어요`;
+    notifyText = `보호자가 “${title}” 일정을 알려 줬어요`;
 
     if (shouldEnrichScheduleWithLlm(title, noteForCopy)) {
       const llmCopy = await composeChildScheduleCopy({

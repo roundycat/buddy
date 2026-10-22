@@ -32,7 +32,7 @@ export default async function StorybookPage() {
 
       <div className="mt-8 mb-6 text-center">
         <p className="text-xs tracking-[0.14em] text-bedi-slate/40">
-          Storybook Engine
+          Storybook
         </p>
         <h1 className="mt-2 text-xl font-semibold tracking-tight text-bedi-slate">
           우리가 함께 쓰는 이야기

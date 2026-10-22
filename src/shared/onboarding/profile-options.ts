@@ -78,7 +78,7 @@ export const FAVORITE_HOBBY_OPTIONS = [
 
 export const MAIN_ACTIVITY_OPTIONS = [
   "📘 학교 과제",
-  "🏥 치료 받기",
+  "🏥 치료받기",
   "🛌 휴식",
   "💻 온라인 수업",
   "📖 독서",
@@ -111,16 +111,27 @@ const ALL_PRESET_CHOICES: ReadonlySet<string> = new Set<string>([
   ...FOOD_OPTIONS,
 ]);
 
+/** Labels reworded after release — profiles saved earlier still hold the old text. */
+const RENAMED_CHOICES: Readonly<Record<string, string>> = {
+  "🏥 치료 받기": "🏥 치료받기",
+};
+
 function splitChoices(value: string | null | undefined): string[] {
   return (value ?? "")
     .split(/,\s*|\s+\/\s+/)
     .map((item) => item.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((item) => RENAMED_CHOICES[item] ?? item);
 }
 
 /** "🎨 그림 그리기" → "그림 그리기" */
 export function choiceLabel(item: string): string {
   return item.replace(/^[^0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ]+/, "").trim() || item.trim();
+}
+
+/** Every choice in a stored value, emoji dropped — for the child's own screen. */
+export function choiceLabels(value: string | null | undefined): string[] {
+  return splitChoices(value).map(choiceLabel);
 }
 
 /** The app's own chip labels in a stored profile value (emoji dropped). */

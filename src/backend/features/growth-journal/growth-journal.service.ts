@@ -36,7 +36,7 @@ export async function getGrowthJournal(
   if (!userId) {
     return {
       companionNote:
-        "이건 진단이 아니에요. 병원 생활 속에서 마음이 어떻게 움직여 왔는지를, 부드럽게 보여 주는 기록입니다.",
+        "이건 진단이 아니에요. 병원 생활 속에서 마음이 어떻게 움직여 왔는지를, 부드럽게 보여 주는 기록이에요.",
       moodSeries: [],
       moments: [],
     };
@@ -145,7 +145,7 @@ export async function getGrowthJournal(
 
   return {
     companionNote:
-      "이건 진단이 아니에요. 병원 생활 속에서 마음이 어떻게 움직여 왔는지를, 부드럽게 보여 주는 기록입니다.",
+      "이건 진단이 아니에요. 병원 생활 속에서 마음이 어떻게 움직여 왔는지를, 부드럽게 보여 주는 기록이에요.",
     moodSeries: trimmedSeries,
     moments: llmMoments.length > 0 ? llmMoments : moments.slice(0, 4),
   };

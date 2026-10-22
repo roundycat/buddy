@@ -35,7 +35,7 @@ export function ClosedBook({
         type="button"
         onClick={onOpen}
         disabled={opening}
-        aria-label="이야기 책 펼치기"
+        aria-label="이야기책 펼치기"
         className="relative block w-full origin-left rounded-l-[7px] rounded-r-[20px] text-left [transform-style:preserve-3d]"
         initial={false}
         animate={

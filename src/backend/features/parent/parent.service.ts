@@ -77,7 +77,13 @@ import type {
   ParentTimelineResponse,
   ParentTimelineScheduleItem,
 } from "./parent.types";
-import { subject } from "@/shared/text/josa";
+import {
+  copulaParticle,
+  subject,
+  subjectParticle,
+  withAnd,
+  withRo,
+} from "@/shared/text/josa";
 import { presetChoices } from "@/shared/onboarding/profile-options";
 
 function moodMeta(mood: MoodId | null) {
@@ -575,16 +581,16 @@ function buildTodayMessage(input: {
   wishCount: number;
 }) {
   if (input.moodLabel && input.completedCount > 0) {
-    return `오늘 ${input.childName}는 ${input.moodLabel} 마음으로, 작은 모험도 ${input.completedCount}가지 해냈어요.`;
+    return `오늘 ${input.childName}의 마음은 “${input.moodLabel}”에 가까웠고, 작은 모험도 ${input.completedCount}가지 해냈어요.`;
   }
   if (input.moodLabel) {
-    return `오늘 ${input.childName}의 하루에는 ${input.moodLabel} 기운이 남아 있어요.`;
+    return `오늘 ${input.childName}의 하루에는 “${input.moodLabel}”의 기운이 남아 있어요.`;
   }
   if (input.adventureHeadline) {
     return `오늘 ${input.childName}의 모험은 “${input.adventureHeadline}” 쪽이었어요.`;
   }
   if (input.themes[0]) {
-    return `요즘 ${input.childName}와 베디가 나누는 이야기에는 “${input.themes[0]}” 느낌이 있어요.`;
+    return `요즘 ${withAnd(input.childName)} 베디가 나누는 이야기에는 “${input.themes[0]}” 느낌이 있어요.`;
   }
   if (input.wishCount > 0) {
     return `${input.childName}의 소원 나무에 꿈이 ${input.wishCount}개 걸려 있어요.`;
@@ -1485,7 +1491,7 @@ function composeReportAnswer(input: {
         } 대화 원문은 보여 드리지 않고, 요약된 순간만 전해요.`
       : `${input.childName}의 행복한 순간은 아직 모이는 중이에요. ${
           input.themes[0]
-            ? `요즘 이야기 키워드로는 “${input.themes[0]}”가 보이네요.`
+            ? `요즘 이야기 키워드로는 “${input.themes[0]}”${subjectParticle(input.themes[0])} 보이네요.`
             : "조금만 더 기록이 쌓이면 더 또렷해질 거예요."
         }`;
   } else if (/활동|좋아|모험|취미/.test(input.question)) {
@@ -1505,14 +1511,16 @@ function composeReportAnswer(input: {
     } 의료적 판단이 아니라, 곁을 위한 감정 스케치로만 봐 주세요.`;
   } else if (/기억|추억/.test(input.question)) {
     answer = input.themes[0]
-      ? `${input.childName}와 베디의 이야기에서 자주 남는 키워드는 “${input.themes
+      ? `${withAnd(input.childName)} 베디의 이야기에서 자주 남는 키워드는 “${input.themes
           .slice(0, 3)
-          .join(" · ")}”예요. 자세한 대화 내용은 비밀로 두고, 키워드만 전해요.`
+          .join(" · ")}”${copulaParticle(
+          input.themes.slice(0, 3).at(-1) ?? ""
+        )}. 자세한 대화 내용은 비밀로 두고, 키워드만 전해요.`
       : `아직 뚜렷한 기억 키워드가 많지 않아요.`;
   } else {
-    answer = `${input.childName}의 오늘은 ${
+    answer = `${input.childName}의 오늘은 ${withRo(
       input.mood ?? "조용한 기다림"
-    }으로 읽혀요. ${
+    )} 읽혀요. ${
       input.completed[0] ? `작은 모험 “${input.completed[0]}”도 있었고요. ` : ""
     }원문 대화는 보여 드리지 않아요 — 이해와 응원을 위한 요약만 드릴게요.`;
   }

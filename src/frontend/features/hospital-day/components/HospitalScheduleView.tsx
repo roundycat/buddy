@@ -368,7 +368,7 @@ export function HospitalScheduleView({
       {parentItems.length === 0 && !loadingDay ? (
         <div className="rounded-2xl border border-dashed border-bedi-slate/15 bg-white/60 px-5 py-8 text-center">
           <p className="text-sm font-medium text-bedi-slate/70">
-            이 날 일정이 없어요
+            이날 일정이 없어요
           </p>
           <p className="mt-2 text-[13px] leading-relaxed text-bedi-slate/45">
             달력에서 다른 날을 고르거나, 보호자가 보낸 일정을 기다려 보세요.

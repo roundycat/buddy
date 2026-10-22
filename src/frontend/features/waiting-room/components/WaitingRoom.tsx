@@ -130,7 +130,7 @@ export function WaitingRoom({
       /* ignore */
     }
     setQuestDone(false);
-    setQuestHint("모험 미션이야. 나랑 한 마디만 나눠도 완료돼!");
+    setQuestHint("모험 미션이야. 나랑 한마디만 나눠도 완료돼!");
   }, [questId]);
 
   useEffect(() => {
@@ -182,7 +182,7 @@ export function WaitingRoom({
       } else if (ok) {
         setQuestHint("대화는 됐어. 미션 체크만 잠시 안 됐어 — 모험에서 확인해 줘.");
         window.setTimeout(() => {
-          setQuestHint("모험 미션이야. 나랑 한 마디만 나눠도 완료돼!");
+          setQuestHint("모험 미션이야. 나랑 한마디만 나눠도 완료돼!");
         }, 4000);
       }
     }
@@ -407,7 +407,7 @@ export function WaitingRoom({
           name={companionName}
           avatarUrl={avatarUrl}
           speaking={speaking || pending || chatOpen}
-          moodLabel={bond?.moodLabel}
+          moodLine={bond?.moodLine}
           replyLine={bondReply}
           replyKey={bondReplyKey}
           announce={friendStage === "idle" ? questAnnounce : null}

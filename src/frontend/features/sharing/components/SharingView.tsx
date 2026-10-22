@@ -76,7 +76,7 @@ const CHOOSABLE: Array<{
     id: "media",
     icon: Images,
     title: "사진·그림",
-    body: "사진첩 사진과 그림 일기 그림 (일기 글은 빼고)",
+    body: "사진첩 사진과 그림일기 그림 (일기 글은 빼고)",
   },
 ];
 

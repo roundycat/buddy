@@ -9,6 +9,7 @@ import type {
 } from "./persona.types";
 import { createMapStore } from "@/backend/shared/persist/map-store";
 import { hospitalDayCount } from "@/backend/shared/time/date";
+import { choiceLabels } from "@/shared/onboarding/profile-options";
 
 /**
  * Secret-friend personas by userId.
@@ -50,33 +51,43 @@ const ENERGY_COPY: Record<
   },
 };
 
+/**
+ * `tone`/`habit` describe the style for the model; `intro` is how the friend
+ * says it to the child in the welcome bubble.
+ */
 const INTERACTION_COPY: Record<
   InteractionStyle,
-  { tone: string; habit: string }
+  { tone: string; habit: string; intro: string }
 > = {
   listen: {
     tone: "경청형 Beddy",
     habit: "먼저 듣고 감정을 비춤. 해결책보다 곁에 머무름",
+    intro: "나는 먼저 네 이야기를 들을게. 답을 서두르지 않고 옆에 있을게.",
   },
   chat: {
     tone: "수다형 Beddy",
     habit: "가벼운 질문과 이야기로 대화를 이어 감. 심심할 때 먼저 말을 걸어도 됨",
+    intro: "나는 이런저런 이야기 나누는 걸 좋아해. 심심할 땐 내가 먼저 말 걸게.",
   },
   motivate: {
     tone: "응원형 Beddy",
     habit: "공감 뒤 아주 작은 다음 걸음만 부드럽게 제안",
+    intro: "네 마음을 먼저 알아주고, 아주 작은 한 걸음만 같이 찾아볼게.",
   },
   play: {
     tone: "놀이형 Beddy",
     habit: "짧은 퀴즈·상상·가벼운 장난으로 분위기를 부드럽게 바꿈. 과하게 들뜨지 않음",
+    intro: "짧은 퀴즈나 상상 놀이로 기분을 살짝 바꿔 줄게.",
   },
   quiet: {
     tone: "조용한 동반형 Beddy",
     habit: "말이 적어도 괜찮음. 짧은 안부와 침묵을 존중하며 옆에 있음",
+    intro: "말이 적어도 괜찮아. 조용히 옆에 있을게.",
   },
   story: {
     tone: "이야기형 Beddy",
     habit: "짧은 이야기나 상상 장면으로 기분을 부드럽게 바꿔 줌",
+    intro: "짧은 이야기나 상상 장면으로 기분을 부드럽게 바꿔 줄게.",
   },
 };
 
@@ -185,18 +196,25 @@ function buildCompanionMessage(
   interaction: (typeof INTERACTION_COPY)[InteractionStyle],
   mode: PersonaBuildMode
 ): string {
-  const hobby = profile.favoriteHobby || profile.hobbies;
+  // Chip labels are 해요체 ("말이 적어요") — quote them inside the 반말 bubble.
+  const quoted = (value: string) =>
+    choiceLabels(value)
+      .slice(0, 2)
+      .map((item) => `‘${item}’`)
+      .join(", ");
+  const traits = quoted(profile.disposition);
+  const hobbies = quoted(profile.favoriteHobby || profile.hobbies);
   const parts = [
     mode === "mirror"
       ? "나는 너와 비슷한 결의 Beddy야."
       : "나는 네가 골라 준 성격의 Beddy야.",
-    `말투는 ${interaction.tone} 쪽. ${interaction.habit}.`,
+    interaction.intro,
   ];
-  if (profile.disposition) {
-    parts.push(`성격은 ${profile.disposition} 쪽에 가깝고.`);
+  if (traits) {
+    parts.push(`성격은 ${traits}에 가까워.`);
   }
-  if (hobby) {
-    parts.push(`평소엔 ‘${hobby}’ 이야기도 좋아해.`);
+  if (hobbies) {
+    parts.push(`평소엔 ${hobbies} 이야기도 좋아해.`);
   }
   if (profile.mbti) {
     parts.push(`${profile.mbti} 느낌으로 말할게.`);
@@ -274,6 +292,26 @@ export async function hasCompletedPersonaSetup(
   return Boolean(persona?.setupCompleted && persona.profile);
 }
 
+/**
+ * The welcome bubble is built from the saved choices, so rebuild it on read —
+ * wording fixes then reach friends made before them.
+ */
+function withCurrentWelcome(persona: Persona): Persona {
+  if (!persona.setupCompleted || !persona.profile || !persona.interaction) {
+    return persona;
+  }
+  const interaction = INTERACTION_COPY[persona.interaction];
+  if (!interaction) return persona;
+  return {
+    ...persona,
+    companionMessage: buildCompanionMessage(
+      persona.profile,
+      interaction,
+      persona.buildMode === "custom" ? "custom" : "mirror"
+    ),
+  };
+}
+
 function withLiveDayCount(persona: Persona): Persona {
   return {
     ...persona,
@@ -312,7 +350,8 @@ export async function getPersonaForUser(userId: string): Promise<Persona> {
   if (hit && Date.now() - hit.at < PERSONA_TTL_MS) {
     return withLiveDayCount(hit.value);
   }
-  const raw = (await store.get(userId)) ?? getDefaultPersona();
+  const stored = await store.get(userId);
+  const raw = stored ? withCurrentWelcome(stored) : getDefaultPersona();
   const value =
     userId === "anonymous"
       ? withLiveDayCount(raw)

@@ -32,6 +32,7 @@ import {
   useChildAvatar,
 } from "./StorybookScene";
 import { printBook } from "../lib/print-book";
+import { subject } from "@/shared/text/josa";
 import {
   composeStorybook,
   narrateStorybook,
@@ -229,11 +230,14 @@ export function GrowthStorybookView({ book: initial }: GrowthStorybookViewProps)
       const titleBit = slide.letter.title?.trim()
         ? `${slide.letter.title}. `
         : "";
+      // The signature is whoever wrote it — "엄마와 아빠", "삼촌", or "엄마가".
+      const from = slide.letter.signature.trim();
+      const sender = /가$/.test(from) ? from : subject(from);
       return (
-        `엄마가 보낸 편지를, 천천히 읽어 줄게. ` +
+        `편지가 왔어. 천천히 읽어 줄게. ` +
         `${titleBit}` +
         `${slide.letter.body}. ` +
-        `${slide.letter.signature}가, 너를 생각하며 보냈어.`
+        `${sender}, 너를 생각하며 보냈어.`
       );
     }
     return "";
@@ -318,7 +322,7 @@ export function GrowthStorybookView({ book: initial }: GrowthStorybookViewProps)
       router.refresh();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "이야기 책을 완성하지 못했어요."
+        err instanceof Error ? err.message : "이야기책을 완성하지 못했어요."
       );
     } finally {
       setComposing(false);
@@ -647,7 +651,7 @@ export function GrowthStorybookView({ book: initial }: GrowthStorybookViewProps)
             href="/diary"
             className="press-soft inline-flex h-11 items-center rounded-full border border-[#D9CDBB]/70 bg-[#FFFCF3]/80 px-5 text-sm font-medium text-[#4A4034]/70"
           >
-            그림 일기
+            그림일기
           </Link>
         </div>
       </motion.div>

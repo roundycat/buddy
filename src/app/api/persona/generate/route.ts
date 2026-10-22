@@ -23,5 +23,5 @@ export async function POST(request: Request) {
     const response = NextResponse.json(data);
     setPersonaReadyCookie(response, true);
     return response;
-  }, "페르소나 생성에 실패했습니다.", "[api/persona/generate POST]");
+  }, "친구를 만들지 못했어요. 잠시 뒤에 다시 해 주세요.", "[api/persona/generate POST]");
 }

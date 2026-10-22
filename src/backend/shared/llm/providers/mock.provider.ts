@@ -1,4 +1,5 @@
 import type { LlmChatRequest, LlmChatResult, LlmProvider } from "../types";
+import { objectParticle, topicParticle } from "@/shared/text/josa";
 
 function pickCallName(system: string): string {
   const m =
@@ -59,12 +60,12 @@ export class MockLlmProvider implements LlmProvider {
       const isTreatment = kind.includes("치료");
       const scheduleContent = JSON.stringify({
         what: isTreatment
-          ? `“${title}”은(는) 몸을 조금 더 편하게 도와주는 시간이에요.`
-          : `“${title}”은(는) 지금 몸이 어떤지 살펴보는 시간이에요.`,
+          ? `“${title}”${topicParticle(title)} 몸을 조금 더 편하게 도와주는 시간이에요.`
+          : `“${title}”${topicParticle(title)} 지금 몸이 어떤지 살펴보는 시간이에요.`,
         why: isTreatment
-          ? `오늘은 “${title}”을(를) 도와주는 시간이에요. 아프게 하려는 게 아니라, 몸이 조금 더 편해지도록 돕기 위함이에요. 긴장되면 베디에게 말해도 괜찮아요.`
-          : `오늘은 “${title}”을(를) 살펴보는 시간이에요. 아프게 하려는 게 아니라, 지금 몸을 알아보기 위함이에요. 긴장되면 베디에게 말해도 괜찮아요.`,
-        notify: `보호자가 “${title}”을(를) 알려 줬어요`,
+          ? `오늘은 “${title}”${objectParticle(title)} 도와주는 시간이에요. 아프게 하려는 게 아니라, 몸이 조금 더 편해지도록 돕기 위함이에요. 긴장되면 베디에게 말해도 괜찮아요.`
+          : `오늘은 “${title}”${objectParticle(title)} 살펴보는 시간이에요. 아프게 하려는 게 아니라, 지금 몸을 알아보기 위함이에요. 긴장되면 베디에게 말해도 괜찮아요.`,
+        notify: `보호자가 “${title}” 일정을 알려 줬어요`,
       });
       await new Promise((resolve) => setTimeout(resolve, 200));
       return {

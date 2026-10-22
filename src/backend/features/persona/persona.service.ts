@@ -82,13 +82,9 @@ export async function generateSingleAvatarChoice(
       prompt: avatar.prompt,
     };
   } catch (error) {
+    // The cause goes to the log only — the child sees a plain retry note.
     console.error(`[persona] avatar candidate ${safeIndex} failed:`, error);
-    const detail =
-      error instanceof Error ? error.message.slice(0, 180) : "unknown";
-    throw new HttpError(
-      `그림을 그리지 못했어요. (${detail}) 잠시 후 다시 시도해 주세요.`,
-      502
-    );
+    throw new HttpError("그림을 그리지 못했어요. 잠시 뒤에 다시 해 주세요.", 502);
   }
 }
 
@@ -126,10 +122,8 @@ async function generateAvatarChoices(
   }
 
   if (avatarChoices.length === 0) {
-    throw new HttpError(
-      `그림을 그리지 못했어요. ${errors[0] ? errors[0].slice(0, 160) : "잠시 후 다시 시도해 주세요."}`,
-      502
-    );
+    console.error("[persona] every avatar candidate failed:", errors[0]);
+    throw new HttpError("그림을 그리지 못했어요. 잠시 뒤에 다시 해 주세요.", 502);
   }
 
   await selectAvatarCandidate(userId, avatarChoices[0]!.id);

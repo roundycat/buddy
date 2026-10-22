@@ -5,6 +5,7 @@ import { CalendarDays, Stethoscope, Syringe, X } from "lucide-react";
 import { cn } from "@/frontend/shared/lib/utils";
 import { useDialogDismiss } from "@/frontend/shared/hooks/useDialogDismiss";
 import { AiMadeBadge } from "@/frontend/shared/components/AiMadeBadge";
+import { objectParticle } from "@/shared/text/josa";
 
 export interface ScheduleNotifyItem {
   id: string;
@@ -21,6 +22,16 @@ export interface ScheduleNotifyItem {
   imageUrl?: string | null;
   imageStatus?: "pending" | "ready" | "failed" | string | null;
   done?: boolean;
+}
+
+/** Line for a schedule item without AI copy: “피검사”를 살펴보는 시간이에요. */
+function scheduleWhat(type: string | undefined, title: string): string {
+  if (type === "treatment") {
+    const name = title.replace(/^치료 시간 ·\s*/, "");
+    return `“${name}”${objectParticle(name)} 도와주는 시간이에요.`;
+  }
+  const name = title.replace(/^검사 시간 ·\s*/, "");
+  return `“${name}”${objectParticle(name)} 살펴보는 시간이에요.`;
 }
 
 function typeMeta(type?: string) {
@@ -277,10 +288,7 @@ export function ScheduleNotifySheet({
                         이게 뭐예요?
                       </p>
                       <p className="mt-1 text-sm leading-relaxed text-bedi-slate/70">
-                        {item.whatText?.trim() ||
-                          (item.type === "treatment"
-                            ? `“${item.title.replace(/^치료 시간 ·\s*/, "")}”을(를) 도와주는 시간이에요.`
-                            : `“${item.title.replace(/^검사 시간 ·\s*/, "")}”을(를) 살펴보는 시간이에요.`)}
+                        {item.whatText?.trim() || scheduleWhat(item.type, item.title)}
                       </p>
                     </div>
 

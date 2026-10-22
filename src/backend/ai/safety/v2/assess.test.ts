@@ -119,7 +119,8 @@ describe("planSafetyResponse", () => {
   it("alerts the guardian with facts only and tells the child", () => {
     const plan = planSafetyResponse(assessChildMessage({ text: "사라지고 싶어" }));
     expect(plan.guardianAlert?.level).toBe("elevated");
-    expect(plan.guardianAlert?.summary).toContain("대화 원문은 공유되지 않습니다");
+    // Facts only: nothing the child wrote reaches the guardian's card.
+    expect(plan.guardianAlert?.summary).not.toContain("사라지고");
     expect(plan.transparency).toBeTruthy();
   });
   it("keeps watch-level signals off the guardian screen", () => {

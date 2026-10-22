@@ -157,7 +157,7 @@ export function StorybookLetterCard() {
           </label>
           <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-rose-600/75">
             <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-            전송하면 바로 아이의 이야기 책에 봉투가 도착합니다. 내용은 퇴원
+            전송하면 바로 아이의 이야기책에 봉투가 도착합니다. 내용은 퇴원
             예정일부터 열립니다.
           </p>
 

@@ -35,7 +35,7 @@ export function MoodCheckIn({ moods = DEFAULT_MOODS, onSelect }: MoodCheckInProp
       <div className="mb-5">
         <h2 className="text-lg font-semibold text-bedi-slate">기분 체크인</h2>
         <p className="mt-1 text-sm text-bedi-slate/50">
-          지금 기분은 어떤가요? 맞는 것을 고르면 됩니다. 정답은 없어요.
+          지금 기분은 어떤가요? 맞는 것을 고르면 돼요. 정답은 없어요.
         </p>
       </div>
 
@@ -62,7 +62,7 @@ export function MoodCheckIn({ moods = DEFAULT_MOODS, onSelect }: MoodCheckInProp
 
       {selected && (
         <p className="mt-5 text-sm text-bedi-slate/50">
-          기록했어요. 체크인은 당신만의 것으로 남겨둡니다.
+          알려 줘서 고마워요. 이 체크인은 저장하지 않고, 누구에게도 보내지 않아요.
         </p>
       )}
     </section>

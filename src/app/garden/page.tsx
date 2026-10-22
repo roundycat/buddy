@@ -31,7 +31,7 @@ export default async function GardenPage() {
     <FeaturePageShell
       eyebrow="Emotion Garden"
       title="감정 정원"
-      description="감정을 기록하는 게 아니라, 키워요. 모든 감정은 아름다운 꽃이 됩니다."
+      description="감정을 기록하는 게 아니라, 키워요. 모든 감정은 아름다운 꽃이 돼요."
     >
       <Suspense fallback={<SoftSkeleton rows={2} label="정원을 여는 중" />}>
         <EmotionGardenView initial={garden} />

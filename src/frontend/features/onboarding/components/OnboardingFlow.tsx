@@ -42,6 +42,7 @@ import {
   type OnboardingDraft,
   type PersonaGeneratePayload,
 } from "@/frontend/features/onboarding/lib/onboarding-draft";
+import { callName, subject } from "@/shared/text/josa";
 
 const fieldClass =
   "h-11 w-full rounded-xl border border-bedi-slate/10 bg-white px-3.5 text-sm text-bedi-slate outline-none transition-colors placeholder:text-bedi-slate/30 focus:border-bedi-sage/50";
@@ -299,13 +300,12 @@ function SummaryRow({
 }
 
 /**
- * Append colloquial "이" for child-facing copy (지민 → 지민이).
+ * A name as friends call it for child-facing copy: 지민 → 지민이, 수아 → 수아.
  */
 function formatNameWithI(name: string) {
   const trimmed = name.trim();
   if (!trimmed) return "아이";
-  if (trimmed.endsWith("이")) return trimmed;
-  return `${trimmed}이`;
+  return callName(trimmed);
 }
 
 type CreatePhase = "persona" | "drawing" | "finishing" | "entering";
@@ -383,7 +383,7 @@ function FriendComingProgress({
       </div>
 
       <h1 className="mt-6 text-xl font-semibold text-bedi-slate">
-        {friend}이(가) 오는 중이에요
+        {subject(friend)} 오는 중이에요
       </h1>
       <p className="mt-2 max-w-xs text-sm leading-relaxed text-bedi-slate/50">
         {isEntering
@@ -634,7 +634,7 @@ export function OnboardingFlow({
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.error ?? "페르소나 생성에 실패했습니다.");
+        throw new Error(data?.error ?? "친구를 만들지 못했어요. 잠시 뒤에 다시 해 주세요.");
       }
 
       // Persona saved — now draw 2 candidates in parallel (CloudFront-safe).
@@ -655,7 +655,7 @@ export function OnboardingFlow({
       );
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "페르소나 생성에 실패했습니다."
+        err instanceof Error ? err.message : "친구를 만들지 못했어요. 잠시 뒤에 다시 해 주세요."
       );
     } finally {
       setPending(false);
@@ -910,8 +910,8 @@ export function OnboardingFlow({
                 나의 성격
               </h1>
               <p className="mt-2 text-sm leading-relaxed text-bedi-slate/50">
-                나의 성향과 장단점을 알려 주세요. 친구를 나와 똑같이 만들지도,
-                다르게 만들지도 할 수 있어요.
+                나의 성향과 장단점을 알려 주세요. 친구를 나와 똑같이 만들 수도,
+                다르게 만들 수도 있어요.
               </p>
             </div>
             <Field label="나의 성향" optional>
@@ -1070,7 +1070,7 @@ export function OnboardingFlow({
               </h1>
               <p className="mt-2 text-sm leading-relaxed text-bedi-slate/50">
                 {buildMode === "mirror"
-                  ? "이름은 정해 주세요. 성격은 나의 것이 아니라 나와 같이 적용됩니다."
+                  ? "이름은 정해 주세요. 성격은 나와 똑같이 적용돼요."
                   : "Beddy만의 성향·장단점을 골라 주세요."}
               </p>
             </div>
@@ -1098,7 +1098,7 @@ export function OnboardingFlow({
                     selfWeaknessSummary && `단점: ${selfWeaknessSummary}`,
                   ]
                     .filter(Boolean)
-                    .join(" · ") || "선택한 나의 성격이 그대로 들어갑니다."}
+                    .join(" · ") || "선택한 나의 성격이 그대로 들어가요."}
                 </p>
               </div>
             ) : (
@@ -1146,7 +1146,7 @@ export function OnboardingFlow({
               </h1>
               <p className="mt-2 text-sm leading-relaxed text-bedi-slate/50">
                 {buildMode === "mirror"
-                  ? "취미와 취향도 나의 것과 같게 적용됩니다."
+                  ? "취미와 취향도 나와 똑같이 적용돼요."
                   : "Beddy가 좋아하는 것들로 채워 주세요."}
               </p>
             </div>
@@ -1167,7 +1167,7 @@ export function OnboardingFlow({
                   ]
                     .filter(Boolean)
                     .join(" · ") ||
-                    "선택한 나의 일상·취향이 그대로 들어갑니다."}
+                    "선택한 나의 일상·취향이 그대로 들어가요."}
                 </p>
               </div>
             ) : (

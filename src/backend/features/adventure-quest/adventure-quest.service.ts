@@ -40,8 +40,16 @@ function headlineForLiveWeather(
   if (weather.code === "rainy") {
     return "🌧️ 비 오는 날, 병실 안에서도 할 수 있는 작은 모험 💧";
   }
-  return `${weather.emoji} ${weather.label}한 하늘 아래, 병실 속 작은 모험 ✨`;
+  return `${weather.emoji} ${CLOUDY_DAY[weather.label] ?? `${weather.label}인 날`}, 병실 속 작은 모험 ✨`;
 }
+
+/** Weather labels are nouns ("흐림", "구름 조금") — say them as a kind of day. */
+const CLOUDY_DAY: Record<string, string> = {
+  흐림: "흐린 날",
+  "구름 조금": "구름이 조금 낀 날",
+  안개: "안개 낀 날",
+  눈: "눈 오는 날",
+};
 
 function shouldRefreshWeatherHeadline(
   headline: string,

@@ -6,6 +6,7 @@ import { MemoryCardSkeleton } from "@/frontend/shared/components/ChildUi";
 import { useDialogDismiss } from "@/frontend/shared/hooks/useDialogDismiss";
 import { useSoftMotion } from "@/frontend/shared/lib/motion";
 import type { FlowerMemoryCard } from "@/frontend/shared/catalogs";
+import { formatDateKeyMonthDay } from "@/frontend/shared/lib/date";
 
 interface MemoryFlowerCardProps {
   card: FlowerMemoryCard | null;
@@ -66,7 +67,7 @@ export function MemoryFlowerCard({
                     animateGrow
                   />
                   <p className="mt-3 text-[11px] tracking-wide text-bedi-sage">
-                    {card.plantedOn.slice(5).replace("-", "월 ")}일
+                    {formatDateKeyMonthDay(card.plantedOn)}
                   </p>
                   <h3 className="mt-1 text-[17px] font-medium text-bedi-slate">
                     {card.flowerName}
