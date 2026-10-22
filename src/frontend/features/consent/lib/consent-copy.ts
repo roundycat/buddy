@@ -54,7 +54,8 @@ export const GUARDIAN_CONSENT_ITEMS: Array<{
     summary:
       "AI 친구와의 대화, 그림·이야기 만들기, 보호자용 요약에 생성형 AI를 사용해요.",
     details: [
-      "사용 모델: Amazon Bedrock (대화·요약·그림 생성)",
+      "사용 모델: Anthropic Claude(대화·요약). 운영 환경에 따라 Claude API(Anthropic, 미국) 또는 Amazon Bedrock(미국 리전)으로 처리하고, 보낸 내용은 모델 학습에 쓰이지 않아요.",
+      "그림: 미리 준비한 그림을 쓰거나, AWS 환경에서는 Amazon Bedrock의 이미지 모델로 그려요.",
       "AI가 만든 내용은 진단·처방이 아니며, 참고용이에요.",
       "보호자용 요약은 아이가 나누기로 한 항목으로만 만들어요.",
     ],
@@ -65,4 +66,4 @@ export const GUARDIAN_CONSENT_PRIVACY_NOTE =
   "아이와 베디의 대화 원문은 보호자에게 절대 보여 주지 않아요. 보호자 화면에는 아이가 나누기로 한 요약만 보여요.";
 
 export const GUARDIAN_CONSENT_WITHDRAW_NOTE =
-  "동의는 설정에서 언제든 철회할 수 있어요. 철회하면 아이의 대화·기록 기능이 다시 잠기고, 보호자 화면에도 아이 정보가 보이지 않아요.";
+  "동의는 설정에서 언제든 철회할 수 있어요. 철회하면 지금까지 모인 아이의 대화·기록을 바로 지우고, AI 기능을 다시 잠가요.";

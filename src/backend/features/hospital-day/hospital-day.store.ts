@@ -39,3 +39,10 @@ export async function saveScheduleItem(
 export async function deleteScheduleItem(id: string): Promise<void> {
   await store.delete(id);
 }
+
+/** All schedule items of a child (account deletion / consent withdrawal). */
+export async function clearScheduleForChild(childUserId: string): Promise<string[]> {
+  const items = await listScheduleForChild(childUserId);
+  await Promise.all(items.map((item) => store.delete(item.id)));
+  return items.map((item) => item.id);
+}

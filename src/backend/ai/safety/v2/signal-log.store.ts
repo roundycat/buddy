@@ -77,3 +77,7 @@ export async function getSafetySignalLog(
 ): Promise<SafetySignalLog | null> {
   return (await store.get(childUserId)) ?? null;
 }
+
+export async function clearSafetySignalsForUser(childUserId: string) {
+  await store.clearByUserId(childUserId);
+}

@@ -54,3 +54,7 @@ export async function acknowledgeChildSafetyAlert(childUserId: string) {
   await alertStore.set(childUserId, next);
   return next;
 }
+
+export async function clearSafetyAlertsForUser(childUserId: string) {
+  await alertStore.clearByUserId(childUserId);
+}

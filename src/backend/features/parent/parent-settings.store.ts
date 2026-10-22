@@ -58,3 +58,7 @@ export async function saveParentSettings(
     updatedAt: new Date().toISOString(),
   });
 }
+
+export async function clearParentSettingsForGuardian(guardianUserId: string) {
+  await store.clearByUserId(guardianUserId);
+}

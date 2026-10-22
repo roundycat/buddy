@@ -28,7 +28,7 @@ export function GuardianConsentCard({
   async function withdraw() {
     if (pending) return;
     const ok = window.confirm(
-      "보호자 동의를 철회할까요?\n아이의 대화·기록 기능이 다시 잠기고, 보호자 화면에도 아이 정보가 보이지 않아요. 다시 동의하면 이어서 쓸 수 있어요."
+      "보호자 동의를 철회할까요?\n지금까지 모인 아이의 대화·기록이 모두 지워지고, AI 기능이 다시 잠겨요. 아이 계정과 동의 기록은 남아요. 다시 동의하면 처음부터 새로 시작해요."
     );
     if (!ok) return;
     setPending(true);

@@ -1,5 +1,6 @@
 import "server-only";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "fs";
+import { rm } from "fs/promises";
 import path from "path";
 import { env } from "@/backend/shared/config/env";
 import { dataDir } from "@/backend/shared/persist/json-file";
@@ -146,4 +147,9 @@ export function searchLocalSummaries(input: {
   }
 
   return hits.sort((a, b) => b.score - a.score).slice(0, input.maxResults ?? 6);
+}
+
+/** Remove every summary document of a child (account deletion / consent withdrawal). */
+export async function clearLocalSummariesForChild(childUserId: string): Promise<void> {
+  await rm(childDir(childUserId), { recursive: true, force: true });
 }

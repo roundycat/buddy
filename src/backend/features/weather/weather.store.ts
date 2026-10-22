@@ -51,3 +51,8 @@ export async function getCoarseLocation(
   }
   return row;
 }
+
+/** Coarse location is personal data: removed with the child's records. */
+export async function clearCoarseLocationForUser(userId: string) {
+  await store.clearByUserId(userId);
+}

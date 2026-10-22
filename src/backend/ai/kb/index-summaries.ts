@@ -1,5 +1,10 @@
 import "server-only";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectsCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { env } from "@/backend/shared/config/env";
 import { todayKey } from "@/backend/shared/time/date";
 import { getConversationMemory } from "@/backend/features/conversation/conversation.store";
@@ -12,7 +17,7 @@ import { getPersonaForUser } from "@/backend/features/persona/persona.store";
 import { filterBridgeText } from "@/backend/ai/bridge/privacy-filter";
 import { guardGuardianText } from "@/backend/ai/bridge/leak-guard";
 import { recentChildWording } from "@/backend/ai/bridge/child-wording";
-import { isLocalKbMode, putLocalSummaryDoc } from "./local-kb";
+import { clearLocalSummariesForChild, isLocalKbMode, putLocalSummaryDoc } from "./local-kb";
 
 /**
  * Write privacy-safe summary documents for guardian Q&A retrieval.
@@ -227,3 +232,30 @@ export async function indexChildSummariesForKb(
   }
 }
 
+/**
+ * Delete a child's summary documents everywhere they may live (local data
+ * directory and the S3 prefix the Knowledge Base ingests). The next KB sync
+ * drops them from the index.
+ */
+export async function clearKbSummariesForChild(childUserId: string): Promise<void> {
+  await clearLocalSummariesForChild(childUserId);
+  const b = bucket();
+  if (!b) return;
+  const Prefix = `kb-summaries/${childUserId}/`;
+  let ContinuationToken: string | undefined;
+  do {
+    const page = await getS3().send(
+      new ListObjectsV2Command({ Bucket: b, Prefix, ContinuationToken })
+    );
+    const keys = (page.Contents ?? []).map((o) => o.Key).filter(Boolean) as string[];
+    if (keys.length) {
+      await getS3().send(
+        new DeleteObjectsCommand({
+          Bucket: b,
+          Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true },
+        })
+      );
+    }
+    ContinuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (ContinuationToken);
+}

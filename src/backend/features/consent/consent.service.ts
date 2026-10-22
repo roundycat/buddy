@@ -20,6 +20,7 @@ import {
   type GuardianConsentRecord,
   type GuardianConsentView,
 } from "./consent.types";
+import { eraseChildCollectedData } from "@/backend/features/privacy/child-data-erase";
 
 const GUARDIAN_NAME_MAX = 20;
 
@@ -235,7 +236,9 @@ export async function grantGuardianConsent(
 
 /**
  * Withdraw this guardian's consent (동의 철회). The child goes back to
- * pending unless another legal guardian's consent is still active.
+ * pending unless another legal guardian's consent is still active; in that
+ * case everything collected under the consent is erased without delay
+ * (account, consent records and the guardian link stay).
  */
 export async function withdrawGuardianConsent(
   guardianUserId: string
@@ -261,6 +264,9 @@ export async function withdrawGuardianConsent(
     basis: othersActive ? "guardian" : undefined,
     updatedAt: at,
   });
+  if (!othersActive) {
+    await eraseChildCollectedData(childUserId);
+  }
 
   return toView({
     linked: true,

@@ -41,3 +41,7 @@ export async function getPreparedParentSummary(
 ): Promise<ParentDailyPrepRecord | null> {
   return (await store.get(parentPrepKey(guardianUserId, dateKey))) ?? null;
 }
+
+export async function clearParentPrepForGuardian(guardianUserId: string) {
+  await store.clearByUserId(guardianUserId);
+}

@@ -16,3 +16,7 @@ export async function saveBondRecord(
 ): Promise<CompanionBondRecord> {
   return store.set(record.userId, record);
 }
+
+export async function clearBondForUser(userId: string) {
+  await store.clearByUserId(userId);
+}

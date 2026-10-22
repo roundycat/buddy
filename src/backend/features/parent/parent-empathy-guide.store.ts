@@ -63,3 +63,7 @@ export async function saveEmpathyGuide(input: {
   });
   return input.guide;
 }
+
+export async function clearEmpathyGuidesForGuardian(guardianUserId: string) {
+  await store.clearByUserId(guardianUserId);
+}
