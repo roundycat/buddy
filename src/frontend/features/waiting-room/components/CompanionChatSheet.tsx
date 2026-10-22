@@ -151,7 +151,7 @@ export function CompanionChatSheet({
         <div className="flex shrink-0 items-center justify-between border-b border-bedi-slate/8 px-5 py-3">
           <div>
             <p className="text-xs tracking-[0.14em] text-bedi-slate/40">
-              페르소나 대화
+              이야기 나누는 중
             </p>
             <p className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-bedi-slate">
               {companionName}

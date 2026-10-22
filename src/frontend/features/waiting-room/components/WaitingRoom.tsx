@@ -389,7 +389,7 @@ export function WaitingRoom({
         </p>
         <p className="mt-1 text-xs text-bedi-slate/40">
           함께한 지{" "}
-          <span className="tabular-nums text-bedi-slate/60">{dayCount}</span> 일째
+          <span className="tabular-nums text-bedi-slate/60">{dayCount}</span>일째
           {bond?.visitStreak && bond.visitStreak > 1
             ? ` · ${bond.visitStreak}일 연속`
             : ""}

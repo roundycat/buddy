@@ -38,8 +38,9 @@ export function CompanionInlineChat({
   const lastAssistant = [...conversation]
     .reverse()
     .find((m) => m.role === "assistant");
+  // First sentence, keeping its "?" — "오늘 하루, 나랑 조금만 이야기해줄래?"
   const shortPrompt =
-    prompt.split(/[.?!。？！]/)[0]?.trim() ||
+    prompt.match(/^[^.?!。？！]*[.?!。？！]?/)?.[0]?.trim() ||
     "오늘 하루, 나랑 조금만 이야기해줄래?";
 
   async function handleSubmit(event: FormEvent) {

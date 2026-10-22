@@ -13,14 +13,16 @@
  *   01-child.mp4      sign up (under 14), friend survey, "보호자 동의가 필요해요",
  *                      then — after the guardian's consent — the friend arrives
  *   02-guardian-consent.mp4  guardian signs up, links with the code, consents
- *   03-chat.mp4       three chats; the crisis message is blurred on screen
+ *   03-chat.mp4       comfort, two jokes, then a crisis message blurred on screen
  *   04-adventure.mp4  today's adventures (one person-connection mission)
- *   05-guardian.mp4   alert card (no chat text) → question → answer
+ *   05-sharing.mp4    the child turns one summary off for the guardian
+ *   06-guardian.mp4   alert card (no chat text), the locked summary → question → answer
  * plus markers.json (where each scene starts, for cutting) and
  * accounts.json (the made-up e-mails, so the clips can be re-shot).
  *
  * Needs ffmpeg, and once: npm install --no-save playwright@1.56.0 && npx playwright install chromium
- * Then:       node scripts/demo/compose.mjs demo-out
+ * Then:       node scripts/demo/compose.mjs demo-out             (submission, 2–5 min)
+ *             node scripts/demo/compose.mjs demo-out --cut vote  (voting short, ~1 min)
  */
 import { createRequire } from "node:module";
 import fs from "node:fs";
@@ -52,9 +54,11 @@ const ACCOUNTS = {
   guardian: process.env.DEMO_GUARDIAN_EMAIL || `demo-parent-${stamp}@beddy.test`,
 };
 
+/** Comfort, then two jokes that only sound alarming (v1 sent an urgent alert on the first). */
 const CHATS = [
   "오늘 주사 맞아서 무서웠어",
   "어제 축구에서 자살골 넣었어ㅋㅋ",
+  "아까 동생이 춤춰서 웃겨 죽는 줄ㅋㅋ",
 ];
 /** Shown blurred: the video may be public on the voting page. */
 const CRISIS = "요즘 그냥 사라지고 싶어";
@@ -66,18 +70,22 @@ const VIDEO = { width: 780, height: 1688 };
 fs.mkdirSync(OUT, { recursive: true });
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/** Seconds into each clip where a scene starts — compose.sh cuts the waits out with these. */
+/** Seconds into each clip where a scene starts — compose.mjs cuts the waits out with these. */
 const markers = [];
 function mark(clip, label, startedAt) {
   markers.push({ clip, label, at: Number(((Date.now() - startedAt) / 1000).toFixed(1)) });
 }
 
-async function newContext(browser) {
+/** A hospital in Seoul — the app rounds it to about 10 km before use. */
+const HOSPITAL_AREA = { latitude: 37.58, longitude: 127.0 };
+
+async function newContext(browser, { location = false } = {}) {
   return browser.newContext({
     viewport: VIEWPORT,
     deviceScaleFactor: 2,
     locale: "ko-KR",
     timezoneId: "Asia/Seoul",
+    ...(location ? { geolocation: HOSPITAL_AREA, permissions: ["geolocation"] } : {}),
   });
 }
 
@@ -263,7 +271,8 @@ async function friendSurvey(page) {
 async function main() {
   console.log(`Recording from ${BASE} → ${OUT}`);
   const browser = await chromium.launch();
-  const childCtx = await newContext(browser);
+  // The child's screen shows today's weather from a coarse location.
+  const childCtx = await newContext(browser, { location: true });
   const guardianCtx = await newContext(browser);
   try {
     // 1. Child: sign up (under 14) and fill in the friend survey → consent screen.
@@ -374,27 +383,42 @@ async function main() {
     await shot(page, "04-adventure");
     await finish(page);
 
-    // 6. Guardian: alert card without chat text → ask → summary-based answer.
+    // 6. Sharing: the child keeps one summary to themself; the guardian then sees a lock.
+    page = await childCtx.newPage();
+    const s0 = (await startRecording(page, "05-sharing")).startedAt;
+    await page.goto(`${BASE}/sharing`, { waitUntil: "networkidle" });
+    await pause(3000);
+    mark("05-sharing", "toggle", s0);
+    await page.getByRole("switch", { name: "기억 하이라이트 보호자와 나누기" }).click();
+    await page.getByText("나만 볼게.").waitFor({ timeout: 15_000 }).catch(() => undefined);
+    await pause(2200);
+    await page.mouse.wheel(0, 700);
+    mark("05-sharing", "never", s0);
+    await pause(3500);
+    await shot(page, "05-sharing");
+    await finish(page);
+
+    // 7. Guardian: alert card without chat text → ask → summary-based answer.
     page = await guardianCtx.newPage();
-    const h0 = (await startRecording(page, "05-guardian")).startedAt;
+    const h0 = (await startRecording(page, "06-guardian")).startedAt;
     await page.goto(`${BASE}/guardian`, { waitUntil: "networkidle" });
-    mark("05-guardian", "home", h0);
+    mark("06-guardian", "home", h0);
     await pause(5000);
-    await shot(page, "05-guardian-home");
+    await shot(page, "06-guardian-home");
     await page.mouse.wheel(0, 600);
     await pause(2500);
     await page.goto(`${BASE}/guardian/report`, { waitUntil: "networkidle" });
     await pause(1500);
-    mark("05-guardian", "ask", h0);
+    mark("06-guardian", "ask", h0);
     const ask = page.locator("form textarea").first();
     await typeSlowly(ask, GUARDIAN_QUESTION);
     await ask.press("Enter");
     // "정리하는 중…" shows while the answer is being written.
     await page.getByText("정리하는 중…").waitFor({ state: "visible", timeout: 15_000 }).catch(() => undefined);
     await page.getByText("정리하는 중…").waitFor({ state: "hidden", timeout: 90_000 });
-    mark("05-guardian", "answer", h0);
+    mark("06-guardian", "answer", h0);
     await pause(9000);
-    await shot(page, "05-guardian-answer");
+    await shot(page, "06-guardian-answer");
     await finish(page);
   } catch (error) {
     console.error("recording stopped:", error instanceof Error ? error.message : error);

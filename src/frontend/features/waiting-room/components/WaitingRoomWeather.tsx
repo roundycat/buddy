@@ -35,10 +35,12 @@ export function WaitingRoomWeather() {
   return (
     <p className="mt-2 text-[12px] tracking-wide text-bedi-slate/55">
       <span aria-hidden>{weather.emoji}</span> {weather.label}
-      <span className="tabular-nums text-bedi-slate/55">
-        {" "}
-        · {weather.tempC}°
-      </span>
+      {weather.tempC !== null ? (
+        <span className="tabular-nums text-bedi-slate/55">
+          {" "}
+          · {weather.tempC}°
+        </span>
+      ) : null}
     </p>
   );
 }

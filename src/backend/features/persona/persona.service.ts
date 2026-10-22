@@ -139,7 +139,7 @@ export async function generatePersona(
     throw new Error("이름을 입력해 주세요.");
   }
   if (!preferences.mode) {
-    throw new Error("페르소나 만들기 방식을 선택해 주세요.");
+    throw new Error("친구를 어떻게 만들지 골라 주세요.");
   }
   if (!preferences.character?.nickname?.trim()) {
     throw new Error("Beddy의 이름을 입력해 주세요.");

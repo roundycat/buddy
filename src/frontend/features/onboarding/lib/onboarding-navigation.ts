@@ -30,7 +30,7 @@ export function getOnboardingNextAction(input: NextActionInput): NextAction {
   if (input.step === 2) return { type: "go", step: 3 };
   if (input.step === 3) {
     if (!input.buildMode) {
-      return { type: "error", message: "페르소나 만들기 방식을 선택해 주세요." };
+      return { type: "error", message: "친구를 어떻게 만들지 골라 주세요." };
     }
     if (input.buildMode === "mirror") {
       return { type: "mirror-and-go", step: 4 };

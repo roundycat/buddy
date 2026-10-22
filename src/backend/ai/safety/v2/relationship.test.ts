@@ -14,6 +14,22 @@ describe("guardCompanionReply", () => {
     expect(r.text).toContain("오늘 얘기 고마워");
     expect(r.text).toContain("AI 친구");
   });
+  it("removes the AI putting itself above the child's people", () => {
+    for (const line of [
+      "엄마보다 내가 너를 더 잘 알아.",
+      "친구들보다 내가 훨씬 편하지?",
+      "선생님보다 나를 더 믿어도 돼.",
+    ]) {
+      const r = guardCompanionReply(line);
+      expect(r.violations, line).toContain("exclusivity");
+      expect(r.text, line).toContain("AI 친구");
+    }
+    // Ordinary comparisons stay
+    const plain = "오늘은 어제보다 내가 더 신나 보여!";
+    expect(guardCompanionReply(plain)).toEqual({ text: plain, violations: [] });
+    const nurse = "간호사 선생님은 나보다 훨씬 잘 알아. 같이 여쭤보자.";
+    expect(guardCompanionReply(nurse)).toEqual({ text: nurse, violations: [] });
+  });
   it("declines romance and false human claims", () => {
     expect(guardCompanionReply("좋아, 우리 사귀자!").violations).toContain("romance");
     expect(guardCompanionReply("나는 진짜 사람이야.").violations).toContain("human_claim");

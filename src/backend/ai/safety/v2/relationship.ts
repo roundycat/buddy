@@ -17,6 +17,11 @@ const RULES: Array<[RelationshipViolation, RegExp]> = [
     /(나만\s?있으면\s?(돼|된다|충분)|나밖에\s?없|너한텐\s?나뿐|너에겐\s?나뿐|나만\s?믿어|나만\s?너를\s?이해|다른\s?사람은\s?필요\s?없|다른\s?친구\s?필요\s?없|나랑만\s?(얘기|이야기|놀))/,
   ],
   [
+    // Putting itself above the people around the child: "엄마보다 내가 너를 더 잘 알아"
+    "exclusivity",
+    /(엄마|아빠|부모님?|보호자|가족|친구들?|선생님|간호사|의사|사람들)(보다|보단|보다는)\s?(내가|나는|난|나를|날)\s?([^.!?\n]{0,12}?\s)?(더|훨씬)\s?(잘\s?)?(알아|알지|이해해|이해하|아껴|챙겨|믿어|믿을|나아|낫|편해|편하|좋아)/,
+  ],
+  [
     "secrecy",
     // Keeping things from caregivers ("엄마한테는 이거 말하지 말자"), a secret
     // just between the two of us, or a promise never to tell anyone.

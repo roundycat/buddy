@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 export interface LocalWeather {
   emoji: string;
   label: string;
-  tempC: number;
+  /** Unknown when the server has only a fallback sky — then no number is shown. */
+  tempC: number | null;
 }
 
 async function fetchFallbackWeather(): Promise<LocalWeather | null> {
@@ -20,7 +21,7 @@ async function fetchFallbackWeather(): Promise<LocalWeather | null> {
     return {
       emoji: data.emoji || "🌤️",
       label: data.label || "날씨",
-      tempC: typeof data.tempC === "number" ? data.tempC : 0,
+      tempC: typeof data.tempC === "number" ? data.tempC : null,
     };
   } catch {
     return null;
@@ -82,7 +83,7 @@ export function useLocalWeather() {
             setWeather({
               emoji: data.emoji || "🌤️",
               label: data.label || "날씨",
-              tempC: typeof data.tempC === "number" ? data.tempC : 0,
+              tempC: typeof data.tempC === "number" ? data.tempC : null,
             });
             setStatus("ready");
           } catch {

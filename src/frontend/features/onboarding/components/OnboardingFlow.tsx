@@ -1016,8 +1016,8 @@ export function OnboardingFlow({
                 Beddy는 어떻게 만들까요?
               </h1>
               <p className="mt-2 text-sm leading-relaxed text-bedi-slate/50">
-                나와 같은 페르소나를 원하거나, 나와 다른 친구를 직접 설정할 수
-                있어요.
+                나와 닮은 친구로 만들 수도 있고, 나와 다른 친구를 직접 정할
+                수도 있어요.
               </p>
             </div>
 
