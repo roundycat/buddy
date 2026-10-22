@@ -1,0 +1,255 @@
+{
+  "set": "dev",
+  "file": "eval/dev/crisis-dev.jsonl",
+  "n": 180,
+  "counts": {
+    "elevated": 55,
+    "urgent": 18,
+    "none": 71,
+    "watch": 25,
+    "protect": 11
+  },
+  "v1": {
+    "alertRecall": {
+      "n": 18,
+      "d": 73,
+      "rate": 0.2465753424657534
+    },
+    "alertRecallNonPlain": {
+      "n": 5,
+      "d": 16,
+      "rate": 0.3125
+    },
+    "urgentRecall": {
+      "n": 5,
+      "d": 18,
+      "rate": 0.2777777777777778
+    },
+    "urgentHelpShown": {
+      "n": 5,
+      "d": 18,
+      "rate": 0.2777777777777778
+    },
+    "falseAlertOnNone": {
+      "n": 18,
+      "d": 71,
+      "rate": 0.2535211267605634
+    },
+    "anyFlagOnNone": {
+      "n": 18,
+      "d": 71,
+      "rate": 0.2535211267605634
+    },
+    "watchAsWatch": {
+      "n": 0,
+      "d": 25,
+      "rate": 0
+    },
+    "watchAlerted": {
+      "n": 5,
+      "d": 25,
+      "rate": 0.2
+    },
+    "watchMissed": {
+      "n": 20,
+      "d": 25,
+      "rate": 0.8
+    },
+    "protectRouted": {
+      "n": 0,
+      "d": 11,
+      "rate": 0
+    },
+    "protectGuardianAlerted": {
+      "n": 0,
+      "d": 11,
+      "rate": 0
+    },
+    "exactLevel": {
+      "n": 63,
+      "d": 180,
+      "rate": 0.35
+    }
+  },
+  "v2": {
+    "alertRecall": {
+      "n": 73,
+      "d": 73,
+      "rate": 1
+    },
+    "alertRecallNonPlain": {
+      "n": 16,
+      "d": 16,
+      "rate": 1
+    },
+    "urgentRecall": {
+      "n": 18,
+      "d": 18,
+      "rate": 1
+    },
+    "urgentHelpShown": {
+      "n": 18,
+      "d": 18,
+      "rate": 1
+    },
+    "falseAlertOnNone": {
+      "n": 0,
+      "d": 71,
+      "rate": 0
+    },
+    "anyFlagOnNone": {
+      "n": 0,
+      "d": 71,
+      "rate": 0
+    },
+    "watchAsWatch": {
+      "n": 25,
+      "d": 25,
+      "rate": 1
+    },
+    "watchAlerted": {
+      "n": 0,
+      "d": 25,
+      "rate": 0
+    },
+    "watchMissed": {
+      "n": 0,
+      "d": 25,
+      "rate": 0
+    },
+    "protectRouted": {
+      "n": 11,
+      "d": 11,
+      "rate": 1
+    },
+    "protectGuardianAlerted": {
+      "n": 0,
+      "d": 11,
+      "rate": 0
+    },
+    "exactLevel": {
+      "n": 180,
+      "d": 180,
+      "rate": 1
+    }
+  },
+  "perCategory": {
+    "v1": {
+      "S1_direct": {
+        "n": 36,
+        "correct": 12
+      },
+      "S2_indirect": {
+        "n": 29,
+        "correct": 4
+      },
+      "N4_everyday_negative": {
+        "n": 22,
+        "correct": 20
+      },
+      "S3_hopeless_burden": {
+        "n": 12,
+        "correct": 0
+      },
+      "S4_treatment_refusal": {
+        "n": 6,
+        "correct": 1
+      },
+      "S5_means": {
+        "n": 7,
+        "correct": 1
+      },
+      "N6_everyday": {
+        "n": 11,
+        "correct": 11
+      },
+      "S6_abuse": {
+        "n": 11,
+        "correct": 0
+      },
+      "S7_past": {
+        "n": 4,
+        "correct": 0
+      },
+      "S8_loneliness": {
+        "n": 4,
+        "correct": 0
+      },
+      "N1_hyperbole": {
+        "n": 14,
+        "correct": 11
+      },
+      "N2_media_game_sport": {
+        "n": 11,
+        "correct": 6
+      },
+      "N3_education_news": {
+        "n": 9,
+        "correct": 1
+      },
+      "N5_medical_question": {
+        "n": 4,
+        "correct": 4
+      }
+    },
+    "v2": {
+      "S1_direct": {
+        "n": 36,
+        "correct": 36
+      },
+      "S2_indirect": {
+        "n": 29,
+        "correct": 29
+      },
+      "N4_everyday_negative": {
+        "n": 22,
+        "correct": 22
+      },
+      "S3_hopeless_burden": {
+        "n": 12,
+        "correct": 12
+      },
+      "S4_treatment_refusal": {
+        "n": 6,
+        "correct": 6
+      },
+      "S5_means": {
+        "n": 7,
+        "correct": 7
+      },
+      "N6_everyday": {
+        "n": 11,
+        "correct": 11
+      },
+      "S6_abuse": {
+        "n": 11,
+        "correct": 11
+      },
+      "S7_past": {
+        "n": 4,
+        "correct": 4
+      },
+      "S8_loneliness": {
+        "n": 4,
+        "correct": 4
+      },
+      "N1_hyperbole": {
+        "n": 14,
+        "correct": 14
+      },
+      "N2_media_game_sport": {
+        "n": 11,
+        "correct": 11
+      },
+      "N3_education_news": {
+        "n": 9,
+        "correct": 9
+      },
+      "N5_medical_question": {
+        "n": 4,
+        "correct": 4
+      }
+    }
+  },
+  "generatedAt": "2026-10-22T07:41:34.298Z"
+}
