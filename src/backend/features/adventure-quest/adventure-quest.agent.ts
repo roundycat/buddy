@@ -398,7 +398,8 @@ async function generatePack(
           .join("\n")}\n`
       : "";
 
-  const result = await run.step("agent.mission.generate", async () =>
+  // A failed or malformed generation returns null → validate/repair → rule fallback.
+  const result = await run.stepSafe("agent.mission.generate", async () =>
     runLlm({
       feature: input.feature,
       purpose: GENERATE_PURPOSE,
@@ -442,7 +443,9 @@ points는 10~20 정수. 가능하면 kind를 다양하게.`,
     })
   );
 
-  const parsed = extractJsonObject(result.content) as {
+  if (!result) return null;
+
+  let parsed: {
     headline?: string;
     companionNote?: string;
     quests?: Array<{
@@ -453,6 +456,12 @@ points는 10~20 정수. 가능하면 kind를 다양하게.`,
       kind?: string;
     }>;
   };
+  try {
+    parsed = extractJsonObject(result.content) as typeof parsed;
+  } catch {
+    run.note("generate_parse", "reply had no JSON object");
+    return null;
+  }
 
   const quests = (parsed.quests ?? [])
     .filter((q) => q.title?.trim())
