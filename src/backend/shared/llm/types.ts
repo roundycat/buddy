@@ -9,10 +9,14 @@ export interface LlmMessage {
   content: string;
 }
 
+/** What the call is for — lets a provider pick effort / thinking (Claude API). */
+export type LlmPurpose = "chat" | "analysis" | "quality";
+
 export interface LlmChatRequest {
   messages: LlmMessage[];
   temperature?: number;
   maxTokens?: number;
+  purpose?: LlmPurpose;
   /** Optional per-call model override (Bedrock chat vs quality routing) */
   model?: string;
   /**
@@ -75,6 +79,7 @@ export interface LlmToolChatRequest {
   tools: LlmToolSpec[];
   temperature?: number;
   maxTokens?: number;
+  purpose?: LlmPurpose;
   model?: string;
   guardrail?: LlmChatRequest["guardrail"];
   /**

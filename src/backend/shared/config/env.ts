@@ -3,9 +3,12 @@
  * Values come from `.env.local` (see `.env.example`).
  */
 
-export type LlmProviderName = "mock" | "bedrock";
+export type LlmProviderName = "mock" | "bedrock" | "anthropic";
 export type PersistenceMode = "json" | "dynamodb";
-export type AuthProviderName = "dynamodb" | "mock" | "auto";
+export type AuthProviderName = "dynamodb" | "json" | "mock" | "auto";
+export type ImageProviderName = "bedrock" | "bundled";
+export type TtsProviderName = "polly" | "browser";
+export type AnthropicEffort = "low" | "medium" | "high";
 
 function read(key: string, fallback = ""): string {
   return (process.env[key] ?? fallback).trim();
@@ -18,7 +21,11 @@ function readBool(key: string, fallback = false): boolean {
 }
 
 export const env = {
-  appUrl: read("NEXT_PUBLIC_APP_URL", "http://localhost:3000"),
+  /** Render sets RENDER_EXTERNAL_URL at runtime; an explicit value wins. */
+  appUrl:
+    read("NEXT_PUBLIC_APP_URL") ||
+    read("RENDER_EXTERNAL_URL") ||
+    "http://localhost:3000",
 
   /**
    * Local MVP: json (.data files)
@@ -31,12 +38,38 @@ export const env = {
     region: read("AWS_REGION", "us-east-1"),
   },
 
-  /** dynamodb | mock | auto — login credential store (no silent auto→mock in prod) */
+  /**
+   * dynamodb | json | mock | auto — login credential store (no silent auto→mock in prod).
+   * json keeps bcrypt hashes in the data directory (non-AWS hosting).
+   */
   authProvider: (read("AUTH_PROVIDER", "dynamodb") ||
     "dynamodb") as AuthProviderName,
 
-  /** mock | bedrock */
+  /** mock | bedrock | anthropic (Claude API, non-AWS hosting) */
   llmProvider: (read("LLM_PROVIDER", "mock") || "mock") as LlmProviderName,
+
+  /**
+   * Claude API (api.anthropic.com). Used when LLM_PROVIDER=anthropic.
+   * Effort / thinking are per purpose: chat (child companion), analysis (short JSON
+   * tasks, safety review), quality (dawn batch, storybook).
+   */
+  anthropic: {
+    apiKey: read("ANTHROPIC_API_KEY"),
+    baseUrl: read("ANTHROPIC_BASE_URL", "https://api.anthropic.com").replace(/\/+$/, ""),
+    chatModel: read("ANTHROPIC_MODEL_CHAT", "claude-haiku-5-5"),
+    qualityModel: read(
+      "ANTHROPIC_MODEL_QUALITY",
+      read("ANTHROPIC_MODEL_CHAT", "claude-haiku-5-5")
+    ),
+    chatEffort: (read("ANTHROPIC_EFFORT_CHAT", "low") || "low") as AnthropicEffort,
+    analysisEffort: (read("ANTHROPIC_EFFORT_ANALYSIS", "low") || "low") as AnthropicEffort,
+    qualityEffort: (read("ANTHROPIC_EFFORT_QUALITY", "medium") || "medium") as AnthropicEffort,
+    /** adaptive | disabled — thinking for the child chat path */
+    chatThinking: (read("ANTHROPIC_THINKING_CHAT", "adaptive") || "adaptive") as
+      | "adaptive"
+      | "disabled",
+    timeoutMs: Number(read("ANTHROPIC_TIMEOUT_MS", "45000")) || 45000,
+  },
 
   /**
    * Fallback to mock when LLM call fails.
@@ -103,6 +136,17 @@ export const env = {
     s3Region: read("AVATAR_S3_REGION", read("AWS_REGION", "us-east-1")),
   },
 
+  /**
+   * Image generation: bedrock (Stability on Bedrock) | bundled (pre-made crayon drawings).
+   * Defaults to bedrock only when the LLM provider is bedrock.
+   */
+  imageProvider: (read("IMAGE_PROVIDER") ||
+    (read("LLM_PROVIDER") === "bedrock" ? "bedrock" : "bundled")) as ImageProviderName,
+
+  /** Storybook narration: polly (Amazon Polly) | browser (speechSynthesis on the device) */
+  ttsProvider: (read("TTS_PROVIDER") ||
+    (read("LLM_PROVIDER") === "bedrock" ? "polly" : "browser")) as TtsProviderName,
+
   /** Shared secret for EventBridge → /api/cron/* (header x-bedi-cron-secret) */
   cronSecret: read("CRON_SECRET"),
 } as const;
@@ -112,6 +156,7 @@ export function isLlmConfigured(
 ): boolean {
   if (provider === "mock") return true;
   if (provider === "bedrock") return Boolean(env.bedrock.modelId);
+  if (provider === "anthropic") return Boolean(env.anthropic.apiKey);
   return false;
 }
 

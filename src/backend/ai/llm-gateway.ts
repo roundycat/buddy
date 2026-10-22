@@ -35,6 +35,11 @@ import { StandardUnit } from "@aws-sdk/client-cloudwatch";
 export type AiPurpose = "chat" | "analysis" | "quality";
 
 export function resolveModelForPurpose(purpose: AiPurpose): string {
+  if (env.llmProvider === "anthropic") {
+    return purpose === "quality"
+      ? env.anthropic.qualityModel
+      : env.anthropic.chatModel;
+  }
   if (env.llmProvider !== "bedrock") return "mock-rules";
 
   switch (purpose) {
@@ -91,7 +96,8 @@ export async function runLlm(input: {
         messages: input.messages,
         temperature: input.temperature,
         maxTokens: input.maxTokens,
-        model: env.llmProvider === "bedrock" ? model : undefined,
+        purpose: input.purpose,
+        model: env.llmProvider !== "mock" ? model : undefined,
         guardrail,
       });
     }
@@ -151,7 +157,8 @@ export async function runLlmWithTools(input: {
         tools: input.tools,
         temperature: input.temperature,
         maxTokens: input.maxTokens,
-        model: env.llmProvider === "bedrock" ? model : undefined,
+        purpose: input.purpose,
+        model: env.llmProvider !== "mock" ? model : undefined,
         guardrail,
         disableTools: input.disableTools,
         toolChoice: input.toolChoice,

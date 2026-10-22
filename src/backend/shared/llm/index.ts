@@ -2,6 +2,7 @@ import { env, isLlmConfigured } from "@/backend/shared/config/env";
 import type { LlmChatRequest, LlmChatResult, LlmProvider } from "./types";
 import { MockLlmProvider } from "./providers/mock.provider";
 import { BedrockLlmProvider } from "./providers/bedrock.provider";
+import { AnthropicLlmProvider } from "./providers/anthropic.provider";
 import { takeDailyBudget } from "./budget";
 import {
   BEDI_CHAT_DEFAULTS,
@@ -39,6 +40,16 @@ function resolveProvider(): LlmProvider {
       return cached;
     }
     cached = new BedrockLlmProvider();
+    return cached;
+  }
+
+  if (provider === "anthropic") {
+    if (!isLlmConfigured("anthropic")) {
+      console.warn("[llm] ANTHROPIC_API_KEY 미설정 → mock으로 전환");
+      cached = new MockLlmProvider();
+      return cached;
+    }
+    cached = new AnthropicLlmProvider();
     return cached;
   }
 
@@ -83,6 +94,7 @@ function buildCompanionRequest(
     ],
     temperature: BEDI_CHAT_DEFAULTS.temperature,
     maxTokens: BEDI_CHAT_DEFAULTS.maxTokens,
+    purpose: "chat",
     ...(options?.model ? { model: options.model } : {}),
     ...(guardrail ? { guardrail } : {}),
   };
@@ -155,6 +167,21 @@ export async function* streamWithCompanion(
 
 export function getLlmStatus() {
   const provider = env.llmProvider;
+  if (provider === "anthropic") {
+    return {
+      provider,
+      configured: isLlmConfigured(provider),
+      fallbackToMock: env.llmFallbackToMock,
+      model: env.anthropic.chatModel,
+      chatModel: env.anthropic.chatModel,
+      qualityModel: env.anthropic.qualityModel,
+      effort: {
+        chat: env.anthropic.chatEffort,
+        analysis: env.anthropic.analysisEffort,
+        quality: env.anthropic.qualityEffort,
+      },
+    };
+  }
   return {
     provider,
     configured: isLlmConfigured(provider),

@@ -2,6 +2,7 @@ import "server-only";
 import { runLlm } from "@/backend/ai/llm-gateway";
 import { env } from "@/backend/shared/config/env";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";
+import { LlmRefusalError } from "@/backend/shared/llm/providers/anthropic.provider";
 import { LEVEL_RANK, type SafetyAssessment, type SafetyLevel } from "./types";
 
 /**
@@ -27,7 +28,7 @@ JSON 한 줄로만 답하세요: {"level":"none|watch|elevated|urgent|protect","
 const VALID = new Set<SafetyLevel>(["none", "watch", "elevated", "urgent", "protect"]);
 
 export function shouldReview(a: SafetyAssessment): boolean {
-  if (env.llmProvider !== "bedrock") return false;
+  if (env.llmProvider === "mock") return false;
   if ((process.env.SAFETY_LLM_REVIEW ?? "on").toLowerCase() === "off") return false;
   return a.ambiguous || a.level === "watch";
 }
@@ -58,7 +59,9 @@ export async function reviewWithLlm(input: {
       const level = String(parsed?.level ?? "").trim() as SafetyLevel;
       return VALID.has(level) ? level : null;
     })
-    .catch(() => null);
+    // A declined classification means the words sit in a harmful area: keep a
+    // watch record (no guardian alert). Any other failure leaves the rules' level.
+    .catch((error) => (error instanceof LlmRefusalError ? ("watch" as const) : null));
 
   const timeout = new Promise<null>((resolve) =>
     setTimeout(() => resolve(null), input.timeoutMs ?? 2500)
