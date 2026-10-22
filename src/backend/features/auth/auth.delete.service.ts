@@ -13,6 +13,8 @@ import { clearStorybookParentLetter } from "@/backend/features/growth-storybook/
 import { clearStorybookIllustrations } from "@/backend/features/growth-storybook/storybook-illustration.service";
 import { clearMemoryLetters } from "@/backend/features/memory-post/memory-post.store";
 import { clearConsentForUser } from "@/backend/features/consent/consent.store";
+import { clearSharingForUser } from "@/backend/features/sharing/sharing.store";
+import { clearConcernRequestsForUser } from "@/backend/features/sharing/concern-request.store";
 import type { AuthUser } from "./auth.types";
 import { deleteDynamoUser } from "./auth.users.dynamo.repo";
 
@@ -37,6 +39,8 @@ export async function deleteAccount(user: AuthUser): Promise<void> {
     clearStorybookParentLetter(user.id),
     clearMemoryLetters(user.id),
     clearConsentForUser(user.id),
+    clearSharingForUser(user.id),
+    clearConcernRequestsForUser(user.id),
   ]);
 
   await deleteDynamoUser(user.id);
