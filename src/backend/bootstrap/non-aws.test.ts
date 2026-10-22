@@ -29,11 +29,22 @@ describe("file-backed accounts", () => {
 
   it("seeds the judge pair once, skips a password that breaks the rules", async () => {
     const { ensureSeedAccounts } = await import("./seed-accounts");
-    expect(await ensureSeedAccounts()).toEqual(["JUDGE_PASSWORD:created/created"]);
-    expect(await ensureSeedAccounts()).toEqual(["JUDGE_PASSWORD:kept/kept"]);
+    expect(await ensureSeedAccounts()).toEqual(["judge:created/created"]);
+    expect(await ensureSeedAccounts()).toEqual(["judge:kept/kept"]);
 
     const { getLinkForGuardian } = await import("@/backend/features/guardian-link/guardian-link.store");
     expect((await getLinkForGuardian("user-judge-guardian"))?.childUserId).toBe("user-judge-child");
+
+    // Under-14 child with the seeded guardian's legal consent on record.
+    const { getChildConsentState, listGuardianConsentsForChild } = await import(
+      "@/backend/features/consent/consent.store"
+    );
+    expect(await getChildConsentState("user-judge-child")).toMatchObject({
+      ageBand: "under14",
+      status: "granted",
+      basis: "guardian",
+    });
+    expect((await listGuardianConsentsForChild("user-judge-child")).length).toBe(1);
 
     const { findJsonUserByEmail } = await import("@/backend/features/auth/auth.users.json.repo");
     expect(await findJsonUserByEmail("demo-child@beddy.test")).toBeNull();

@@ -362,15 +362,8 @@ for i in $(seq 1 40); do
 done
 [ "$ok" = "1" ] || warn "앱 상태 확인 시간 초과 — 몇 분 뒤 deploy/aws/status.sh 로 다시 확인하세요."
 
-if command -v node >/dev/null 2>&1; then
-  ( cd "$ROOT" && npm install --no-save --no-audit --no-fund bcryptjs@3 @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb >/dev/null 2>&1 ) || true
-  get() { aws ssm get-parameter --name "$PARAM/$1" --with-decryption --query Parameter.Value --output text; }
-  ( cd "$ROOT" && BEDI_DDB_TABLE="$TABLE" AWS_REGION="$REGION" \
-      DEMO_CHILD_PASSWORD="$(get DEMO_CHILD_PASSWORD)" DEMO_GUARDIAN_PASSWORD="$(get DEMO_GUARDIAN_PASSWORD)" \
-      JUDGE_PASSWORD="$(get JUDGE_PASSWORD)" node scripts/seed/seed-dynamo-users.js ) || warn "데모 계정 생성 실패 — scripts/seed 로그를 확인하세요."
-else
-  warn "node가 없어 데모 계정을 만들지 못했습니다."
-fi
+# Judge / demo accounts: the app creates them at startup from the SSM passwords
+# (src/backend/bootstrap/seed-accounts.ts), together with the guardian link and consent.
 
 log "완료"
 cat <<DONE
@@ -378,6 +371,8 @@ cat <<DONE
   주소:            ${APP_URL}
   (CloudFront 배포가 전 세계에 퍼지는 데 5~10분 걸릴 수 있어요)
 
+  심사 계정:   judge-child@beddy.test / judge-guardian@beddy.test  (JUDGE_PASSWORD)
+  시연 계정:   demo-child@beddy.test / demo-guardian@beddy.test    (DEMO_CHILD_PASSWORD / DEMO_GUARDIAN_PASSWORD)
   데모·심사 계정 비밀번호 확인:
     aws ssm get-parameters-by-path --path ${PARAM} --with-decryption \\
       --query "Parameters[?contains(Name,'PASSWORD')].[Name,Value]" --output table

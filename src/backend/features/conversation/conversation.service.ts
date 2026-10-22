@@ -39,6 +39,12 @@ import {
   type OutputFlag,
 } from "@/backend/ai/safety/v2/output-guard";
 import { createChildSafetyAlert } from "@/backend/features/safety/safety-alert.store";
+import { decideShare } from "@/backend/features/sharing/share-policy";
+import {
+  DEFAULT_CONCERN_SUMMARY,
+  requestChildConsentForConcern,
+} from "@/backend/features/sharing/concern-request.service";
+import type { SignalCategory } from "@/backend/ai/safety/v2/types";
 import { recordCount } from "@/backend/shared/observability";
 
 /**
@@ -173,17 +179,42 @@ function scheduleSafetyFollowUp(params: {
     message: `rules=${assessment.rules.join(",")} sup=${assessment.suppressors.join(",")}`,
   });
   void (async () => {
-    if (plan.guardianAlert) {
+    // The share policy is the single place that decides what reaches a guardian:
+    // urgent/elevated → minimal alert, protect → hospital route (no guardian alert).
+    const share = decideShare({ kind: "safety", crisisLevel: assessment.level });
+    if (share.decision === "minimal" && plan.guardianAlert) {
       await createChildSafetyAlert({
         childUserId: params.userId,
         summary: plan.guardianAlert.summary,
         level: plan.guardianAlert.level,
       });
     }
-    await recordSafetySignal(params.userId, assessment);
+    const signal = await recordSafetySignal(params.userId, assessment);
+    // Watch signals keep coming back → ask the child before anyone is told.
+    if (
+      signal.persistentDistress &&
+      decideShare({ kind: "concern", persistentDistress: true }).decision === "ask_child"
+    ) {
+      await requestChildConsentForConcern(
+        params.userId,
+        concernSummary(assessment.categories)
+      );
+      recordCount("ConcernConsentRequests", 1, { feature: "safety", operation: "ask_child" });
+    }
   })().catch((error) => {
     console.error("[conversation] safety follow-up failed", error);
   });
+}
+
+/**
+ * What the child is asked to share — a gentle description of the pattern,
+ * never their words. The child sees it before the guardian does.
+ */
+function concernSummary(categories: SignalCategory[]): string {
+  if (categories.includes("S4_treatment_refusal")) return "요즘 치료가 많이 힘들고 지쳐 보여요.";
+  if (categories.includes("S8_loneliness")) return "요즘 외롭다고 느끼는 때가 자주 있어 보여요.";
+  if (categories.includes("S3_hopeless_burden")) return "요즘 마음이 많이 지치고 무거워 보여요.";
+  return DEFAULT_CONCERN_SUMMARY;
 }
 
 export async function sendMessage(

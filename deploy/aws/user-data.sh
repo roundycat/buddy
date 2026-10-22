@@ -32,6 +32,10 @@ CRON_SECRET="$(secret CRON_SECRET)"
   echo "AUTH_SESSION_SECRET=$(secret AUTH_SESSION_SECRET)"
   echo "CRON_SECRET=$CRON_SECRET"
   echo "NEXT_PUBLIC_APP_URL=$APP_URL"
+  # Judge / demo accounts are created by the app at startup from these
+  echo "JUDGE_PASSWORD=$(secret JUDGE_PASSWORD)"
+  echo "DEMO_CHILD_PASSWORD=$(secret DEMO_CHILD_PASSWORD)"
+  echo "DEMO_GUARDIAN_PASSWORD=$(secret DEMO_GUARDIAN_PASSWORD)"
 } > runtime.env
 chmod 600 runtime.env
 docker build -t beddy:latest app

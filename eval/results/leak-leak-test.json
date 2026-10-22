@@ -1,0 +1,70 @@
+{
+  "file": "eval/heldout/leak-test.jsonl",
+  "n": 150,
+  "leaks": 75,
+  "v1": {
+    "tp": 0,
+    "fp": 0,
+    "fn": 75,
+    "tn": 75,
+    "recall": 0,
+    "falseAlarm": 0,
+    "precision": 0,
+    "f1": 0,
+    "byType": {
+      "secret": {
+        "n": 15,
+        "caught": 0
+      },
+      "verbatim": {
+        "n": 25,
+        "caught": 0
+      },
+      "quote": {
+        "n": 15,
+        "caught": 0
+      },
+      "location": {
+        "n": 10,
+        "caught": 0
+      },
+      "third_party_name": {
+        "n": 10,
+        "caught": 0
+      }
+    }
+  },
+  "v2": {
+    "tp": 54,
+    "fp": 3,
+    "fn": 21,
+    "tn": 72,
+    "recall": 0.72,
+    "falseAlarm": 0.04,
+    "precision": 0.9473684210526315,
+    "f1": 0.8181818181818181,
+    "byType": {
+      "secret": {
+        "n": 15,
+        "caught": 3
+      },
+      "verbatim": {
+        "n": 25,
+        "caught": 22
+      },
+      "quote": {
+        "n": 15,
+        "caught": 13
+      },
+      "location": {
+        "n": 10,
+        "caught": 8
+      },
+      "third_party_name": {
+        "n": 10,
+        "caught": 8
+      }
+    }
+  },
+  "generatedAt": "2026-10-22T10:32:05.889Z"
+}

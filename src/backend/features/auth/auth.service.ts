@@ -26,55 +26,25 @@ import {
  * (blocked in production).
  */
 
-// 계정 목록이 seed-dynamo-users.js / wipe-fresh-start.js 와 중복이다.
-// 하나를 바꾸면 나머지도 바꿔야 한다. 데모 후 공유 상수로 통합 예정.
-/** Demo accounts — mock path only. Passwords rotated STEP 5-4. */
-const MOCK_USERS: Array<
-  AuthUser & { password: string; role?: "child" | "guardian" }
-> = [
-  {
-    id: "user-demo-01",
-    name: "지민",
-    email: "demo@bedi.app",
-    password: "BeddyDemo26!",
-    role: "child",
-  },
-  {
-    id: "user-demo-02",
-    name: "서연",
-    email: "guest@bedi.app",
-    password: "BeddyGuest26!",
-    role: "child",
-  },
-  {
-    id: "user-demo-03",
-    name: "미나",
-    email: "mina@bedi.app",
-    password: "BeddyMina26!",
-    role: "child",
-  },
-  {
-    id: "user-demo-04",
-    name: "하루",
-    email: "haru@bedi.app",
-    password: "BeddyHaru26!",
-    role: "child",
-  },
-  {
-    id: "user-guardian-01",
-    name: "보호자",
-    email: "guardian@bedi.app",
-    password: "BeddyGuard26!",
-    role: "guardian",
-  },
-  {
-    id: "user-guardian-02",
-    name: "엄마",
-    email: "parent@bedi.app",
-    password: "BeddyParent26!",
-    role: "guardian",
-  },
+/**
+ * Demo accounts — mock path only (AUTH_PROVIDER=mock, local development).
+ * There is no password in the repository: every mock account uses DEMO_PASSWORD
+ * from the environment, and mock login is off when it is unset.
+ */
+const MOCK_USERS: Array<AuthUser & { role?: "child" | "guardian" }> = [
+  { id: "user-demo-01", name: "지민", email: "demo@bedi.app", role: "child" },
+  { id: "user-demo-02", name: "서연", email: "guest@bedi.app", role: "child" },
+  { id: "user-demo-03", name: "미나", email: "mina@bedi.app", role: "child" },
+  { id: "user-demo-04", name: "하루", email: "haru@bedi.app", role: "child" },
+  { id: "user-guardian-01", name: "보호자", email: "guardian@bedi.app", role: "guardian" },
+  { id: "user-guardian-02", name: "엄마", email: "parent@bedi.app", role: "guardian" },
 ];
+
+function findMockUser(email: string, password: string) {
+  const demoPassword = process.env.DEMO_PASSWORD?.trim();
+  if (!demoPassword || password !== demoPassword) return undefined;
+  return MOCK_USERS.find((u) => u.email === email);
+}
 
 /** Block AUTH_PROVIDER=mock when running a production Node build. */
 function assertMockNotUsedInProduction() {
@@ -127,9 +97,7 @@ export async function login(request: LoginRequest): Promise<LoginResult> {
 
   if (env.authProvider === "mock") {
     assertMockNotUsedInProduction();
-    const found = MOCK_USERS.find(
-      (u) => u.email === email && u.password === password
-    );
+    const found = findMockUser(email, password);
     if (!found) {
       throw new AuthError("이메일 또는 비밀번호가 올바르지 않습니다.", 401);
     }
@@ -152,9 +120,7 @@ export async function login(request: LoginRequest): Promise<LoginResult> {
   if (process.env.NODE_ENV === "production") {
     throw new AuthError("인증 저장소에 연결할 수 없습니다.", 503);
   }
-  const found = MOCK_USERS.find(
-    (u) => u.email === email && u.password === password
-  );
+  const found = findMockUser(email, password);
   if (!found) {
     throw new AuthError("이메일 또는 비밀번호가 올바르지 않습니다.", 401);
   }

@@ -15,8 +15,7 @@
  *   node --env-file=.env.local scripts/seed/wipe-fresh-start.js --yes-really-wipe-everything --skip-dynamo
  *   node --env-file=.env.local scripts/seed/wipe-fresh-start.js --yes-really-wipe-everything --skip-s3
  *
- * 계정 목록이 seed-dynamo-users.js / auth.service.ts MOCK_USERS 와 중복이다.
- * 하나를 바꾸면 나머지도 바꿔야 한다. 데모 후 공유 상수로 통합 예정.
+ * 계정은 앱이 시작할 때 환경 변수 비밀번호로 다시 만든다 (seed-accounts.ts).
  */
 const fs = require("fs");
 const path = require("path");
@@ -42,51 +41,13 @@ const SKIP_DYNAMO = args.has("--skip-dynamo");
 const SKIP_S3 = args.has("--skip-s3");
 const SKIP_LOCAL = args.has("--skip-local");
 
-// Kept for documentation parity with seed-dynamo-users.js / MOCK_USERS.
-// This script no longer seeds accounts — use `npm run seed:dynamo`.
+// Accounts are recreated by the app at startup from JUDGE_PASSWORD /
+// DEMO_CHILD_PASSWORD / DEMO_GUARDIAN_PASSWORD (src/backend/bootstrap/seed-accounts.ts).
 const DEMO_USERS = [
-  {
-    id: "user-demo-01",
-    name: "지민",
-    email: "demo@bedi.app",
-    password: "BeddyDemo26!",
-    role: "child",
-  },
-  {
-    id: "user-demo-02",
-    name: "서연",
-    email: "guest@bedi.app",
-    password: "BeddyGuest26!",
-    role: "child",
-  },
-  {
-    id: "user-demo-03",
-    name: "미나",
-    email: "mina@bedi.app",
-    password: "BeddyMina26!",
-    role: "child",
-  },
-  {
-    id: "user-demo-04",
-    name: "하루",
-    email: "haru@bedi.app",
-    password: "BeddyHaru26!",
-    role: "child",
-  },
-  {
-    id: "user-guardian-01",
-    name: "보호자",
-    email: "guardian@bedi.app",
-    password: "BeddyGuard26!",
-    role: "guardian",
-  },
-  {
-    id: "user-guardian-02",
-    name: "엄마",
-    email: "parent@bedi.app",
-    password: "BeddyParent26!",
-    role: "guardian",
-  },
+  { email: "judge-child@beddy.test", role: "child" },
+  { email: "judge-guardian@beddy.test", role: "guardian" },
+  { email: "demo-child@beddy.test", role: "child" },
+  { email: "demo-guardian@beddy.test", role: "guardian" },
 ];
 
 function awsCreds() {
@@ -306,7 +267,7 @@ async function printTargetsAndExitIfUnconfirmed() {
     console.log(`  ${u.email} (${u.role})`);
   }
   console.log("");
-  console.log("계정 시드는 `npm run seed:dynamo` 를 쓸 것.");
+  console.log("계정은 서버를 다시 시작하면 환경 변수 비밀번호로 다시 만들어집니다.");
   console.log("");
 
   if (!CONFIRMED) {
@@ -328,7 +289,7 @@ async function main() {
 
   console.log("=== Beddy fresh-start wipe ===");
   console.log(
-    `flags: confirmed=${CONFIRMED} dynamo=${!SKIP_DYNAMO} s3=${!SKIP_S3} local=${!SKIP_LOCAL} (seed disabled; use npm run seed:dynamo)`
+    `flags: confirmed=${CONFIRMED} dynamo=${!SKIP_DYNAMO} s3=${!SKIP_S3} local=${!SKIP_LOCAL} (accounts are re-created by the app at startup)`
   );
   if (NO_SEED) {
     console.log("(note: --no-seed is accepted but seeding is already disabled)");
@@ -339,7 +300,7 @@ async function main() {
   await wipeS3();
 
   console.log("=== done ===");
-  console.log("Re-seed demo accounts with: npm run seed:dynamo");
+  console.log("Restart the server to re-create the judge/demo accounts.");
 }
 
 main().catch((err) => {

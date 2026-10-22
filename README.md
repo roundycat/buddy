@@ -306,7 +306,7 @@ scripts/
 |---|---|
 | `npm run dev` | 로컬 개발 |
 | `npm test` | Vitest |
-| `npm run seed:dynamo` | 데모 유저 시드 |
+| `npm run seed:dynamo` | 안내만 출력: 심사·시연 계정은 서버가 시작할 때 환경 변수 비밀번호로 만듭니다 |
 | `npm run check:bedrock` | Bedrock 스모크 |
 
 ### License

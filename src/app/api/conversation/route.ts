@@ -9,6 +9,8 @@ import {
 } from "@/backend/shared/http/auth";
 import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/route";
 import { allowRequest, CHILD_CHAT_LIMITS } from "@/backend/shared/http/rate-limit";
+import { DomainError, domainStatus } from "@/backend/shared/http/domain-error";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 
 const SLOW_DOWN = "오늘 이야기를 정말 많이 나눴어! 조금 쉬었다가 다시 이야기하자.";
 
@@ -36,6 +38,8 @@ export async function POST(request: Request) {
 
   return withApiGuard(async () => {
     const user = await requireAuthUser();
+    // Under-14 children talk to the AI only after legal-guardian consent.
+    await assertChildConsented(user.id);
     const body = await readJsonBody<{ message?: unknown; history?: unknown }>(
       request
     );
@@ -59,6 +63,8 @@ export async function POST(request: Request) {
 async function streamConversation(request: Request) {
   try {
     const user = await requireAuthUser();
+    // Checked before the stream starts so the client gets a real 403.
+    await assertChildConsented(user.id);
     const body = await readJsonBody<{ message?: unknown; history?: unknown }>(
       request
     );
@@ -125,6 +131,12 @@ async function streamConversation(request: Request) {
     if (error instanceof HttpError) {
       return new Response(JSON.stringify({ error: error.message }), {
         status: error.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (error instanceof DomainError) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: domainStatus(error),
         headers: { "Content-Type": "application/json" },
       });
     }
