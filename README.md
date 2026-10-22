@@ -1,15 +1,16 @@
-# Beddy 🧸 — 장기 입원 청소년을 위한 AI 정서 돌봄 동반자💙
+# Beddy 🧸 — 장기입원 아동·청소년을 위한 AI 정서 돌봄 동반자💙
 
-> **누구를 위해**: 병원 생활이 길고 외로운 **청소년 환아**, 그리고 “오늘 우리 아이 마음은 어땠을까?”를 걱정하는 **보호자**
+> **누구를 위해**: 병원 생활이 길고 외로운 **장기입원 아동·청소년**, 그리고 “오늘 우리 아이 마음은 어땠을까?”를 걱정하는 **보호자**
 > **무엇을**: 아이만의 AI 친구와 대화하고, 새벽 Agent가 하루 미션을 준비하며, 보호자에게는 **대화 원문이 아닌 요약만** 전하는 프라이버시 우선 돌봄 플랫폼
 
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=nextdotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
-![AWS](https://img.shields.io/badge/AWS-Bedrock%20%7C%20ECS%20%7C%20DynamoDB-FF9900?logo=amazonaws&logoColor=white)
+![Claude](https://img.shields.io/badge/Claude%20API-Render-D97757)
+![AWS](https://img.shields.io/badge/AWS-Bedrock%20%7C%20EC2%20%7C%20DynamoDB-FF9900?logo=amazonaws&logoColor=white)
 ![AI](https://img.shields.io/badge/AI-LLM%20%2B%20Agent%20%2B%20RAG-8A2BE2)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-**2026 강원 LRS 공유대학 AWS 해커톤 수상 프로젝트** · 비임상(진단·처방 금지) · Guardrail + Bridge 프라이버시
+**v1: 2026 강원 LRS 공유대학 AWS 해커톤 수상 프로젝트**(원작 팀 README 기준) · **v2: 2026 AI 라이프 솔루션 챌린지 탐구개발** · 비임상(진단·처방 금지) · 아동 안전 계층 + Bridge 프라이버시
 
 > ### 출처와 버전 구분
 > | 구분 | 범위 | 만든 사람 |
@@ -26,21 +27,25 @@
 | | v1 | v2 |
 |---|---|---|
 | 위기 신호 | 정규식 26개, 3단계 | 5단계(관찰·위험·긴급·보호) 규칙 계층 + LLM 2차 판정(상향만) |
-| 표기 변형 | 그대로만 매칭 | 초성(ㅈㄱㅅㄷ), 숫자 끼우기(자1살), 띄어쓰기, 오타 |
+| 표기 변형 | 띄어쓰기만 일부 허용 | 초성(ㅈㄱㅅㄷ), 숫자 끼우기(자1살), 띄어쓰기, 오타 |
 | 오경보 | "자살골", "죽고 싶을 만큼 웃겼어"에 긴급 알림 | 과장·게임·교육·부정문·제3자·사과 초성·병원 단어 억제 |
-| 학대 노출 | 구분 없음 | 보호자 자동 알림 대신 간호사·사회복지·112·1388 안내(죽음 소망이 함께 있어도) |
+| 학대·폭력 노출 | 구분 없음 | 보호자 자동 알림 대신 간호사·사회복지·112·1388 안내(죽음 소망이 함께 있어도). 그 대화는 보호자가 읽는 요약·질문 답변의 재료에서도 뺌 |
 | 보호자 공유 | 고정 요약 | 사실만 알리고, 반복 신호는 **아이에게 먼저 동의**를 구함. 아이가 범주별로 공유 여부 선택 |
 | 법정대리인 동의 | 아이가 직접 체크 | 만 14세 미만은 보호자 계정 동의 후에만 AI·기록 기능 사용(개인정보보호법 제22조의2), 동의 기록, 철회하면 기록 파기 |
 | 원문 유출 | 대화 기록 형식·좌표만 차단 | 원문·인용·비밀·제3자 실명·위치 검사. 독립 평가셋 탐지율 0% → 72.0% |
-| 응답 안전 | Bedrock 가드레일 | 문장 단위 출력 필터(개인정보·약 지시·위험 방법·관계 규칙)를 화면에 나가기 전에 적용. 이야기·미션 같은 다른 아이용 AI 글에도 적용 |
+| 응답 안전 | Bedrock 가드레일(AWS 판) | 문장 단위 출력 필터(개인정보·약 지시·위험 방법·관계 규칙)를 화면에 나가기 전에 적용. 이야기·미션 같은 다른 아이용 AI 글에도 적용 |
 | AI 의존 | — | AI 고지, 독점·비밀·연애 문장 가드, 사용 리듬, 사람 연결 미션 |
 | 측정 | — | 라벨 기준서 + 독립 평가셋, `npm run eval:safety` |
 
 자세한 변경 내역은 [`docs/v2/CHANGES.md`](docs/v2/CHANGES.md), 평가 방법은 [`eval/LABELING_GUIDE.md`](eval/LABELING_GUIDE.md)에 있습니다.
 
 ```bash
-npm run eval:safety                    # v1 vs v2 (개발셋)
-EVAL_SET=heldout npm run eval:safety   # 독립 평가셋
+# v1 vs v2 위기 평가 — 개발셋 (결과는 eval/results/에 덮어씀)
+npx vitest run --config vitest.eval.config.mts eval/safety/crisis.eval.ts
+# 독립 일상 170문장
+EVAL_SET=eval/heldout/crisis-none.jsonl npx vitest run --config vitest.eval.config.mts eval/safety/crisis.eval.ts
+# 독립 위기 문장(팀원 작성 세트가 들어온 뒤): EVAL_SET=heldout
+npm run eval:safety                    # 위 위기 평가(개발셋) + 독립 유출 150문장
 ```
 
 배포는 두 가지 방법을 지원합니다.
@@ -72,7 +77,7 @@ EVAL_SET=heldout npm run eval:safety   # 독립 평가셋
 일반적인 챗봇은 의료 조언을 흘리거나, 부모에게 원문을 그대로 넘겨 신뢰를 깨기 쉽다.
 
 ### 대상 사용자
-- 장기 입원 중인 **청소년 환아** (페르소나 기반 비밀친구)
+- 장기 입원 중인 **아동·청소년** (페르소나 기반 비밀친구)
 - 아이와 계정을 연동한 **보호자 / 보호자 앱 사용자**
 - 병원 일정·정서 기록을 **안전하게** 남기고 싶은 돌봄 환경
 
@@ -165,7 +170,7 @@ Login
 
 **계층**: `src/app`(라우트·API) → `frontend/features`(UI) → `backend/features`(도메인) → `backend/ai`(LLM·Agent·RAG·Bridge) → AWS.
 
-**왜 ECS인가**: 채팅 SSE 이후 저장·감정 분석 등 **응답 뒤 백그라운드**와 새벽 배치가 프로세스가 살아 있어야 해서 Fargate를 사용한다. (요청 종료와 함께 죽는 모델보다 적합)
+**왜 상시 실행 컨테이너인가**: 채팅 SSE 이후 저장·감정 분석 등 **응답 뒤 백그라운드**와 새벽 배치가 프로세스가 살아 있어야 해서, 요청이 끝나면 멈추는 서버리스 대신 상시 실행되는 Docker 서비스(Render 웹 서비스, AWS 판은 EC2)를 씁니다. v1은 ECS Fargate였습니다.
 
 ---
 
@@ -200,9 +205,10 @@ curl http://localhost:3000/api/health
 npm run check:bedrock   # Bedrock 연결 시
 ```
 
-### AWS 배포 (요약)
-PowerShell 스크립트: `scripts/deploy/`  
-자세한 체크리스트: [`docs/production/05-DEPLOYMENT_CHECKLIST.md`](docs/production/05-DEPLOYMENT_CHECKLIST.md)
+### 배포 (요약)
+- Render + Claude API(대회 시제품): [`deploy/render/README.md`](deploy/render/README.md) — 배포 뒤 `BASE_URL=… node scripts/smoke/smoke.mjs`로 1분 점검
+- AWS(Bedrock·DynamoDB, EC2 + CloudFront): [`deploy/aws/README.md`](deploy/aws/README.md) — CloudShell에서 한 번 실행
+- v1의 ECS·PowerShell 배포 기록: `scripts/deploy/`, [`docs/production/05-DEPLOYMENT_CHECKLIST.md`](docs/production/05-DEPLOYMENT_CHECKLIST.md)
 
 ---
 
@@ -212,7 +218,7 @@ PowerShell 스크립트: `scripts/deploy/`
 
 | 변수 | 설명 |
 |---|---|
-| `LLM_PROVIDER` | `mock` \| `bedrock` |
+| `LLM_PROVIDER` | `anthropic`(Render 판) \| `bedrock`(AWS 판) \| `mock` |
 | `PERSISTENCE` | `json`(로컬 `.data/`) \| `dynamodb` |
 | `AUTH_SESSION_SECRET` | 세션 HMAC 키 (≥32자, 실값 커밋 금지) |
 | `BEDROCK_MODEL_ID_CHAT` | 실시간 채팅 (Haiku 계열) |

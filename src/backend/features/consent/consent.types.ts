@@ -2,12 +2,12 @@
  * Legal-guardian consent for children under 14 (개인정보 보호법 제22조의2)
  * and the separate sensitive-data consent (제23조).
  *
- * A child with no consent state at all is a legacy account created before
- * this feature: it keeps working exactly as before (consent not required).
+ * A child account with no consent state yet is treated as under 14 and waits
+ * for a guardian's consent (only the local mock accounts skip this).
  */
 
 /** Bump when the consent wording shown to guardians/children changes. */
-export const CONSENT_VERSION = "2026-10-22";
+export const CONSENT_VERSION = "2026-10-23";
 
 export type ChildAgeBand = "under14" | "14plus";
 

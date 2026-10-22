@@ -43,19 +43,18 @@ AWS 계정이 필요 없습니다. 설정은 저장소 루트의 [`render.yaml`]
 1. 서비스 화면 위쪽의 주소(`https://….onrender.com`)를 엽니다.
 2. `주소/api/health`가 `{"ok":true,…}`이면 서버가 살아 있는 것입니다.
 3. **Logs** 탭에서 아래 두 줄을 확인합니다.
-   - `[seed] accounts ready (judge:created/created, judge2:created/created, demo:created/created)`
+   - `[seed] accounts ready (judge1:created/created, … judge5:created/created, demo:created/created)`
    - `[scheduler] in-process daily batch scheduler on`
 4. 아래 계정으로 로그인해 봅니다.
 
 | 용도 | 아이 계정 | 보호자 계정(아이와 연결됨) | 비밀번호 |
 |---|---|---|---|
-| 심사위원 | `judge-child@beddy.test` | `judge-guardian@beddy.test` | `JUDGE_PASSWORD` |
-| 심사위원(동의 철회 시험용) | `judge2-child@beddy.test` | `judge2-guardian@beddy.test` | `JUDGE_PASSWORD` |
+| 심사위원 1~5 | `judge1-child@beddy.test` … `judge5-child@beddy.test` | `judge1-guardian@beddy.test` … `judge5-guardian@beddy.test` | `JUDGE_PASSWORD` |
 | 시연 영상 | `demo-child@beddy.test` | `demo-guardian@beddy.test` | `DEMO_PASSWORD` |
 
-아이 계정은 **만 14세 미만**으로 등록돼 있고, 보호자 계정이 법정대리인 동의를 마친 상태입니다.
+아이 계정은 **만 14세 미만**으로 등록돼 있고, 같은 번호의 보호자 계정이 법정대리인 동의를 마친 상태입니다.
+심사위원마다 번호 하나를 쓰도록 안내합니다(`docs/contest/judge-guide.md`). 한 분이 보낸 위기·폭력 문장, 공유 설정, 동의 철회가 다른 분 화면을 바꾸지 않게 하려는 것입니다. 심사 계정은 매일 새벽 5시 배치 때 처음 상태(대화·기록 없음, 동의 완료)로 돌아갑니다.
 보호자 계정의 **프로필 → 동의 철회**를 누르면 그 아이의 대화·기록이 지워지고 AI 기능이 잠깁니다(개인정보 파기). 다시 동의하면 처음부터 시작합니다.
-그래서 철회는 `judge2` 계정으로 시험하도록 안내합니다. 심사위원 여러 명이 `judge` 계정을 함께 쓰기 때문입니다.
 처음부터 해 보려면 새 아이 계정(만 14세 미만)과 새 보호자 계정을 가입해 초대 코드로 연결하면 됩니다.
 
 5. 한 번에 확인하려면 컴퓨터에서 스모크 테스트를 돌립니다(1분 정도). 임시 아이·보호자 계정을 만들어 가입 → 동의 전 잠금 → 동의 → 대화 → 위기 알림 → 보호자 질문까지 확인하고, 끝나면 두 계정을 지웁니다.
