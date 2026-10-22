@@ -35,12 +35,12 @@ Keys:
 
 | Role | Email | Password |
 |------|-------|----------|
-| child | `demo@bedi.app` | `BeddyDemo26!` |
-| child | `guest@bedi.app` | `BeddyGuest26!` |
-| child | `mina@bedi.app` | `BeddyMina26!` |
-| child | `haru@bedi.app` | `BeddyHaru26!` |
-| guardian | `guardian@bedi.app` | `BeddyGuard26!` |
-| guardian | `parent@bedi.app` | `BeddyParent26!` |
+| child | `demo@bedi.app` | `(v1 해커톤 비밀번호 — 폐기됨, 배포 시 환경 변수로 새로 설정)` |
+| child | `guest@bedi.app` | `(v1 해커톤 비밀번호 — 폐기됨, 배포 시 환경 변수로 새로 설정)` |
+| child | `mina@bedi.app` | `(v1 해커톤 비밀번호 — 폐기됨, 배포 시 환경 변수로 새로 설정)` |
+| child | `haru@bedi.app` | `(v1 해커톤 비밀번호 — 폐기됨, 배포 시 환경 변수로 새로 설정)` |
+| guardian | `guardian@bedi.app` | `(v1 해커톤 비밀번호 — 폐기됨, 배포 시 환경 변수로 새로 설정)` |
+| guardian | `parent@bedi.app` | `(v1 해커톤 비밀번호 — 폐기됨, 배포 시 환경 변수로 새로 설정)` |
 
 Seed: `npm run seed:dynamo`
 

@@ -9,8 +9,8 @@
 
 | 역할 | 이메일 | 비밀번호 |
 |------|--------|----------|
-| 아동 | `demo@bedi.app` | `BeddyDemo26!` |
-| 보호자 | `guardian@bedi.app` | `BeddyGuard26!` |
+| 아동 | `demo@bedi.app` | `(v1 해커톤 비밀번호 — 폐기됨, 배포 시 환경 변수로 새로 설정)` |
+| 보호자 | `guardian@bedi.app` | `(v1 해커톤 비밀번호 — 폐기됨, 배포 시 환경 변수로 새로 설정)` |
 
 시드: `npm run seed:dynamo` (로컬/필요 시). 프로덕션은 이미 DynamoDB 시드 가정.
 

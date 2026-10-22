@@ -9,6 +9,7 @@ import { buildCrayonAvatarPrompt } from "./avatar.prompt";
 import { loadAvatarStyleRefForAnimal, loadAvatarStyleRefBase64 } from "./avatar.style-refs";
 import { wipeSolidBackdrop } from "./avatar.matte";
 import { removeAvatarBackground } from "./avatar.remove-bg";
+import { takeDailyBudget } from "@/backend/shared/llm/budget";
 
 export type GeneratedAvatar = {
   bytes: Buffer;
@@ -249,6 +250,9 @@ export async function generateStabilityPng(input: {
   /** Overrides the configured default; other models stay as fallbacks. */
   modelId?: string;
 }): Promise<{ bytes: Buffer; model: string }> {
+  if (!takeDailyBudget("image")) {
+    throw new Error("오늘 그림 생성 한도에 도달했어요. 내일 다시 그려 볼게요.");
+  }
   return invokeStabilityTextToImage(input);
 }
 
@@ -289,6 +293,16 @@ export async function generateCrayonAvatar(input: {
     );
 
   let generated: { bytes: Buffer; model: string } | null = null;
+
+  // Past today's image cap: hand back the bundled crayon drawing of the same animal.
+  if (styleImage && !takeDailyBudget("image")) {
+    return {
+      bytes: Buffer.from(styleImage, "base64"),
+      contentType: "image/png",
+      model: "bundled-style-ref",
+      prompt,
+    };
+  }
 
   if (styleImage) {
     try {

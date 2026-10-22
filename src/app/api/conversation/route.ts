@@ -8,6 +8,9 @@ import {
   UnauthorizedError,
 } from "@/backend/shared/http/auth";
 import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/route";
+import { allowRequest, CHILD_CHAT_LIMITS } from "@/backend/shared/http/rate-limit";
+
+const SLOW_DOWN = "오늘 이야기를 정말 많이 나눴어! 조금 쉬었다가 다시 이야기하자.";
 
 /**
  * API Bridge: Conversation
@@ -41,6 +44,9 @@ export async function POST(request: Request) {
     if (!message.trim()) {
       throw new HttpError("메시지를 입력해 주세요.", 400);
     }
+    if (!allowRequest(`chat:${user.id}`, CHILD_CHAT_LIMITS)) {
+      throw new HttpError(SLOW_DOWN, 429);
+    }
 
     return sendMessage({
       message,
@@ -61,6 +67,12 @@ async function streamConversation(request: Request) {
     if (!message.trim()) {
       return new Response(JSON.stringify({ error: "메시지를 입력해 주세요." }), {
         status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (!allowRequest(`chat:${user.id}`, CHILD_CHAT_LIMITS)) {
+      return new Response(JSON.stringify({ error: SLOW_DOWN }), {
+        status: 429,
         headers: { "Content-Type": "application/json" },
       });
     }

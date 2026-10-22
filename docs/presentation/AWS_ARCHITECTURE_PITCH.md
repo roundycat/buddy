@@ -217,8 +217,8 @@ POST /api/conversation (SSE)
 
 | 역할 | Email | Password |
 |------|-------|----------|
-| Child | `demo@bedi.app` | `BeddyDemo26!` |
-| Guardian | `guardian@bedi.app` | `BeddyGuard26!` |
+| Child | `demo@bedi.app` | `(v1 해커톤 비밀번호 — 폐기됨, 배포 시 환경 변수로 새로 설정)` |
+| Guardian | `guardian@bedi.app` | `(v1 해커톤 비밀번호 — 폐기됨, 배포 시 환경 변수로 새로 설정)` |
 
 배포 후 `AUTH_SESSION_SECRET`이 바뀌면 **재로그인** 필요.
 

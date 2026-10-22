@@ -24,8 +24,8 @@ Keep the demo **magical**, not clinical.
 
 | Role | Email | Password |
 |------|-------|----------|
-| Child | `demo@bedi.app` | `BeddyDemo26!` |
-| Guardian | `guardian@bedi.app` | `BeddyGuard26!` |
+| Child | `demo@bedi.app` | `(v1 해커톤 비밀번호 — 폐기됨, 배포 시 환경 변수로 새로 설정)` |
+| Guardian | `guardian@bedi.app` | `(v1 해커톤 비밀번호 — 폐기됨, 배포 시 환경 변수로 새로 설정)` |
 
 - [ ] Optional second child `mina@bedi.app` if first account is dirty
 - [ ] CloudWatch dashboard tab ready (optional judge deep-dive)

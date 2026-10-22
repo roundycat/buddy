@@ -2,6 +2,7 @@ import { env, isLlmConfigured } from "@/backend/shared/config/env";
 import type { LlmChatRequest, LlmChatResult, LlmProvider } from "./types";
 import { MockLlmProvider } from "./providers/mock.provider";
 import { BedrockLlmProvider } from "./providers/bedrock.provider";
+import { takeDailyBudget } from "./budget";
 import {
   BEDI_CHAT_DEFAULTS,
   buildCompanionSystemPrompt,
@@ -9,12 +10,24 @@ import {
 } from "@/backend/ai/prompts/companion";
 
 let cached: LlmProvider | null = null;
+let offline: LlmProvider | null = null;
 
 /**
  * Resolve the active LLM provider from env.
  * Frontend never imports this — only backend services / API routes.
+ * Each call takes one unit of the daily AI budget; past the cap the offline
+ * persona answers instead (see ./budget.ts).
  */
 export function getLlmProvider(): LlmProvider {
+  const provider = resolveProvider();
+  if (provider.name !== "mock" && !takeDailyBudget("llm")) {
+    offline ??= new MockLlmProvider();
+    return offline;
+  }
+  return provider;
+}
+
+function resolveProvider(): LlmProvider {
   if (cached) return cached;
 
   const provider = env.llmProvider;
