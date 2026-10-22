@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { HeartHandshake, Phone, Send, ShieldAlert, Siren, Stethoscope, UserRound, X } from "lucide-react";
+import { HeartHandshake, Mic, Phone, Send, ShieldAlert, Siren, Square, Stethoscope, UserRound, Volume2, X } from "lucide-react";
+import { useSpeechInput, useSpeechOutput } from "@/frontend/features/waiting-room/hooks/useSpeech";
 import { cn } from "@/frontend/shared/lib/utils";
 import type {
   ConversationCrisisDto,
@@ -60,6 +61,8 @@ export function CompanionChatSheet({
   onDismissCrisis,
 }: CompanionChatSheetProps) {
   const [input, setInput] = useState("");
+  const voiceIn = useSpeechInput((text) => setInput(text));
+  const voiceOut = useSpeechOutput();
   const [actionNote, setActionNote] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -190,6 +193,17 @@ export function CompanionChatSheet({
                   )}
                 >
                   {message.content}
+                  {isAssistant && voiceOut.supported && message.content.trim() ? (
+                    <button
+                      type="button"
+                      onClick={() => voiceOut.speak(message.id, message.content)}
+                      className="mt-1.5 flex min-h-8 items-center gap-1 text-[11px] text-bedi-slate/45 hover:text-bedi-slate/70"
+                      aria-label={voiceOut.speakingId === message.id ? "읽기 멈추기" : "소리로 듣기"}
+                    >
+                      <Volume2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      {voiceOut.speakingId === message.id ? "멈추기" : "소리로 듣기"}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             );
@@ -287,6 +301,27 @@ export function CompanionChatSheet({
               enterKeyHint="send"
               className="h-11 flex-1 rounded-full border border-bedi-slate/10 bg-white px-4 text-sm text-bedi-slate outline-none transition-colors placeholder:text-bedi-slate/35 focus:border-bedi-sage/50 disabled:opacity-60"
             />
+            {voiceIn.supported ? (
+              <button
+                type="button"
+                onClick={() => (voiceIn.listening ? voiceIn.stop() : voiceIn.start())}
+                disabled={pending}
+                aria-label={voiceIn.listening ? "말하기 멈추기" : "말로 하기"}
+                aria-pressed={voiceIn.listening}
+                className={cn(
+                  "inline-flex h-11 w-11 items-center justify-center rounded-full border transition-colors disabled:opacity-40",
+                  voiceIn.listening
+                    ? "border-rose-200 bg-rose-50 text-rose-500"
+                    : "border-bedi-slate/10 bg-white text-bedi-slate/55 hover:text-bedi-slate"
+                )}
+              >
+                {voiceIn.listening ? (
+                  <Square className="h-3.5 w-3.5" strokeWidth={2} />
+                ) : (
+                  <Mic className="h-4 w-4" strokeWidth={1.75} />
+                )}
+              </button>
+            ) : null}
             <button
               type="submit"
               disabled={pending || !input.trim()}
