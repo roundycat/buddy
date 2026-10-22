@@ -22,6 +22,9 @@ RUN mkdir -p /tmp/bedi-avatars && chown nextjs:nodejs /tmp/bedi-avatars
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/public/avatar-style-refs ./avatar-style-refs
+# Safety evaluation sets (aggregate metrics via /api/admin/safety-eval)
+COPY --from=builder /app/eval/dev ./eval/dev
+COPY --from=builder /app/eval/heldout ./eval/heldout
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
