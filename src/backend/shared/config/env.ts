@@ -86,6 +86,8 @@ export const env = {
     guardrailVersion: read("BEDROCK_GUARDRAIL_VERSION", "DRAFT"),
     /** Bedrock Knowledge Base id (STEP 6) — summaries only */
     knowledgeBaseId: read("BEDROCK_KB_ID"),
+    /** KB data source to re-ingest after the dawn batch writes summaries */
+    knowledgeBaseDataSourceId: read("BEDROCK_KB_DATA_SOURCE_ID"),
     accessKeyId: read("AWS_ACCESS_KEY_ID"),
     secretAccessKey: read("AWS_SECRET_ACCESS_KEY"),
     sessionToken: read("AWS_SESSION_TOKEN"),

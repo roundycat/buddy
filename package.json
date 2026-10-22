@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-bedrock": "^3.1102.0",
+    "@aws-sdk/client-bedrock-agent": "^3.1155.0",
     "@aws-sdk/client-bedrock-agent-runtime": "^3.1103.0",
     "@aws-sdk/client-bedrock-runtime": "^3.1102.0",
     "@aws-sdk/client-cloudwatch": "^3.1103.0",

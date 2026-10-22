@@ -11,6 +11,7 @@ import { indexKbSummariesForUser } from "./kb-index.job";
 import { refineEmotionsForUser } from "./emotion-refine.job";
 import { updateStoriesForUser } from "./story-update.job";
 import { observeBatchRun } from "@/backend/ai/orchestrator";
+import { startKbIngestion } from "@/backend/ai/kb/ingest";
 
 /** Max concurrent child jobs within one dawn batch phase. */
 const CHILD_CONCURRENCY = 3;
@@ -23,6 +24,7 @@ export type DailyBatchResult = {
   missions: { ok: number; fail: number; created: number };
   parent: { ok: number; fail: number };
   kbIndex: { ok: number; fail: number; docs: number };
+  kbIngestion: { started: boolean; jobId?: string; reason?: string };
 };
 
 async function listChildUserIds(): Promise<string[]> {
@@ -102,6 +104,12 @@ export async function runDailyBatch(
       docs: kbRows.reduce((n, r) => n + (r.docs ?? 0), 0),
     };
 
-    return { dateKey, memory, emotion, stories, missions, parent, kbIndex };
+    // New summaries are only searchable after the KB re-ingests them.
+    const kbIngestion =
+      kbIndex.docs > 0
+        ? await startKbIngestion()
+        : { started: false, reason: "no_new_docs" };
+
+    return { dateKey, memory, emotion, stories, missions, parent, kbIndex, kbIngestion };
   });
 }
