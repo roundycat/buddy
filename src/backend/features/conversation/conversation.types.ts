@@ -18,6 +18,13 @@ export interface ConversationMessage {
      * out of what is sent to a model again (chat history, nightly jobs).
      */
     refused?: boolean;
+    /**
+     * The child told of harm by someone in this turn or in the 72 hours before
+     * it. The companion still sees it in the chat, but it is kept out of every
+     * record that outlives the chat and can reach a guardian: learned memory,
+     * emotion records and the nightly summaries.
+     */
+    protect?: boolean;
   };
 }
 

@@ -82,6 +82,7 @@ export default async function HomePage() {
         prompt={persona.prompt}
         dayCount={persona.dayCount}
         avatarUrl={persona.avatarUrl}
+        avatarAiMade={persona.avatarAiMade !== false}
         scheduleTeaser={scheduleTeaser}
         scheduleDeliveries={scheduleDeliveries}
       />

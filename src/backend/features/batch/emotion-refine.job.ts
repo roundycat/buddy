@@ -4,7 +4,7 @@ import { withBeddySafety } from "@/backend/ai/prompts/safety";
 import { env } from "@/backend/shared/config/env";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";
 import {
-  forModelContext,
+  forLongTermRecords,
   getConversationHistory,
 } from "@/backend/features/conversation/conversation.store";
 import {
@@ -32,7 +32,8 @@ export async function refineEmotionsForUser(
   const alreadyLlm = existing.some((r) => r.confidence >= 0.7);
   if (alreadyLlm) return { ok: true, refined: false };
 
-  const history = forModelContext(await getConversationHistory(userId));
+  // Emotion records reach the guardian's screens: harm-by-someone turns stay out.
+  const history = forLongTermRecords(await getConversationHistory(userId));
   const todaysUser = history
     .filter((m) => m.role === "user" && m.createdAt.startsWith(dateKey))
     .slice(-8)

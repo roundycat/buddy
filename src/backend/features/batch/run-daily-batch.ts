@@ -14,6 +14,7 @@ import { updateStoriesForUser } from "./story-update.job";
 import { observeBatchRun } from "@/backend/ai/orchestrator";
 import { startKbIngestion } from "@/backend/ai/kb/ingest";
 import { purgeExpiredCoarseLocations } from "@/backend/features/weather/weather.store";
+import { resetJudgeAccounts } from "@/backend/bootstrap/seed-accounts";
 
 /** Max concurrent child jobs within one dawn batch phase. */
 const CHILD_CONCURRENCY = 3;
@@ -29,6 +30,8 @@ export type DailyBatchResult = {
   kbIngestion: { started: boolean; jobId?: string; reason?: string };
   /** Coarse locations removed after their 7-day retention */
   expiredLocations: number;
+  /** Judge account pairs put back to their seeded state */
+  judgeAccountsReset: number;
 };
 
 async function listChildUserIds(): Promise<string[]> {
@@ -66,6 +69,11 @@ export async function runDailyBatch(
     // Retention first: it must not wait on (or fail with) the AI phases.
     const expiredLocations = await purgeExpiredCoarseLocations().catch((error) => {
       console.error("[batch] location purge failed", error);
+      return 0;
+    });
+    // Each judge starts the day from the seeded state, whatever yesterday's judge tried.
+    const judgeAccountsReset = await resetJudgeAccounts().catch((error) => {
+      console.error("[batch] judge account reset failed", error);
       return 0;
     });
     const childIds = await listChildUserIds();
@@ -132,6 +140,7 @@ export async function runDailyBatch(
       kbIndex,
       kbIngestion,
       expiredLocations,
+      judgeAccountsReset,
     };
   });
 }

@@ -103,15 +103,20 @@ export function forgetHit(key: string, at: number) {
 }
 
 /**
- * The caller's address. On Render every request comes through Cloudflare,
- * which sets CF-Connecting-IP itself (a value sent by the client is replaced).
- * Otherwise X-Forwarded-For is read from the right: proxies append, so the
- * left side is whatever the client sent. TRUSTED_PROXY_HOPS is how many
- * proxies of ours sit in front of the app (default 1).
+ * The caller's address.
+ * - TRUST_CF_CONNECTING_IP=1 (Render): every request comes through Cloudflare,
+ *   which sets CF-Connecting-IP itself — a value sent by the client is replaced.
+ *   Elsewhere (CloudFront on AWS, local runs) a client could send that header,
+ *   so it is ignored.
+ * - Otherwise X-Forwarded-For is read from the right: proxies append, so the
+ *   left side is whatever the client sent. TRUSTED_PROXY_HOPS is how many
+ *   proxies of ours sit in front of the app (default 1).
  */
 export function clientAddress(request: Request): string {
-  const edge = request.headers.get("cf-connecting-ip")?.trim();
-  if (edge) return edge;
+  if (process.env.TRUST_CF_CONNECTING_IP === "1") {
+    const edge = request.headers.get("cf-connecting-ip")?.trim();
+    if (edge) return edge;
+  }
   const chain = (request.headers.get("x-forwarded-for") ?? "")
     .split(",")
     .map((part) => part.trim())

@@ -68,3 +68,7 @@ services:
         value: "0"
       - key: NODE_OPTIONS
         value: --max-old-space-size=384
+      # *.onrender.com sits behind Cloudflare, which sets CF-Connecting-IP itself
+      # (rate limits key on the real client address)
+      - key: TRUST_CF_CONNECTING_IP
+        value: "1"

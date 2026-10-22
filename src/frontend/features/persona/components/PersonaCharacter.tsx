@@ -35,6 +35,7 @@ export type PersonaStage = "idle" | "farewell" | "away" | "arrive";
 export function PersonaCharacter({
   name,
   avatarUrl,
+  avatarAiMade = true,
   speaking = false,
   moodLine,
   replyLine,
@@ -46,6 +47,8 @@ export function PersonaCharacter({
 }: {
   name: string;
   avatarUrl?: string | null;
+  /** False for a bundled drawing: then no "AI로 그렸어요" label. */
+  avatarAiMade?: boolean;
   speaking?: boolean;
   /** Today's mood in the friend's voice — "나 오늘은 포근해." */
   moodLine?: string | null;
@@ -294,7 +297,7 @@ export function PersonaCharacter({
                   ♥
                 </span>
               ))}
-              {useGenerated ? <AiMadeBadge className="-bottom-1 right-0" /> : null}
+              {useGenerated && avatarAiMade ? <AiMadeBadge className="-bottom-1 right-0" /> : null}
               {useGenerated ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

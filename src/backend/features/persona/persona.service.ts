@@ -58,7 +58,7 @@ export async function generateSingleAvatarChoice(
   preferences: Pick<PersonaPreferences, "energy" | "interaction">,
   index: number,
   stamp = Date.now()
-): Promise<{ id: string; url: string; prompt: string }> {
+): Promise<{ id: string; url: string; prompt: string; aiMade: boolean }> {
   const character = persona.profile;
   if (!character) {
     throw new HttpError("Beddy 정보가 없어요. 온보딩을 다시 해 주세요.", 400);
@@ -80,6 +80,8 @@ export async function generateSingleAvatarChoice(
       id,
       url: `/api/persona/avatar?c=${id}&v=${stamp}`,
       prompt: avatar.prompt,
+      // The bundled drawings were not made by an image model.
+      aiMade: avatar.model !== "bundled-style-ref",
     };
   } catch (error) {
     // The cause goes to the log only — the child sees a plain retry note.
@@ -105,12 +107,14 @@ async function generateAvatarChoices(
   );
 
   const avatarChoices: Array<{ id: string; url: string }> = [];
+  const aiMade: Record<string, boolean> = {};
   const results = await Promise.allSettled(jobs);
   const errors: string[] = [];
 
   for (const result of results) {
     if (result.status === "fulfilled") {
       avatarChoices.push({ id: result.value.id, url: result.value.url });
+      aiMade[result.value.id] = result.value.aiMade;
       if (!persona.avatarPrompt) persona.avatarPrompt = result.value.prompt;
     } else {
       const reason = result.reason;
@@ -128,6 +132,8 @@ async function generateAvatarChoices(
 
   await selectAvatarCandidate(userId, avatarChoices[0]!.id);
   persona.avatarUrl = `/api/persona/avatar?v=${stamp}`;
+  persona.avatarChoiceAiMade = aiMade;
+  persona.avatarAiMade = aiMade[avatarChoices[0]!.id];
   return { avatarChoices, stamp };
 }
 
@@ -200,10 +206,12 @@ export async function regeneratePersonaAvatarSlot(
   );
 
   if (!persona.avatarPrompt) persona.avatarPrompt = choice.prompt;
+  persona.avatarChoiceAiMade = { ...(persona.avatarChoiceAiMade ?? {}), [choice.id]: choice.aiMade };
   // Keep first finished slot as temporary active until user picks.
   if (slot === 0) {
     await selectAvatarCandidate(userId, choice.id);
     persona.avatarUrl = `/api/persona/avatar?v=${usedStamp}`;
+    persona.avatarAiMade = choice.aiMade;
   }
   await saveGeneratedPersona(userId, persona);
 
@@ -216,7 +224,7 @@ export async function regeneratePersonaAvatarSlot(
 export async function choosePersonaAvatar(
   userId: string,
   candidateId: string
-): Promise<{ avatarUrl: string }> {
+): Promise<{ avatarUrl: string; avatarAiMade: boolean }> {
   const source = await readAvatarImage(userId, candidateId);
   if (!source) {
     throw new Error("선택한 그림을 찾을 수 없어요. 다시 만들어 주세요.");
@@ -236,8 +244,9 @@ export async function choosePersonaAvatar(
   const persona = await getPersonaForUser(userId);
   const avatarUrl = `/api/persona/avatar?v=${Date.now()}`;
   persona.avatarUrl = avatarUrl;
+  persona.avatarAiMade = persona.avatarChoiceAiMade?.[candidateId];
   await saveGeneratedPersona(userId, persona);
-  return { avatarUrl };
+  return { avatarUrl, avatarAiMade: persona.avatarAiMade !== false };
 }
 
 export async function isPersonaSetupCompleted(userId: string): Promise<boolean> {

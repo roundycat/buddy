@@ -103,13 +103,17 @@ async function main() {
   const health = await anon("/api/health?client=1");
   const healthBody = await json(health);
   check(health.ok && healthBody.ok === true, "health", `${health.status}`);
-  const forged = await json(await anon("/api/health?client=1", { headers: { "x-forwarded-for": FORGED_IP } }));
+  const forged = await json(
+    await anon("/api/health?client=1", {
+      headers: { "x-forwarded-for": FORGED_IP, "cf-connecting-ip": FORGED_IP },
+    })
+  );
   const trusted = forged.client && forged.client !== FORGED_IP && forged.client === healthBody.client;
   if (/^http:\/\/(127\.0\.0\.1|localhost)/.test(BASE)) {
     // No proxy in front locally, so the header can't be told apart from one.
-    if (!trusted) warn("위조한 X-Forwarded-For 확인은 배포 주소에서만 의미가 있음");
+    if (!trusted) warn("위조한 주소 헤더 확인은 배포 주소에서만 의미가 있음");
   } else {
-    check(trusted, "속도 제한이 위조한 X-Forwarded-For를 믿지 않음", trusted ? "실제 주소 기준" : "위조한 주소를 그대로 씀");
+    check(trusted, "속도 제한이 위조한 주소 헤더를 믿지 않음", trusted ? "실제 주소 기준" : "위조한 주소를 그대로 씀");
   }
   const page = await anon("/login");
   const h = page.headers;

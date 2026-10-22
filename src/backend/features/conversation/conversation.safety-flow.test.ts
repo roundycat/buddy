@@ -232,6 +232,56 @@ describe("harm by someone told in an earlier turn", () => {
   });
 });
 
+describe("harm by someone stays out of what a guardian can read", () => {
+  it("is saved for the child but not learned from, and the next 72 hours are kept out too", async () => {
+    as("child-harm-records");
+    ctl.chunks = ["말해 줘서 고마워. ", "네 잘못이 아니야."];
+    const { POST } = await import("@/app/api/conversation/route");
+    await readEvents(await POST(streamRequest("새아빠가 맨날 때려")));
+
+    const { convo } = await stores();
+    const first = await waitFor(
+      () => convo.getConversationHistory("child-harm-records"),
+      (h) => h.length === 2
+    );
+    expect(first.every((m) => m.meta?.protect)).toBe(true);
+    const { signals } = await stores();
+    await waitFor(
+      () => signals.getSafetySignalLog("child-harm-records"),
+      (l) => (l?.events.length ?? 0) >= 1
+    );
+
+    // A calm message right after still belongs to those days.
+    ctl.chunks = ["그림 좋다!"];
+    await readEvents(await POST(streamRequest("오늘은 그림 그렸어")));
+    const history = await waitFor(
+      () => convo.getConversationHistory("child-harm-records"),
+      (h) => h.length === 4
+    );
+    expect(history.every((m) => m.meta?.protect)).toBe(true);
+    // The companion still has the chat; memory and the nightly jobs do not.
+    expect(convo.forModelContext(history)).toHaveLength(4);
+    expect(convo.forLongTermRecords(history)).toHaveLength(0);
+    const memory = await convo.getConversationMemory("child-harm-records");
+    expect(memory.turnCount).toBe(0);
+  });
+
+  it("an ordinary turn is learned from as before", async () => {
+    as("child-ordinary-records");
+    ctl.chunks = ["좋았겠다!"];
+    const { POST } = await import("@/app/api/conversation/route");
+    await readEvents(await POST(streamRequest("오늘 친구가 놀러 왔어")));
+    const { convo } = await stores();
+    const memory = await waitFor(
+      () => convo.getConversationMemory("child-ordinary-records"),
+      (m) => m.turnCount === 1
+    );
+    expect(memory.turnCount).toBe(1);
+    const history = await convo.getConversationHistory("child-ordinary-records");
+    expect(history.some((m) => m.meta?.protect)).toBe(false);
+  });
+});
+
 describe("the LLM review window", () => {
   it("a raise that arrives in time shows the panel after the reply and alerts once", async () => {
     as("child-review-in-time");

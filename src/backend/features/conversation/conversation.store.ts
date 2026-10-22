@@ -35,6 +35,15 @@ export function forModelContext(messages: ConversationMessage[]): ConversationMe
   return messages.filter((m) => !m.meta?.refused);
 }
 
+/**
+ * Messages that may go into records that outlive the chat — learned memory,
+ * emotion records and the summaries a guardian can read. Declined turns and
+ * turns about harm by someone are left out: the guardian may be that person.
+ */
+export function forLongTermRecords(messages: ConversationMessage[]): ConversationMessage[] {
+  return messages.filter((m) => !m.meta?.refused && !m.meta?.protect);
+}
+
 /** One child's writes run one after another (read-modify-write must not interleave). */
 const writeChains = new Map<string, Promise<unknown>>();
 

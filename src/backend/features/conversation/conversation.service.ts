@@ -5,6 +5,7 @@ import type {
 } from "./conversation.types";
 import {
   appendConversationMessages,
+  forLongTermRecords,
   forModelContext,
   getConversationHistory,
   getConversationMemory,
@@ -72,6 +73,8 @@ type TurnParams = {
   profileSummary: string;
   /** The chat model declined this turn — keep it for the child, out of model context. */
   refused?: boolean;
+  /** Harm by someone told now or in the last 72 hours — out of guardian-visible records. */
+  protect?: boolean;
 };
 
 async function persistTurn(params: TurnParams) {
@@ -79,13 +82,24 @@ async function persistTurn(params: TurnParams) {
   // was streaming: then nothing of it is written back.
   if (await isChildConsentPending(params.userId)) return;
   const mark = (m: ConversationMessage): ConversationMessage =>
-    params.refused ? { ...m, meta: { ...m.meta, refused: true } } : m;
+    params.refused || params.protect
+      ? {
+          ...m,
+          meta: {
+            ...m.meta,
+            ...(params.refused ? { refused: true } : {}),
+            ...(params.protect ? { protect: true } : {}),
+          },
+        }
+      : m;
   await appendConversationMessages(params.userId, [
     mark(params.userMessage),
     mark(params.reply),
   ]);
   // A declined turn is not learned from or analysed: both would send it to a model again.
-  if (params.refused) return;
+  // A turn about harm by someone stays out of memory and emotion records, which
+  // feed what the guardian reads.
+  if (params.refused || params.protect) return;
 
   await Promise.all([
     learnFromTurn({
@@ -93,7 +107,7 @@ async function persistTurn(params: TurnParams) {
       userMessage: params.userMessage.content,
       assistantMessage: params.reply.content,
       profileSummary: params.profileSummary,
-      recent: forModelContext(await getConversationHistory(params.userId)),
+      recent: forLongTermRecords(await getConversationHistory(params.userId)),
     }),
     analyzeChatEmotion({
       userId: params.userId,
@@ -120,6 +134,11 @@ function recentChildMessages(
     .filter((m) => m.role === "user" && m.content?.trim())
     .slice(-max)
     .map((m) => m.content);
+}
+
+/** The child told of harm by someone (alone, or with a death wish). */
+function toldOfHarm(assessment: SafetyAssessment): boolean {
+  return assessment.abuse || assessment.level === "protect";
 }
 
 export interface ChildSafetyCheck {
@@ -360,12 +379,8 @@ export async function sendMessage(
     createdAt: new Date().toISOString(),
   };
 
-  const safety = startTurnSafety(
-    userId,
-    request.message,
-    childContext,
-    userId ? await hadRecentAbuseDisclosure(userId).catch(() => false) : false
-  );
+  const priorAbuse = userId ? await hadRecentAbuseDisclosure(userId).catch(() => false) : false;
+  const safety = startTurnSafety(userId, request.message, childContext, priorAbuse);
   let llm: Awaited<ReturnType<typeof companionChat>>;
   try {
     llm = await companionChat(
@@ -388,6 +403,7 @@ export async function sendMessage(
       reply,
       profileSummary: ctx.profileSummary,
       refused: isRefusalReply(llm.content),
+      protect: priorAbuse || toldOfHarm(final.assessment),
     });
   }
 
@@ -509,6 +525,7 @@ export async function* streamMessage(
             reply: saved,
             profileSummary: ctx.profileSummary,
             refused,
+            protect: priorAbuse || toldOfHarm(final.assessment),
           });
         })
         .catch((error) => {

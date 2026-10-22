@@ -27,35 +27,52 @@ afterAll(() => {
 describe("file-backed accounts", () => {
   beforeAll(() => vi.spyOn(console, "warn").mockImplementation(() => undefined));
 
-  it("seeds the judge pair once, skips a password that breaks the rules", async () => {
+  it("seeds one pair per judge once, skips a password that breaks the rules", async () => {
     const { ensureSeedAccounts } = await import("./seed-accounts");
-    expect(await ensureSeedAccounts()).toEqual(["judge:created/created", "judge2:created/created"]);
-    expect(await ensureSeedAccounts()).toEqual(["judge:kept/kept", "judge2:kept/kept"]);
+    const judges = [1, 2, 3, 4, 5].map((n) => `judge${n}`);
+    expect(await ensureSeedAccounts()).toEqual(judges.map((j) => `${j}:created/created`));
+    expect(await ensureSeedAccounts()).toEqual(judges.map((j) => `${j}:kept/kept`));
 
     const { getLinkForGuardian } = await import("@/backend/features/guardian-link/guardian-link.store");
-    expect((await getLinkForGuardian("user-judge-guardian"))?.childUserId).toBe("user-judge-child");
+    expect((await getLinkForGuardian("user-judge1-guardian"))?.childUserId).toBe("user-judge1-child");
+    expect((await getLinkForGuardian("user-judge5-guardian"))?.childUserId).toBe("user-judge5-child");
 
     // Under-14 child with the seeded guardian's legal consent on record.
     const { getChildConsentState, listGuardianConsentsForChild } = await import(
       "@/backend/features/consent/consent.store"
     );
-    expect(await getChildConsentState("user-judge-child")).toMatchObject({
+    expect(await getChildConsentState("user-judge1-child")).toMatchObject({
       ageBand: "under14",
       status: "granted",
       basis: "guardian",
     });
-    expect((await listGuardianConsentsForChild("user-judge-child")).length).toBe(1);
+    expect((await listGuardianConsentsForChild("user-judge1-child")).length).toBe(1);
 
     const { findJsonUserByEmail } = await import("@/backend/features/auth/auth.users.json.repo");
     expect(await findJsonUserByEmail("demo-child@beddy.test")).toBeNull();
   });
 
+  it("puts the judge pairs back to their seeded state (the dawn batch does this daily)", async () => {
+    const { resetJudgeAccounts } = await import("./seed-accounts");
+    const alerts = await import("@/backend/features/safety/safety-alert.store");
+    const { withdrawGuardianConsent } = await import("@/backend/features/consent/consent.service");
+    const { getChildConsentState } = await import("@/backend/features/consent/consent.store");
+    // Yesterday's judges left an alert on judge1 and withdrew judge2's consent.
+    await alerts.createChildSafetyAlert({ childUserId: "user-judge1-child", summary: "s", level: "elevated" });
+    await withdrawGuardianConsent("user-judge2-guardian");
+    expect((await getChildConsentState("user-judge2-child"))?.status).toBe("pending");
+
+    expect(await resetJudgeAccounts()).toBe(5);
+    expect(await alerts.getActiveChildSafetyAlert("user-judge1-child")).toBeNull();
+    expect(await getChildConsentState("user-judge2-child")).toMatchObject({ status: "granted", basis: "guardian" });
+  });
+
   it("logs in through the auth service and rejects a wrong password", async () => {
     const { login } = await import("@/backend/features/auth/auth.service");
-    const ok = await login({ email: "JUDGE-CHILD@beddy.test", password: "Judge#2026ok" });
-    expect(ok.user).toMatchObject({ id: "user-judge-child", role: "child", name: "하늘" });
+    const ok = await login({ email: "JUDGE1-CHILD@beddy.test", password: "Judge#2026ok" });
+    expect(ok.user).toMatchObject({ id: "user-judge1-child", role: "child", name: "하늘" });
     expect(ok.token.length).toBeGreaterThan(20);
-    await expect(login({ email: "judge-child@beddy.test", password: "Wrong#2026ok" })).rejects.toMatchObject({
+    await expect(login({ email: "judge1-child@beddy.test", password: "Wrong#2026ok" })).rejects.toMatchObject({
       status: 401,
     });
   });
@@ -63,7 +80,7 @@ describe("file-backed accounts", () => {
   it("keeps e-mails unique and writes bcrypt hashes to disk", async () => {
     const { createJsonUser } = await import("@/backend/features/auth/auth.users.json.repo");
     await expect(
-      createJsonUser({ id: "u-x", email: "judge-child@beddy.test", name: "x", role: "child", password: "Aa1!aaaa" })
+      createJsonUser({ id: "u-x", email: "judge1-child@beddy.test", name: "x", role: "child", password: "Aa1!aaaa" })
     ).rejects.toThrow("DUPLICATE_EMAIL");
 
     const { flushJsonMapStores } = await import("@/backend/shared/persist/json-map-store");

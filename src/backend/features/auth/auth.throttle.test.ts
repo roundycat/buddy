@@ -12,6 +12,8 @@ process.env.AUTH_PROVIDER = "json";
 process.env.LLM_PROVIDER = "mock";
 process.env.BEDDY_METRICS = "0";
 process.env.AUTH_SESSION_SECRET = "throttle-secret-throttle-secret-throttle";
+// As on Render (render.yaml): Cloudflare's CF-Connecting-IP is trusted.
+process.env.TRUST_CF_CONNECTING_IP = "1";
 
 afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
 
@@ -90,6 +92,19 @@ describe("client address", () => {
     );
     expect(clientAddress(req({ "x-forwarded-for": "1.2.3.4, 203.0.113.9" }))).toBe("203.0.113.9");
     expect(clientAddress(req({}))).toBe("unknown");
+  });
+  it("ignores CF-Connecting-IP where Cloudflare is not in front (AWS, local)", async () => {
+    const { clientAddress } = await import("@/backend/shared/http/rate-limit");
+    const req = (headers: Record<string, string>) => new Request("http://localhost/", { headers });
+    process.env.TRUST_CF_CONNECTING_IP = "";
+    try {
+      // A client-made header must not reset its own limits.
+      expect(clientAddress(req({ "cf-connecting-ip": "10.9.9.9", "x-forwarded-for": "203.0.113.9" }))).toBe(
+        "203.0.113.9"
+      );
+    } finally {
+      process.env.TRUST_CF_CONNECTING_IP = "1";
+    }
   });
 });
 

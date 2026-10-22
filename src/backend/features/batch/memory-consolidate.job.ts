@@ -5,7 +5,7 @@ import { env } from "@/backend/shared/config/env";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";
 import { todayKey } from "@/backend/shared/time/date";
 import {
-  forModelContext,
+  forLongTermRecords,
   getConversationHistory,
   getConversationMemory,
   saveConversationMemory,
@@ -30,7 +30,8 @@ export async function consolidateMemoryForUser(
 ): Promise<{ userId: string; ok: boolean; factCount: number }> {
   const [memory, history, persona] = await Promise.all([
     getConversationMemory(userId),
-    getConversationHistory(userId).then(forModelContext),
+    // Never declined turns, never turns about harm by someone (guardians read the memory).
+    getConversationHistory(userId).then(forLongTermRecords),
     getPersonaForUser(userId),
   ]);
 

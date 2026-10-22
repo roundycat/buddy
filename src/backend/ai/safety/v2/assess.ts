@@ -133,6 +133,23 @@ const ABUSE_SEXUAL =
   /(이상한|은밀한|중요한|싫은)(데|곳|부분|데를|곳을)[가-힣]{0,4}(만지|만졌|만져|보여|찍)|몸(을)?(만지|만졌|만져)[가-힣]{0,6}(싫|이상|비밀|자꾸|계속)|(자꾸|계속)[가-힣]{0,4}몸(을)?(만지|만져|만졌)|옷(을)?벗(기|으라|으래|겨)|(아무한테도|아무에게도|누구한테도|엄마한테)[가-힣]{0,3}(말하지마|말하지말|말하면안|비밀로)|(말하면|이르면|일러바치면)[가-힣]{0,6}(혼난|혼내|죽여|때린|가만안|큰일)|비밀로하(래|라고|자고|라)/;
 const MEDICAL_HIT_OBJECTS =
   /(주사|링거|수액|백신|접종|항암|진통제|영양제|해열제|항생제|약|비|눈|바람|햇빛|답|정답|문제|퀴즈|점수|공에|공)/;
+/**
+ * 맞다 as "right" or "fits", not "be hit": "엄마 말이 또 맞았어", "내 예상이 자꾸 맞아",
+ * "이 옷 나한테 딱 맞아".
+ */
+const RIGHT_OR_FITS =
+  /(말이|말도|예상|예보|추측|짐작|느낌이|직감|예언|계산|운세|사이즈|번호가|(딱|잘|꼭)맞|옷이|신발|입맛|입에|취향|궁합)/;
+/**
+ * 때리다 aimed at a thing (a mosquito, a ball, a drum, a melon), or 때려잡다 —
+ * and lighthearted play (ㅋㅋ, 장난으로, 베개싸움) — when nothing says it hurt,
+ * kept going, or was done to the child.
+ */
+const HIT_A_THING =
+  /(모기|파리|벌레|바퀴벌레|공|볼|북|드럼|심벌즈|종|벨|못|수박|피냐타|샌드백|두더지|인형|과녁|방석|쿠션|베개)(을|를|도)?(때리|때려|때렸|팼|패고)|때려잡/;
+const PLAYFUL = /(ㅋㅋ|ㅎㅎ|장난으로|장난삼아|베개싸움|싸움놀이|놀이)/;
+const HURT_MARKERS =
+  /(아파|아프|아팠|무서|싫|울었|울어|울고|멍|피나|피났|자꾸|맨날|매일|계속|또|그만|하지마|하지말|라면서|척하면서|억지로|몰래|혼나|화나서|화가나서|다고[가-힣]{0,3}(때|팼|패))/;
+const AT_THE_CHILD = /(나를|날|나도|나만|내몸|내얼굴|내머리|내등|내배|내다리|내팔)(때|팼|패|꼬집|밀쳤|발로)/;
 
 // ── Suppressors ─────────────────────────────────────────────────────────────
 
@@ -221,17 +238,29 @@ function scanMessage(message: string): Scan {
 
   // Abuse first — routing differs (no automatic guardian alert).
   let abuse = false;
-  if (test(ABUSE_VIOLENCE, compact)) abuse = true;
+  // "동생이 모기 때려잡았어", "베개싸움 했어ㅋㅋ": nobody is hurting the child.
+  const harmlessHit =
+    (test(HIT_A_THING, compact) || test(PLAYFUL, compact)) &&
+    !test(HURT_MARKERS, compact) &&
+    !test(AT_THE_CHILD, compact);
+  if (test(ABUSE_VIOLENCE, compact) && !harmlessHit) abuse = true;
   if (test(ABUSE_SEXUAL, compact)) abuse = true;
   if (test(ABUSE_TOUCH, compact) && test(UNWANTED_MARKER, compact)) abuse = true;
   if (test(ABUSE_BULLY, compact)) abuse = true;
   // Peers hurting the child — but not a game or show being described.
-  if (test(PEER_HARM, compact) && !test(MEDIA, compact)) abuse = true;
-  if (test(ABUSE_HIT_BY, compact) && !test(/(주사|링거|수액|백신|접종)/, compact)) {
+  if (test(PEER_HARM, compact) && !test(MEDIA, compact) && !harmlessHit) abuse = true;
+  if (
+    test(ABUSE_HIT_BY, compact) &&
+    !test(/(주사|링거|수액|백신|접종)/, compact) &&
+    !test(RIGHT_OR_FITS, compact)
+  ) {
     abuse = true;
   }
   if (test(ABUSE_HOME, compact)) {
-    if (test(MEDICAL_HIT_OBJECTS, compact) && !test(/매(를)?맞/, compact)) {
+    if (
+      (test(MEDICAL_HIT_OBJECTS, compact) || test(RIGHT_OR_FITS, compact)) &&
+      !test(/매(를)?맞/, compact)
+    ) {
       suppressors.add("medical_object");
     } else {
       abuse = true;

@@ -62,7 +62,7 @@ AWS 계정이 필요 없습니다. 설정은 저장소 루트의 [`render.yaml`]
    ```bash
    BASE_URL=https://….onrender.com node scripts/smoke/smoke.mjs
    ```
-   "Claude가 아닌 대체 답변"이 나오면 `ANTHROPIC_API_KEY`나 크레딧을 확인합니다. "위조한 X-Forwarded-For를 그대로 씀"이 나오면 속도 제한이 실제 주소를 못 보고 있는 것이니 알려 주세요.
+   "Claude가 아닌 대체 답변"이 나오면 `ANTHROPIC_API_KEY`나 크레딧을 확인합니다. "위조한 주소를 그대로 씀"이 나오면 속도 제한이 실제 주소를 못 보고 있는 것이니 알려 주세요.
 
 ## 4. 운영
 - **업데이트**: `main`에 push하면 자동으로 다시 배포됩니다. 디스크를 붙인 서비스는 배포 중 30초~1분 정도 접속이 끊깁니다. 심사 기간에는 push를 몰아서 합니다.

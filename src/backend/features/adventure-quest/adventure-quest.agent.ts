@@ -8,6 +8,7 @@ import {
   type RunHandle,
 } from "@/backend/ai/orchestrator";
 import { withBeddySafety } from "@/backend/ai/prompts/safety";
+import { guardChildFacingOutput } from "@/backend/ai/safety/v2/output-guard";
 import { env } from "@/backend/shared/config/env";
 import { extractJsonObject } from "@/backend/shared/llm/parse-json";
 import { recordCount } from "@/backend/shared/observability";
@@ -145,9 +146,11 @@ function normalizeSubmittedPlan(
 
   return {
     scene: scene as AdventureScene,
+    // Shown to the child as the page note when the mission writer leaves none:
+    // the same sentence filter as every other child-facing text.
     reasoning:
-      String(submitted.reasoning ?? "").trim() ||
-      "컨텍스트에 맞춰 장면을 골랐어요.",
+      guardChildFacingOutput(String(submitted.reasoning ?? "").trim()).text.trim() ||
+      "오늘 상태에 맞춰 모험을 골랐어요.",
     focusSignals: (Array.isArray(submitted.focusSignals)
       ? submitted.focusSignals
       : []

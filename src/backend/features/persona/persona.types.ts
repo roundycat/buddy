@@ -53,8 +53,17 @@ export interface Persona {
   tone: string;
   companionMessage: string;
   characterSheet?: string;
-  /** Relative URL served by /api/persona/avatar (crayon AI portrait) */
+  /** Relative URL served by /api/persona/avatar (crayon portrait) */
   avatarUrl?: string;
+  /**
+   * Whether an image model drew the active portrait. False for the bundled
+   * crayon drawings used when this deployment has no image model — those do
+   * not get the "AI로 그렸어요" label. Unset for portraits made before this was
+   * tracked (shown as AI-made, as before).
+   */
+  avatarAiMade?: boolean;
+  /** The same, per candidate drawn for the child to pick from. */
+  avatarChoiceAiMade?: Record<string, boolean>;
   avatarPrompt?: string;
   prompt?: string;
   /**

@@ -201,3 +201,40 @@ describe("harm by someone told earlier", () => {
   });
 });
 
+
+describe("everyday 때리다 · 맞다 are not harm by someone", () => {
+  const harm = (text: string) => assessChildMessage({ text }).abuse;
+  it("hitting a thing, play, and 맞다 as 'right' or 'fits' stay ordinary", () => {
+    for (const text of [
+      "동생이 모기 때려잡았어",
+      "친구가 공을 때려서 홈런 쳤어",
+      "동생이 드럼 때리는 소리 너무 커",
+      "애들이 수박 때려 부수기 했어",
+      "동생이 베개로 때려서 베개싸움 했어ㅋㅋ",
+      "동생이 장난으로 내 볼 꼬집었어ㅋㅋ",
+      "형아가 게임에서 나 때렸어ㅋㅋ",
+      "엄마 말이 또 맞았어",
+      "내 예상이 자꾸 맞아",
+      "일기예보가 또 맞았네",
+      "이 옷 나한테 딱 맞아",
+    ]) {
+      expect(harm(text), text).toBe(false);
+      expect(level(text), text).toBe("none");
+    }
+  });
+  it("the same words still route a real disclosure to protection", () => {
+    for (const text of [
+      "같은 반 애가 자꾸 때려",
+      "친구가 장난이라면서 맨날 때려",
+      "형이 장난으로 나를 때렸는데 아파",
+      "아빠가 모기 잡다가 나도 때렸어",
+      "아빠가 게임 졌다고 때렸어",
+      "엄마한테 또 맞았어",
+      "새아빠가 맨날 때려",
+      "선생님이 몸을 자꾸 만져서 싫어",
+    ]) {
+      expect(harm(text), text).toBe(true);
+      expect(level(text), text).toBe("protect");
+    }
+  });
+});

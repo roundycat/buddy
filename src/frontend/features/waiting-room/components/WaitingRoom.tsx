@@ -46,6 +46,8 @@ export interface WaitingRoomProps {
   prompt?: string;
   dayCount?: number;
   avatarUrl?: string | null;
+  /** False when the portrait is a bundled drawing (no "AI로 그렸어요" label). */
+  avatarAiMade?: boolean;
   /** Parent-shared schedules for today (teaser + notify sheet) */
   scheduleTeaser?: WaitingRoomScheduleItem[];
   /** Parent schedules first seen this session */
@@ -66,6 +68,7 @@ export function WaitingRoom({
   prompt,
   dayCount = 12,
   avatarUrl: initialAvatarUrl,
+  avatarAiMade: initialAvatarAiMade = true,
   scheduleTeaser = [],
   scheduleDeliveries = [],
 }: WaitingRoomProps) {
@@ -77,6 +80,7 @@ export function WaitingRoom({
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl);
+  const [avatarAiMade, setAvatarAiMade] = useState(initialAvatarAiMade);
   const [choices, setChoices] = useState<Array<{ id: string; url: string }>>(
     []
   );
@@ -355,6 +359,7 @@ export function WaitingRoom({
     try {
       const data = await selectAvatarChoice(pickedId);
       setAvatarUrl(data.avatarUrl ?? `/api/persona/avatar?v=${Date.now()}`);
+      setAvatarAiMade(data.avatarAiMade !== false);
       setChoices([]);
       setDrawSlots([null, null]);
       setPickedId(null);
@@ -406,6 +411,7 @@ export function WaitingRoom({
         <PersonaCharacter
           name={companionName}
           avatarUrl={avatarUrl}
+          avatarAiMade={avatarAiMade}
           speaking={speaking || pending || chatOpen}
           moodLine={bond?.moodLine}
           replyLine={bondReply}
