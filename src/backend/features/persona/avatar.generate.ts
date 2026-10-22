@@ -336,11 +336,27 @@ export async function generateCrayonAvatar(input: {
   }
 
   if (!generated) {
-    generated = await invokeStabilityTextToImage({
-      prompt,
-      negativePrompt: built.negativePrompt,
-      seed: input.seed,
-    });
+    try {
+      generated = await invokeStabilityTextToImage({
+        prompt,
+        negativePrompt: built.negativePrompt,
+        seed: input.seed,
+      });
+    } catch (error) {
+      // Image models unreachable (no access, region, quota): onboarding must not
+      // dead-end for a child — use the bundled crayon drawing of the same animal.
+      if (!styleImage) throw error;
+      console.warn(
+        "[avatar] image models unavailable, using bundled drawing:",
+        error instanceof Error ? error.message : error
+      );
+      return {
+        bytes: Buffer.from(styleImage, "base64"),
+        contentType: "image/png",
+        model: "bundled-style-ref",
+        prompt,
+      };
+    }
   }
 
   let bytes = generated.bytes;
