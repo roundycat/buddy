@@ -25,7 +25,7 @@ export type LocalKbHit = {
 };
 
 const KIND_LABEL: Record<string, string> = {
-  memory: "학습된 대화 메모리",
+  memory: "대화 요약 메모",
   emotion: "감정 이력",
   mission: "미션 이력",
   timeline: "타임라인",

@@ -1356,7 +1356,7 @@ export async function askParentReport(
   const sources: string[] = [];
   if (mood) sources.push("오늘의 감정");
   if (themes.length) sources.push("마음 키워드");
-  if (context.turnCount > 0) sources.push("학습된 대화 메모리");
+  if (context.turnCount > 0) sources.push("대화 요약 메모");
   if (completed.length) sources.push("완료한 모험");
   if (wishCount) sources.push("소원 나무");
   if (weeklyMoods.length) sources.push("주간 감정 흐름");

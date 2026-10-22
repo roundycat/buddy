@@ -41,7 +41,7 @@ function getClient() {
 
 function labelFromUri(uri?: string): string {
   if (!uri) return "지식 요약";
-  if (uri.includes("memory")) return "학습된 대화 메모리";
+  if (uri.includes("memory")) return "대화 요약 메모";
   if (uri.includes("emotion") || uri.includes("garden")) return "감정 이력";
   if (uri.includes("mission") || uri.includes("adventure")) return "미션 이력";
   if (uri.includes("timeline")) return "타임라인";
