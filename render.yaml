@@ -31,7 +31,7 @@ services:
       - key: LLM_FALLBACK_TO_MOCK
         value: "true"
       - key: AI_DAILY_LLM_CAP
-        value: "3000"
+        value: "8000"
       - key: IMAGE_PROVIDER
         value: bundled
       - key: TTS_PROVIDER

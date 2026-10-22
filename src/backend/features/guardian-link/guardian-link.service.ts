@@ -37,7 +37,8 @@ import type {
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
 const CODE_LENGTH = 6;
 const INVITE_TTL_MS = 1000 * 60 * 60 * 48; // 48h
-const MAX_USES = 5;
+/** Two legal guardians at most per code; the child can make a new code any time. */
+const MAX_USES = 2;
 
 /** Per-process redeem throttle — stops online guessing of 6-char codes. */
 const REDEEM_WINDOW_MS = 60_000;

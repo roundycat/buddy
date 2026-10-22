@@ -7,6 +7,16 @@ import {
   setSessionCookie,
 } from "@/backend/shared/http/cookies";
 import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/route";
+import {
+  allowRequest,
+  clientAddress,
+  hasRequestRoom,
+  LOGIN_FAILURE_LIMITS,
+  LOGIN_IP_LIMITS,
+  recordHit,
+} from "@/backend/shared/http/rate-limit";
+
+const TOO_MANY = "로그인 시도가 너무 많아요. 10분쯤 뒤에 다시 해 주세요.";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +36,26 @@ export async function POST(request: Request) {
       if (!email.trim() || !password) {
         throw new HttpError("이메일과 비밀번호를 입력해 주세요.", 400);
       }
+      // Wrong passwords count per e-mail *and* address, so guessing from one
+      // place cannot lock out judges who share an account from another.
+      const address = clientAddress(request);
+      const emailKey = `login-fail:${email.trim().toLowerCase()}:${address}`;
+      if (
+        !allowRequest(`login-ip:${address}`, LOGIN_IP_LIMITS) ||
+        !hasRequestRoom(emailKey, LOGIN_FAILURE_LIMITS)
+      ) {
+        throw new HttpError(TOO_MANY, 429);
+      }
 
-      const result = await login({ email, password });
+      let result: Awaited<ReturnType<typeof login>>;
+      try {
+        result = await login({ email, password });
+      } catch (error) {
+        if (error instanceof AuthError && error.status === 401) {
+          recordHit(emailKey, LOGIN_FAILURE_LIMITS);
+        }
+        throw error;
+      }
       const isGuardian = result.user.role === "guardian";
       const needsOnboarding =
         !isGuardian && !(await isPersonaSetupCompleted(result.user.id));

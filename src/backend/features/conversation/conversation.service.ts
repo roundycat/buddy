@@ -50,6 +50,7 @@ import {
 } from "@/backend/features/sharing/concern-request.service";
 import type { SafetyLevel, SignalCategory } from "@/backend/ai/safety/v2/types";
 import { recordCount } from "@/backend/shared/observability";
+import { isChildConsentPending } from "@/backend/features/consent/consent.guard";
 import { isRefusalReply, REFUSAL_FALLBACK_TEXT } from "@/backend/shared/llm/refusal";
 
 /**
@@ -71,6 +72,9 @@ type TurnParams = {
 };
 
 async function persistTurn(params: TurnParams) {
+  // Consent may have been withdrawn (and the records erased) while this turn
+  // was streaming: then nothing of it is written back.
+  if (await isChildConsentPending(params.userId)) return;
   const mark = (m: ConversationMessage): ConversationMessage =>
     params.refused ? { ...m, meta: { ...m.meta, refused: true } } : m;
   await appendConversationMessages(params.userId, [

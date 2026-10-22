@@ -13,6 +13,7 @@ import { refineEmotionsForUser } from "./emotion-refine.job";
 import { updateStoriesForUser } from "./story-update.job";
 import { observeBatchRun } from "@/backend/ai/orchestrator";
 import { startKbIngestion } from "@/backend/ai/kb/ingest";
+import { purgeExpiredCoarseLocations } from "@/backend/features/weather/weather.store";
 
 /** Max concurrent child jobs within one dawn batch phase. */
 const CHILD_CONCURRENCY = 3;
@@ -26,6 +27,8 @@ export type DailyBatchResult = {
   parent: { ok: number; fail: number };
   kbIndex: { ok: number; fail: number; docs: number };
   kbIngestion: { started: boolean; jobId?: string; reason?: string };
+  /** Coarse locations removed after their 7-day retention */
+  expiredLocations: number;
 };
 
 async function listChildUserIds(): Promise<string[]> {
@@ -60,6 +63,11 @@ export async function runDailyBatch(
   dateKey = todayKey()
 ): Promise<DailyBatchResult> {
   return observeBatchRun("batch.daily", async () => {
+    // Retention first: it must not wait on (or fail with) the AI phases.
+    const expiredLocations = await purgeExpiredCoarseLocations().catch((error) => {
+      console.error("[batch] location purge failed", error);
+      return 0;
+    });
     const childIds = await listChildUserIds();
     const guardianIds = await listGuardianUserIds();
 
@@ -114,6 +122,16 @@ export async function runDailyBatch(
         ? await startKbIngestion()
         : { started: false, reason: "no_new_docs" };
 
-    return { dateKey, memory, emotion, stories, missions, parent, kbIndex, kbIngestion };
+    return {
+      dateKey,
+      memory,
+      emotion,
+      stories,
+      missions,
+      parent,
+      kbIndex,
+      kbIngestion,
+      expiredLocations,
+    };
   });
 }

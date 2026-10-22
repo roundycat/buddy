@@ -11,8 +11,10 @@ import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/rou
 import { allowRequest, CHILD_CHAT_LIMITS } from "@/backend/shared/http/rate-limit";
 import { DomainError, domainStatus } from "@/backend/shared/http/domain-error";
 import { assertChildConsented } from "@/backend/features/consent/consent.guard";
+import { MAX_CHAT_MESSAGE_CHARS } from "@/shared/chat/limits";
 
 const SLOW_DOWN = "오늘 이야기를 정말 많이 나눴어! 조금 쉬었다가 다시 이야기하자.";
+const TOO_LONG = "이야기가 길어서 한 번에 받기 어려워. 조금씩 나눠서 보내 줄래?";
 
 /**
  * API Bridge: Conversation
@@ -48,6 +50,9 @@ export async function POST(request: Request) {
     if (!message.trim()) {
       throw new HttpError("메시지를 입력해 주세요.", 400);
     }
+    if (message.length > MAX_CHAT_MESSAGE_CHARS) {
+      throw new HttpError(TOO_LONG, 400);
+    }
     if (!allowRequest(`chat:${user.id}`, CHILD_CHAT_LIMITS)) {
       throw new HttpError(SLOW_DOWN, 429);
     }
@@ -70,11 +75,11 @@ async function streamConversation(request: Request) {
     );
     const message = typeof body?.message === "string" ? body.message : "";
 
-    if (!message.trim()) {
-      return new Response(JSON.stringify({ error: "메시지를 입력해 주세요." }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+    if (!message.trim() || message.length > MAX_CHAT_MESSAGE_CHARS) {
+      return new Response(
+        JSON.stringify({ error: message.trim() ? TOO_LONG : "메시지를 입력해 주세요." }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
     }
     if (!allowRequest(`chat:${user.id}`, CHILD_CHAT_LIMITS)) {
       return new Response(JSON.stringify({ error: SLOW_DOWN }), {

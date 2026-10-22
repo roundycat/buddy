@@ -56,3 +56,14 @@ export async function getCoarseLocation(
 export async function clearCoarseLocationForUser(userId: string) {
   await store.clearByUserId(userId);
 }
+
+/**
+ * Drop every location past its 7-day expiry, also for children who never come
+ * back (reads only clean up the reader's own row). Run by the dawn batch.
+ */
+export async function purgeExpiredCoarseLocations(now = Date.now()): Promise<number> {
+  const rows = await store.entries();
+  const expired = rows.filter(([, row]) => new Date(row.expiresAt).getTime() < now);
+  await Promise.all(expired.map(([key]) => store.delete(key)));
+  return expired.length;
+}

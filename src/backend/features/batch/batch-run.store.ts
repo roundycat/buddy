@@ -33,10 +33,18 @@ function isConditionalFail(error: unknown): boolean {
   return name === "ConditionalCheckFailedException";
 }
 
+/** A run still "started" after this long was cut off (restart, deploy). */
+export const STALE_RUN_MS = 2 * 60 * 60 * 1000;
+
+function isLiveStart(record: BatchRunRecord, now: number): boolean {
+  return record.status === "started" && now - Date.parse(record.startedAt) < STALE_RUN_MS;
+}
+
 /**
  * Atomically claim a dawn-batch run for dateKey.
- * Returns skipped when already started/done (unless force).
- * Failed markers may be reclaimed.
+ * Returns skipped when already done or started less than 2 hours ago (unless
+ * force). Failed markers and stale starts (the process stopped mid-run) may be
+ * reclaimed.
  */
 export async function tryClaimDailyBatchRun(
   dateKey: string,
@@ -54,7 +62,7 @@ export async function tryClaimDailyBatchRun(
     if (
       !force &&
       existing &&
-      (existing.status === "started" || existing.status === "done")
+      (existing.status === "done" || isLiveStart(existing, Date.parse(now)))
     ) {
       return { claimed: false, skipped: true, record: existing };
     }
@@ -79,13 +87,16 @@ export async function tryClaimDailyBatchRun(
           ? {}
           : {
               ConditionExpression:
-                "attribute_not_exists(pk) OR #data.#st = :failed",
+                "attribute_not_exists(pk) OR #data.#st = :failed OR (#data.#st = :started AND #data.#at < :staleBefore)",
               ExpressionAttributeNames: {
                 "#data": "data",
                 "#st": "status",
+                "#at": "startedAt",
               },
               ExpressionAttributeValues: {
                 ":failed": "failed",
+                ":started": "started",
+                ":staleBefore": new Date(Date.parse(now) - STALE_RUN_MS).toISOString(),
               },
             }),
       })

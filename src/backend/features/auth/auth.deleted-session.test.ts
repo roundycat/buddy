@@ -85,3 +85,54 @@ describe("deleted account", () => {
     expect((await getSessionUser())?.id).toBe(guardian.user.id);
   });
 });
+
+describe("consent withdrawn while a reply streams", () => {
+  it("nothing of that turn is written back after the erase", async () => {
+    const { signup } = await import("./auth.service");
+    const child = await signup({
+      email: "midstream-child@x.test",
+      password: PASSWORD,
+      name: "아이",
+      role: "child",
+      childAgeBand: "under14",
+      agreements,
+    } as never);
+    const guardian = await signup({
+      email: "midstream-guardian@x.test",
+      password: PASSWORD,
+      name: "보호자",
+      role: "guardian",
+      agreements,
+    } as never);
+    const { getOrCreateChildInvite, linkGuardianWithCode } = await import(
+      "@/backend/features/guardian-link/guardian-link.service"
+    );
+    await linkGuardianWithCode(guardian.user.id, (await getOrCreateChildInvite(child.user.id)).code);
+    const consent = await import("@/backend/features/consent/consent.service");
+    await consent.grantGuardianConsent(guardian.user.id, {
+      relationship: "father",
+      guardianName: "아빠",
+      items: { privacyCollection: true, sensitiveData: true, aiFeatures: true },
+    });
+
+    const { POST } = await import("@/app/api/conversation/route");
+    jar.token = child.token;
+    const res = await POST(
+      new Request("http://localhost/api/conversation?stream=1", {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "text/event-stream" },
+        body: JSON.stringify({ message: "오늘 병원 밥이 맛있었어. 너는 무슨 음식 좋아해?" }),
+      })
+    );
+    const reader = res.body!.getReader();
+    await reader.read();
+    await consent.withdrawGuardianConsent(guardian.user.id);
+    while (!(await reader.read()).done) {
+      /* drain */
+    }
+    await new Promise((r) => setTimeout(r, 300));
+    const { getConversationHistory } = await import("@/backend/features/conversation/conversation.store");
+    expect(await getConversationHistory(child.user.id)).toEqual([]);
+  });
+});
+

@@ -9,6 +9,7 @@ import type {
   ConversationMessageDto,
 } from "@/frontend/shared/types/api";
 import { topic } from "@/shared/text/josa";
+import { MAX_CHAT_MESSAGE_CHARS } from "@/shared/chat/limits";
 
 const SUGGESTIONS = [
   "오늘 조금 피곤해요",
@@ -62,7 +63,7 @@ export function CompanionChatSheet({
   onDismissCrisis,
 }: CompanionChatSheetProps) {
   const [input, setInput] = useState("");
-  const voiceIn = useSpeechInput((text) => setInput(text));
+  const voiceIn = useSpeechInput((text) => setInput(text.slice(0, MAX_CHAT_MESSAGE_CHARS)));
   const voiceOut = useSpeechOutput();
   const [actionNote, setActionNote] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -297,6 +298,7 @@ export function CompanionChatSheet({
               ref={inputRef}
               value={input}
               onChange={(event) => setInput(event.target.value)}
+              maxLength={MAX_CHAT_MESSAGE_CHARS}
               placeholder="답장을 적어 보세요…"
               disabled={pending}
               enterKeyHint="send"

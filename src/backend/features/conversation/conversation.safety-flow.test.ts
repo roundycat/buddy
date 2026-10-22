@@ -40,6 +40,7 @@ vi.mock("@/backend/shared/http/auth", async (orig) => {
 // Consent has its own tests; here every child has it.
 vi.mock("@/backend/features/consent/consent.guard", () => ({
   assertChildConsented: async () => undefined,
+  isChildConsentPending: async () => false,
 }));
 
 vi.mock("@/backend/ai/orchestrator", async (orig) => {
@@ -287,6 +288,7 @@ describe("a declined turn", () => {
       () => convo.getConversationHistory("child-declined"),
       (h) => h.length === 2
     );
+    expect(history).toHaveLength(2);
     expect(history.every((m) => m.meta?.refused)).toBe(true);
 
     ctl.chunks = ["좋아, 다른 이야기 하자."];

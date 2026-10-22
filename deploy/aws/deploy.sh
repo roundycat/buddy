@@ -237,7 +237,8 @@ save ROLE "$ROLE"; save PROFILE "$PROFILE"
 # ── 7. Source bundle → S3 ───────────────────────────────────────────────────
 log "7/10 소스 묶음 업로드"
 ( cd "$ROOT" && zip -q -r "$WORK/source.zip" . \
-    -x 'node_modules/*' '.next/*' '.git/*' '.data/*' '.claude/*' 'deploy/aws/.state.env' '*.log' )
+    -x 'node_modules/*' '.next/*' '.git/*' '.data/*' '.claude/*' 'deploy/aws/.state.env' '*.log' \
+       '.env' '.env.*' '*/.env' '*/.env.*' )
 aws s3 cp "$WORK/source.zip" "s3://$BUCKET/deploy/source.zip" --only-show-errors
 info "s3://$BUCKET/deploy/source.zip ($(du -h "$WORK/source.zip" | cut -f1))"
 

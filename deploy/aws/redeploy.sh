@@ -7,7 +7,7 @@ ROOT="$(cd "$HERE/../.." && pwd)"
 source "$HERE/.state.env"
 export AWS_DEFAULT_REGION="$REGION" AWS_PAGER=""
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
-( cd "$ROOT" && zip -q -r "$WORK/source.zip" . -x 'node_modules/*' '.next/*' '.git/*' '.data/*' '.claude/*' 'deploy/aws/.state.env' '*.log' )
+( cd "$ROOT" && zip -q -r "$WORK/source.zip" . -x 'node_modules/*' '.next/*' '.git/*' '.data/*' '.claude/*' 'deploy/aws/.state.env' '*.log' '.env' '.env.*' '*/.env' '*/.env.*' )
 aws s3 cp "$WORK/source.zip" "s3://$BUCKET/deploy/source.zip" --only-show-errors
 CMD_ID="$(aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name AWS-RunShellScript \
   --timeout-seconds 1200 --parameters 'commands=["/opt/beddy/update.sh"]' --query Command.CommandId --output text)"

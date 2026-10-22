@@ -6,6 +6,7 @@ import {
   setSessionCookie,
 } from "@/backend/shared/http/cookies";
 import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/route";
+import { allowRequest, clientAddress, SIGNUP_IP_LIMITS } from "@/backend/shared/http/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,9 @@ export async function POST(request: Request) {
 
       if (!email.trim() || !password || !name.trim()) {
         throw new HttpError("이름, 이메일, 비밀번호를 입력해 주세요.", 400);
+      }
+      if (!allowRequest(`signup-ip:${clientAddress(request)}`, SIGNUP_IP_LIMITS)) {
+        throw new HttpError("가입 요청이 너무 많아요. 잠시 후 다시 해 주세요.", 429);
       }
 
       const result = await signup({
