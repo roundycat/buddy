@@ -40,7 +40,9 @@ npm run eval:safety                    # v1 vs v2 (개발셋)
 EVAL_SET=heldout npm run eval:safety   # 독립 평가셋
 ```
 
-배포: [`deploy/aws/README.md`](deploy/aws/README.md) — AWS CloudShell에서 한 번 실행합니다.
+배포는 두 가지 방법을 지원합니다.
+- **Render + Claude API**(AWS 없이, 대회 시제품): [`deploy/render/README.md`](deploy/render/README.md). 루트의 `render.yaml`을 Blueprint로 불러옵니다.
+- **AWS**(Bedrock·DynamoDB): [`deploy/aws/README.md`](deploy/aws/README.md). AWS CloudShell에서 한 번 실행합니다.
 
 ![시스템 파이프라인](docs/architecture/pipeline-user-to-discharge.png)
 
@@ -151,12 +153,12 @@ Login
 | 영역 | 사용 기술 |
 |---|---|
 | 앱 | Next.js 14 (App Router), TypeScript, Tailwind CSS |
-| 런타임 | Amazon ECS Fargate + ALB |
-| AI | Amazon Bedrock Converse / Stream, Guardrails, Knowledge Base, 이미지 모델, Polly |
-| 데이터 | DynamoDB, S3 (아바타·미디어·KB MD) |
-| 배치 | EventBridge → `/api/cron/daily` |
-| 비밀값 | AWS Secrets Manager |
-| 관측 | CloudWatch + 구조화 로그 |
+| 런타임 | AWS 판: EC2 Docker + CloudFront (v1: ECS Fargate + ALB) · Render 판: Render Docker 웹 서비스 + 영구 디스크 |
+| AI | AWS 판: Amazon Bedrock Converse / Stream, Guardrails, Knowledge Base, 이미지 모델, Polly · Render 판: Claude API(Claude Haiku 5.5), 앱 출력 안전 필터, 서버 안 요약 검색 |
+| 데이터 | AWS 판: DynamoDB, S3 (아바타·미디어·KB MD) · Render 판: 영구 디스크의 JSON 파일 |
+| 배치 | AWS 판: EventBridge/cron → `/api/cron/daily` · Render 판: 서버 안 스케줄러(05:00 KST) |
+| 비밀값 | AWS 판: SSM Parameter Store(SecureString) · Render 판: Render 환경 변수 |
+| 관측 | CloudWatch + 구조화 로그 (Render 판은 구조화 로그) |
 
 **계층**: `src/app`(라우트·API) → `frontend/features`(UI) → `backend/features`(도메인) → `backend/ai`(LLM·Agent·RAG·Bridge) → AWS.
 
