@@ -5,6 +5,7 @@ import {
   ensureStorybookIllustration,
   readStorybookIllustration,
 } from "@/backend/features/growth-storybook/storybook-illustration.service";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ export async function POST(
   return withApiGuard(
     async () => {
       const user = await requireChildUser();
+      await assertChildConsented(user.id);
       const { id } = await context.params;
       const result = await ensureStorybookIllustration(user.id, id);
       if (!result) throw new HttpError("이야기 페이지를 찾을 수 없어요.", 404);

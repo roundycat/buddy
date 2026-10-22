@@ -6,6 +6,7 @@ import {
 } from "@/backend/features/wish-tree/wish-tree.service";
 import { isWishKind } from "@/backend/features/wish-tree/wish-tree.leaves";
 import type { WishHorizon } from "@/backend/features/wish-tree/wish-tree.types";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/route";
 
 export async function GET() {
@@ -18,6 +19,7 @@ export async function GET() {
 export async function POST(request: Request) {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
+    await assertChildConsented(user.id);
     const body = await readJsonBody<{
       text?: string;
       horizon?: WishHorizon;

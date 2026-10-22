@@ -1,6 +1,7 @@
 import { requireAuthUser } from "@/backend/shared/http/auth";
 import { plantTodaySeed } from "@/backend/features/emotion-garden/emotion-garden.service";
 import { isMoodId } from "@/backend/features/emotion-garden/emotion-garden.flowers";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 import {
   HttpError,
   readJsonBody,
@@ -10,6 +11,7 @@ import {
 export async function POST(request: Request) {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
+    await assertChildConsented(user.id);
     const body = await readJsonBody<{ mood?: string }>(request);
     if (!isMoodId(body?.mood)) {
       throw new HttpError("오늘의 감정 씨앗을 선택해 주세요.", 400);

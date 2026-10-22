@@ -3,6 +3,7 @@ import {
   regeneratePersonaAvatarSlot,
   regeneratePersonaAvatars,
 } from "@/backend/features/persona/persona.service";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/route";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ export const maxDuration = 120;
 export async function POST(request: Request) {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
+    await assertChildConsented(user.id);
     const body = await readJsonBody<{
       slot?: unknown;
       stamp?: unknown;

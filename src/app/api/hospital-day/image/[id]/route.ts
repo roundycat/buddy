@@ -5,6 +5,7 @@ import { ensureScheduleImage } from "@/backend/features/hospital-day/schedule-im
 import { readScheduleImage } from "@/backend/features/hospital-day/schedule-image.store";
 import { withApiGuard, HttpError } from "@/backend/shared/http/route";
 import { resolveLinkedChildUserId } from "@/backend/features/guardian-link/guardian-link.service";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 import type { HospitalDayItem } from "@/backend/features/hospital-day/hospital-day.types";
 
 export const dynamic = "force-dynamic";
@@ -71,7 +72,9 @@ export async function POST(
 ) {
   return withApiGuard(async () => {
     const itemId = context.params.id;
-    await assertCanAccessSchedule(itemId);
+    const access = await assertCanAccessSchedule(itemId);
+    // AI illustration of the child's schedule — needs consent for that child
+    await assertChildConsented(access.childUserId);
 
     const item = await ensureScheduleImage(itemId);
     if (!item) throw new HttpError("일정을 찾을 수 없어요.", 404);
