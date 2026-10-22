@@ -19,6 +19,29 @@
 >
 > v2는 v1 위에서 **아동 안전·프라이버시 성능을 높이는 탐구개발**을 합니다. 무엇이 새로 바뀌었는지는 [`docs/v2/CHANGES.md`](docs/v2/CHANGES.md)에 정리합니다. 원작 저작권 표시는 [`LICENSE`](LICENSE)에 그대로 둡니다.
 
+## Beddy 2.0에서 달라진 점 — "아이에게 안전한 AI 친구"
+
+아동용 AI 친구에게 가장 먼저 물어야 할 질문은 "안전한가, 아이를 AI에 기대게 만들지 않나"입니다. v2는 이 질문에 숫자로 답하는 데 집중했습니다.
+
+| | v1 | v2 |
+|---|---|---|
+| 위기 신호 | 정규식 26개, 3단계 | 5단계(관찰·위험·긴급·보호) 규칙 계층 + LLM 2차 판정(상향만) |
+| 표기 변형 | 그대로만 매칭 | 초성(ㅈㄱㅅㄷ), 숫자 끼우기(자1살), 띄어쓰기, 오타 |
+| 오경보 | "자살골", "죽고 싶을 만큼 웃겼어"에 긴급 알림 | 과장·게임·교육·부정문·제3자·사과 초성·병원 단어 억제 |
+| 학대 노출 | 구분 없음 | 보호자 자동 알림 대신 간호사·사회복지·112·1388 안내 |
+| 보호자 공유 | 고정 요약 | 사실만 알리고, 반복 신호는 **아이에게 먼저 동의**를 구함 |
+| AI 의존 | — | AI 고지, 독점·비밀·연애 문장 가드, 사용 리듬, 사람 연결 미션 |
+| 측정 | — | 라벨 기준서 + 독립 평가셋, `npm run eval:safety` |
+
+자세한 변경 내역은 [`docs/v2/CHANGES.md`](docs/v2/CHANGES.md), 평가 방법은 [`eval/LABELING_GUIDE.md`](eval/LABELING_GUIDE.md)에 있습니다.
+
+```bash
+npm run eval:safety                    # v1 vs v2 (개발셋)
+EVAL_SET=heldout npm run eval:safety   # 독립 평가셋
+```
+
+배포: [`deploy/aws/README.md`](deploy/aws/README.md) — AWS CloudShell에서 한 번 실행합니다.
+
 ![시스템 파이프라인](docs/architecture/pipeline-user-to-discharge.png)
 
 ---
