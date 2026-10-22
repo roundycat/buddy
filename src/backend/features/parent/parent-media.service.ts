@@ -10,6 +10,8 @@ import {
   readDiaryImage,
 } from "@/backend/features/picture-diary/picture-diary.store";
 import type { DiaryImageKind } from "@/backend/features/picture-diary/picture-diary.types";
+import { isChildConsentPending } from "@/backend/features/consent/consent.guard";
+import { resolveGuardianSharing } from "./parent-sharing.service";
 import type { ParentMediaItem } from "./parent.types";
 
 export async function requireLinkedChildForGuardian(
@@ -18,6 +20,27 @@ export async function requireLinkedChildForGuardian(
   const childUserId = await resolveLinkedChildUserId(guardianUserId);
   if (!childUserId) {
     throw new DomainError("먼저 아이와 연결해 주세요.", "FORBIDDEN");
+  }
+  return childUserId;
+}
+
+/**
+ * Media bytes are served only when the child shares photos/drawings AND
+ * the guardian's own view toggle is on (same rule as the guardian home).
+ */
+export async function requireGuardianMediaAccess(
+  guardianUserId: string
+): Promise<string> {
+  const childUserId = await requireLinkedChildForGuardian(guardianUserId);
+  if (await isChildConsentPending(childUserId)) {
+    throw new DomainError("먼저 보호자 동의를 완료해 주세요.", "FORBIDDEN");
+  }
+  const sharing = await resolveGuardianSharing(guardianUserId, childUserId);
+  if (sharing.media === "child_private") {
+    throw new DomainError("아이가 아직 사진·그림을 나누지 않았어요.", "FORBIDDEN");
+  }
+  if (sharing.media !== "shown") {
+    throw new DomainError("그림·사진 보기가 꺼져 있어요.", "FORBIDDEN");
   }
   return childUserId;
 }

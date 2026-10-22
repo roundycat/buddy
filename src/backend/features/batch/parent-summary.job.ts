@@ -5,6 +5,8 @@ import {
   getPreparedParentSummary,
 } from "@/backend/features/parent/parent-daily-prep.store";
 import { resolveLinkedChildUserId } from "@/backend/features/guardian-link/guardian-link.service";
+import { isChildConsentPending } from "@/backend/features/consent/consent.guard";
+import { guardianVisibilityKey } from "@/backend/features/sharing/share-policy";
 import { todayKey } from "@/backend/shared/time/date";
 
 export {
@@ -21,7 +23,7 @@ export async function prepareParentSummaryForGuardian(
 ): Promise<{ guardianUserId: string; ok: boolean }> {
   try {
     const childUserId = await resolveLinkedChildUserId(guardianUserId);
-    if (!childUserId) {
+    if (!childUserId || (await isChildConsentPending(childUserId))) {
       return { guardianUserId, ok: true };
     }
     const home = await getParentHome(guardianUserId, { preferPrepared: false });
@@ -31,6 +33,7 @@ export async function prepareParentSummaryForGuardian(
       dateKey,
       empathyGuide: home.empathyGuide,
       todayMessage: home.todayMessage?.text ?? null,
+      visibilityKey: home.sharing ? guardianVisibilityKey(home.sharing) : undefined,
       preparedAt: new Date().toISOString(),
     });
     return { guardianUserId, ok: true };

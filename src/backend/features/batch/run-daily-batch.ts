@@ -4,6 +4,7 @@ import { mapPool } from "@/backend/shared/async/map-pool";
 import { listMemoryUserIds } from "@/backend/features/conversation/conversation.store";
 import { listPersonaUserIds } from "@/backend/features/persona/persona.store";
 import { listGuardianUserIds } from "@/backend/features/guardian-link/guardian-link.store";
+import { isChildConsentPending } from "@/backend/features/consent/consent.guard";
 import { consolidateMemoryForUser } from "./memory-consolidate.job";
 import { prepareMissionsForUser } from "./mission-prep.job";
 import { prepareParentSummaryForGuardian } from "./parent-summary.job";
@@ -32,7 +33,10 @@ async function listChildUserIds(): Promise<string[]> {
     listMemoryUserIds(),
     listPersonaUserIds(),
   ]);
-  return Array.from(new Set([...mem, ...personas]));
+  const ids = Array.from(new Set([...mem, ...personas]));
+  // No AI processing for children still waiting on legal-guardian consent.
+  const pending = await Promise.all(ids.map((id) => isChildConsentPending(id)));
+  return ids.filter((_, i) => !pending[i]);
 }
 
 function tallyOkFail(rows: Array<{ ok: boolean }>) {

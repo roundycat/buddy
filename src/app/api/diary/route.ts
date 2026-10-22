@@ -3,6 +3,7 @@ import {
   createDiaryEntry,
   getPictureDiary,
 } from "@/backend/features/picture-diary/picture-diary.service";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 import { HttpError, withApiGuard } from "@/backend/shared/http/route";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
   return withApiGuard(
     async () => {
       const user = await requireAuthUser();
+      await assertChildConsented(user.id);
       const body = (await request.json().catch(() => null)) as {
         text?: string;
         drawingBase64?: string;

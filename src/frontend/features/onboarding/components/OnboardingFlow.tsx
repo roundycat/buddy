@@ -33,6 +33,15 @@ import { getOnboardingNextAction } from "@/frontend/features/onboarding/lib/onbo
 import { buildOnboardingSummary } from "@/frontend/features/onboarding/lib/onboarding-summary";
 import { fetchAvatarChoices } from "@/frontend/features/persona/lib/fetch-avatar-choices";
 import { selectAvatarChoice } from "@/frontend/features/persona/lib/select-avatar";
+import { ConsentPendingPanel } from "@/frontend/features/consent/components/ConsentPendingPanel";
+import { fetchChildConsent } from "@/frontend/features/consent/lib/consent-api";
+import {
+  clearOnboardingDraft,
+  readOnboardingDraft,
+  saveOnboardingDraft,
+  type OnboardingDraft,
+  type PersonaGeneratePayload,
+} from "@/frontend/features/onboarding/lib/onboarding-draft";
 
 const fieldClass =
   "h-11 w-full rounded-xl border border-bedi-slate/10 bg-white px-3.5 text-sm text-bedi-slate outline-none transition-colors placeholder:text-bedi-slate/30 focus:border-bedi-sage/50";
@@ -448,11 +457,18 @@ function FriendComingProgress({
  */
 export function OnboardingFlow({
   accountName = "",
+  accountId,
+  consentPending = false,
 }: {
   accountName?: string;
+  accountId?: string;
+  /** Under 14 and the legal guardian has not consented yet */
+  consentPending?: boolean;
 }) {
   const [step, setStep] = useState(0);
   const [animKey, setAnimKey] = useState(0);
+  /** Finished answers waiting (on this device only) for guardian consent */
+  const [consentWait, setConsentWait] = useState<OnboardingDraft | null>(null);
 
   // —— 나의 기본 신상 ——
   const [selfName, setSelfName] = useState(accountName.trim());
@@ -529,13 +545,36 @@ export function OnboardingFlow({
     setFavoriteFoodOther(selfFavoriteFoodOther);
   }
 
+  // A draft from this tab (same account) means the answers are finished and
+  // waiting for consent — the panel picks up as soon as consent arrives.
+  useEffect(() => {
+    const draft = readOnboardingDraft(accountId);
+    if (draft) {
+      setNickname(draft.nickname);
+      setConsentWait(draft);
+    }
+  }, [accountId]);
+
+  async function isConsentStillPending(): Promise<boolean> {
+    try {
+      return (await fetchChildConsent()).status === "pending";
+    } catch {
+      return true;
+    }
+  }
+
+  function continueAfterConsent() {
+    const draft = consentWait;
+    if (!draft) return;
+    clearOnboardingDraft(accountId);
+    setConsentWait(null);
+    void createFriend(draft.payload);
+  }
+
   async function submit() {
     if (!selfName.trim() || !nickname.trim() || !energy || !interaction || !buildMode)
       return;
 
-    setPending(true);
-    setCreatePhase("persona");
-    setError(null);
     const payload = buildPersonaGeneratePayload({
       buildMode,
       selfName,
@@ -567,6 +606,26 @@ export function OnboardingFlow({
       interaction,
     });
 
+    if (consentPending) {
+      setPending(true);
+      setError(null);
+      const stillPending = await isConsentStillPending();
+      setPending(false);
+      if (stillPending) {
+        const draft = { payload, nickname: nickname.trim() };
+        saveOnboardingDraft(accountId, draft);
+        setConsentWait(draft);
+        return;
+      }
+    }
+
+    await createFriend(payload);
+  }
+
+  async function createFriend(payload: PersonaGeneratePayload) {
+    setPending(true);
+    setCreatePhase("persona");
+    setError(null);
     try {
       const res = await fetch("/api/persona/generate", {
         method: "POST",
@@ -731,6 +790,32 @@ export function OnboardingFlow({
     energyOptions: ENERGY_OPTIONS,
     interactionOptions: INTERACTION_OPTIONS,
   });
+
+  if (consentWait && !createPhase) {
+    return (
+      <div className="onboarding-fade mx-auto flex w-full max-w-md flex-col px-5 py-10">
+        <ConsentPendingPanel
+          onGranted={continueAfterConsent}
+          footer={
+            <button
+              type="button"
+              onClick={() => {
+                clearOnboardingDraft(accountId);
+                setConsentWait(null);
+              }}
+              className="min-h-11 text-xs text-bedi-slate/45 underline-offset-2 hover:text-bedi-slate/70 hover:underline"
+            >
+              답을 다시 고칠래요
+            </button>
+          }
+        />
+        <p className="mt-4 text-center text-xs leading-relaxed text-bedi-slate/40">
+          적어 준 답은 이 기기에만 잠시 남아 있어. 보호자가 동의하면 바로 친구가
+          찾아올 거야.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col px-5 py-10">

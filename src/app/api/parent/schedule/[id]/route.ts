@@ -4,6 +4,7 @@ import {
   duplicateParentScheduleItem,
   updateParentScheduleItem,
 } from "@/backend/features/hospital-day/hospital-day.service";
+import { assertLinkedChildConsented } from "@/backend/features/consent/consent.guard";
 import { readJsonBody, withApiGuard } from "@/backend/shared/http/route";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ export async function PATCH(
 ) {
   return withApiGuard(async () => {
     const user = await requireGuardianUser();
+    await assertLinkedChildConsented(user.id);
     const params = await Promise.resolve(context.params);
     const body = await readJsonBody<{
       title?: unknown;

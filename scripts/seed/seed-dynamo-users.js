@@ -13,6 +13,7 @@ const {
   TransactWriteCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const bcrypt = require("bcryptjs");
+const { seedDemoConsent } = require("./demo-consent");
 
 const TABLE = process.env.BEDI_DDB_TABLE || "BediApp";
 const REGION = process.env.AWS_REGION || "us-east-1";
@@ -148,6 +149,12 @@ async function main() {
     );
     console.log(`seeded ${u.email} (${u.role})`);
   }
+  // Demo children are already consented (guardian-consent gate stays open).
+  await seedDemoConsent({
+    doc,
+    table: TABLE,
+    childUserIds: USERS.filter((u) => u.role === "child").map((u) => u.id),
+  });
   console.log("DONE — demo passwords rotated (see docs/aws/step5-security.md)");
 }
 

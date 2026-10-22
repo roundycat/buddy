@@ -3,6 +3,7 @@ import {
   listAlbum,
   uploadAlbumPhoto,
 } from "@/backend/features/photo-album/photo-album.service";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 import { HttpError, withApiGuard } from "@/backend/shared/http/route";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export async function GET() {
 export async function POST(request: Request) {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
+    await assertChildConsented(user.id);
     const contentType = request.headers.get("content-type") || "";
 
     let bytes: Buffer | null = null;

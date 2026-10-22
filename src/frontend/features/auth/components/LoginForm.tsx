@@ -15,6 +15,41 @@ import {
 
 type AuthMode = "login" | "signup";
 type AccountRole = "child" | "guardian";
+type ChildAgeBand = "under14" | "14plus";
+type ConsentKey = "age" | "terms" | "privacy" | "sensitive" | "marketing";
+
+const NO_AGREEMENTS: Record<ConsentKey, boolean> = {
+  age: false,
+  terms: false,
+  privacy: false,
+  sensitive: false,
+  marketing: false,
+};
+
+/**
+ * Which consents the signup form shows.
+ * Under 14: privacy / sensitive-data consent comes from the legal guardian
+ * after signup (개인정보 보호법 제22조의2), so the child only accepts the terms.
+ */
+function visibleConsents(
+  role: AccountRole,
+  band: ChildAgeBand | null
+): ConsentKey[] {
+  if (role === "guardian") return ["age", "terms", "privacy", "marketing"];
+  if (band === "14plus") return ["terms", "privacy", "sensitive", "marketing"];
+  if (band === "under14") return ["terms"];
+  return [];
+}
+
+function requiredConsents(
+  role: AccountRole,
+  band: ChildAgeBand | null
+): ConsentKey[] {
+  if (role === "guardian") return ["age", "terms", "privacy"];
+  if (band === "14plus") return ["terms", "privacy", "sensitive"];
+  if (band === "under14") return ["terms"];
+  return [];
+}
 
 /**
  * Email/password login + signup with standard terms & password rules.
@@ -30,14 +65,12 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [role, setRole] = useState<AccountRole>("child");
+  const [childAgeBand, setChildAgeBand] = useState<ChildAgeBand | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [agreeAll, setAgreeAll] = useState(false);
-  const [agreeAgeOrGuardian, setAgreeAgeOrGuardian] = useState(false);
-  const [agreeTerms, setAgreeTerms] = useState(false);
-  const [agreePrivacy, setAgreePrivacy] = useState(false);
-  const [agreeMarketing, setAgreeMarketing] = useState(false);
+  const [agreements, setAgreements] =
+    useState<Record<ConsentKey, boolean>>(NO_AGREEMENTS);
   const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
 
   const passwordChecks = useMemo(
@@ -45,12 +78,12 @@ export function LoginForm() {
     [password]
   );
 
+  const shownConsents = visibleConsents(role, childAgeBand);
+  const agreeAll =
+    shownConsents.length > 0 && shownConsents.every((k) => agreements[k]);
+
   function resetAgreements() {
-    setAgreeAll(false);
-    setAgreeAgeOrGuardian(false);
-    setAgreeTerms(false);
-    setAgreePrivacy(false);
-    setAgreeMarketing(false);
+    setAgreements(NO_AGREEMENTS);
   }
 
   function switchMode(next: AuthMode) {
@@ -62,6 +95,7 @@ export function LoginForm() {
       setPassword("");
       setPasswordConfirm("");
       setRole("child");
+      setChildAgeBand(null);
       resetAgreements();
     } else {
       setEmail("");
@@ -71,29 +105,21 @@ export function LoginForm() {
     }
   }
 
-  function syncAgreeAll(next: {
-    age: boolean;
-    terms: boolean;
-    privacy: boolean;
-    marketing: boolean;
-  }) {
-    setAgreeAgeOrGuardian(next.age);
-    setAgreeTerms(next.terms);
-    setAgreePrivacy(next.privacy);
-    setAgreeMarketing(next.marketing);
-    setAgreeAll(next.age && next.terms && next.privacy && next.marketing);
+  function setAgreement(key: ConsentKey, checked: boolean) {
+    setAgreements((prev) => ({ ...prev, [key]: checked }));
   }
 
   function toggleAgreeAll(checked: boolean) {
-    setAgreeAll(checked);
-    setAgreeAgeOrGuardian(checked);
-    setAgreeTerms(checked);
-    setAgreePrivacy(checked);
-    setAgreeMarketing(checked);
+    setAgreements((prev) => {
+      const next = { ...prev };
+      for (const key of shownConsents) next[key] = checked;
+      return next;
+    });
   }
 
   function requiredConsentsOk() {
-    return agreeAgeOrGuardian && agreeTerms && agreePrivacy;
+    const required = requiredConsents(role, childAgeBand);
+    return required.length > 0 && required.every((k) => agreements[k]);
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -103,6 +129,9 @@ export function LoginForm() {
 
     try {
       if (mode === "signup") {
+        if (role === "child" && !childAgeBand) {
+          throw new Error("만 14세 미만인지, 이상인지 골라 주세요.");
+        }
         if (!requiredConsentsOk()) {
           throw new Error("필수 약관에 모두 동의해 주세요.");
         }
@@ -126,11 +155,13 @@ export function LoginForm() {
               email,
               password,
               role,
+              ...(role === "child" ? { childAgeBand } : {}),
               agreements: {
-                ageOrGuardian: agreeAgeOrGuardian,
-                terms: agreeTerms,
-                privacy: agreePrivacy,
-                marketing: agreeMarketing,
+                ageOrGuardian: role === "guardian" && agreements.age,
+                terms: agreements.terms,
+                privacy: agreements.privacy,
+                sensitive: agreements.sensitive,
+                marketing: agreements.marketing,
               },
             }
           : { email, password };
@@ -168,10 +199,33 @@ export function LoginForm() {
     }
   }
 
-  const ageLabel =
-    role === "child"
-      ? "(필수) 보호자(법정대리인) 동의를 받았어요"
-      : "(필수) 만 14세 이상입니다";
+  const consentRows: Record<
+    ConsentKey,
+    { label: string; doc?: LegalDocId }
+  > = {
+    age: { label: "(필수) 만 14세 이상입니다" },
+    terms: { label: "(필수) 서비스 이용약관 동의", doc: "terms" },
+    privacy: {
+      label: "(필수) 개인정보 수집·이용 동의",
+      doc: "privacy-collection",
+    },
+    sensitive: {
+      label: "(필수) 민감정보(마음·건강 관련 기록) 처리 동의",
+      doc: "sensitive-data",
+    },
+    marketing: { label: "(선택) 마케팅 정보 수신 동의" },
+  };
+
+  function pickRole(next: AccountRole) {
+    setRole(next);
+    setChildAgeBand(null);
+    resetAgreements();
+  }
+
+  function pickAgeBand(next: ChildAgeBand) {
+    setChildAgeBand(next);
+    resetAgreements();
+  }
 
   return (
     <div className="waiting-room-enter mx-auto flex w-full max-w-sm flex-col items-center px-5 py-16 text-center">
@@ -235,11 +289,7 @@ export function LoginForm() {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setRole("child");
-                    setAgreeAgeOrGuardian(false);
-                    setAgreeAll(false);
-                  }}
+                  onClick={() => pickRole("child")}
                   className={`h-10 rounded-xl border text-sm transition-colors ${
                     role === "child"
                       ? "border-bedi-sage/50 bg-bedi-sage/15 text-bedi-slate"
@@ -250,11 +300,7 @@ export function LoginForm() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setRole("guardian");
-                    setAgreeAgeOrGuardian(false);
-                    setAgreeAll(false);
-                  }}
+                  onClick={() => pickRole("guardian")}
                   className={`h-10 rounded-xl border text-sm transition-colors ${
                     role === "guardian"
                       ? "border-bedi-sage/50 bg-bedi-sage/15 text-bedi-slate"
@@ -265,6 +311,44 @@ export function LoginForm() {
                 </button>
               </div>
             </div>
+
+            {role === "child" && (
+              <div role="radiogroup" aria-label="나이">
+                <span className="mb-1.5 block text-[11px] font-medium text-bedi-slate/45">
+                  나이
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ["under14", "만 14세 미만이에요"],
+                      ["14plus", "만 14세 이상이에요"],
+                    ] as const
+                  ).map(([band, label]) => (
+                    <button
+                      key={band}
+                      type="button"
+                      role="radio"
+                      aria-checked={childAgeBand === band}
+                      onClick={() => pickAgeBand(band)}
+                      className={`min-h-10 rounded-xl border px-2 text-[13px] transition-colors ${
+                        childAgeBand === band
+                          ? "border-bedi-sage/50 bg-bedi-sage/15 text-bedi-slate"
+                          : "border-bedi-slate/10 bg-white/70 text-bedi-slate/60"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {childAgeBand === "under14" && (
+                  <p className="mt-2 rounded-xl bg-bedi-sage/10 px-3 py-2.5 text-[12px] leading-relaxed text-bedi-slate/65">
+                    가입한 뒤 보호자(법정대리인)가 동의해 줘야 베디와 이야기하고
+                    기록을 남길 수 있어요. 개인정보·민감정보 동의는 보호자가 해
+                    줘요.
+                  </p>
+                )}
+              </div>
+            )}
           </>
         )}
 
@@ -347,70 +431,47 @@ export function LoginForm() {
                 약관 동의
               </legend>
 
-              <label className="flex cursor-pointer items-start gap-2 border-b border-bedi-slate/8 pb-2.5">
-                <input
-                  type="checkbox"
-                  checked={agreeAll}
-                  onChange={(e) => toggleAgreeAll(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-bedi-slate/25 text-bedi-slate"
-                />
-                <span className="text-sm font-medium text-bedi-slate">
-                  전체 동의
-                </span>
-              </label>
+              {shownConsents.length === 0 ? (
+                <p className="px-1 py-1 text-[12px] leading-relaxed text-bedi-slate/45">
+                  나이를 고르면 동의할 항목이 보여요.
+                </p>
+              ) : (
+                <>
+                  {shownConsents.length > 1 && (
+                    <label className="flex cursor-pointer items-start gap-2 border-b border-bedi-slate/8 pb-2.5">
+                      <input
+                        type="checkbox"
+                        checked={agreeAll}
+                        onChange={(e) => toggleAgreeAll(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-bedi-slate/25 text-bedi-slate"
+                      />
+                      <span className="text-sm font-medium text-bedi-slate">
+                        전체 동의
+                      </span>
+                    </label>
+                  )}
 
-              <div className="mt-2.5 space-y-2.5">
-                <ConsentRow
-                  checked={agreeAgeOrGuardian}
-                  onChange={(checked) =>
-                    syncAgreeAll({
-                      age: checked,
-                      terms: agreeTerms,
-                      privacy: agreePrivacy,
-                      marketing: agreeMarketing,
-                    })
-                  }
-                  label={ageLabel}
-                />
-                <ConsentRow
-                  checked={agreeTerms}
-                  onChange={(checked) =>
-                    syncAgreeAll({
-                      age: agreeAgeOrGuardian,
-                      terms: checked,
-                      privacy: agreePrivacy,
-                      marketing: agreeMarketing,
-                    })
-                  }
-                  label="(필수) 서비스 이용약관 동의"
-                  onOpenDoc={() => setLegalDoc("terms")}
-                />
-                <ConsentRow
-                  checked={agreePrivacy}
-                  onChange={(checked) =>
-                    syncAgreeAll({
-                      age: agreeAgeOrGuardian,
-                      terms: agreeTerms,
-                      privacy: checked,
-                      marketing: agreeMarketing,
-                    })
-                  }
-                  label="(필수) 개인정보 수집·이용 동의"
-                  onOpenDoc={() => setLegalDoc("privacy-collection")}
-                />
-                <ConsentRow
-                  checked={agreeMarketing}
-                  onChange={(checked) =>
-                    syncAgreeAll({
-                      age: agreeAgeOrGuardian,
-                      terms: agreeTerms,
-                      privacy: agreePrivacy,
-                      marketing: checked,
-                    })
-                  }
-                  label="(선택) 마케팅 정보 수신 동의"
-                />
-              </div>
+                  <div
+                    className={
+                      shownConsents.length > 1 ? "mt-2.5 space-y-2.5" : "space-y-2.5"
+                    }
+                  >
+                    {shownConsents.map((key) => {
+                      const row = consentRows[key];
+                      const doc = row.doc;
+                      return (
+                        <ConsentRow
+                          key={key}
+                          checked={agreements[key]}
+                          onChange={(checked) => setAgreement(key, checked)}
+                          label={row.label}
+                          onOpenDoc={doc ? () => setLegalDoc(doc) : undefined}
+                        />
+                      );
+                    })}
+                  </div>
+                </>
+              )}
 
               <button
                 type="button"

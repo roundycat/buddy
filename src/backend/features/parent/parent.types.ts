@@ -2,8 +2,33 @@
  * Parent (guardian) experience DTOs — privacy-safe summaries only.
  * Never includes raw chat logs or private diary text.
  */
+import type { GuardianConsentView } from "@/backend/features/consent/consent.types";
+import type {
+  GuardianVisibility,
+  GuardianVisibilityMap,
+  ShareChoices,
+} from "@/backend/features/sharing/sharing.types";
 
 export type ParentMoodTone = "warm" | "calm" | "tired" | "brave" | "mixed";
+
+/** shown | child_private (아이가 아직 나누지 않았어요 🔒) | guardian_off */
+export type ParentShareVisibility = GuardianVisibility;
+
+/** Per-category visibility: the child shares it AND the guardian's toggle is on. */
+export type ParentSharingFlags = GuardianVisibilityMap;
+
+/** Linked child is under 14 and still waits for legal-guardian consent. */
+export interface ParentConsentGate {
+  childName: string;
+  consentVersion: string;
+}
+
+/** A concern the child agreed to share — summary only. */
+export interface ParentConcernNotice {
+  id: string;
+  summary: string;
+  sharedAt: string;
+}
 
 export interface ParentChildSummary {
   childName: string;
@@ -111,6 +136,12 @@ export interface ParentHomeDashboard {
   empathyGuide: ParentEmpathyGuide | null;
   /** Active crisis safety alert (summary only) */
   safetyAlert: ParentSafetyAlert | null;
+  /** Set when consent must be given before anything else is shown */
+  consentGate: ParentConsentGate | null;
+  /** Explicit per-category flags; null when not linked / consent pending */
+  sharing: ParentSharingFlags | null;
+  /** Concerns the child said "알려도 돼" to */
+  concernNotices: ParentConcernNotice[];
   updatedLabel: string;
 }
 
@@ -157,6 +188,9 @@ export interface ParentTimelineResponse {
   monthLabel: string;
   calendarDays: ParentCalendarDay[];
   entries: ParentTimelineEntry[];
+  /** Linked child still waits for legal-guardian consent */
+  consentRequired?: boolean;
+  sharing?: ParentSharingFlags | null;
 }
 
 export interface ParentReportAnswer {
@@ -170,6 +204,8 @@ export interface ParentReportResponse {
   childName: string | null;
   suggestedQuestions: string[];
   answer: ParentReportAnswer | null;
+  /** Linked child still waits for legal-guardian consent */
+  consentRequired?: boolean;
 }
 
 export interface ParentProfileResponse {
@@ -188,4 +224,8 @@ export interface ParentProfileResponse {
     shareMemoryHighlights: boolean;
     hidePrivateChat: true;
   };
+  /** Legal-guardian consent status for the linked child */
+  consent: GuardianConsentView;
+  /** What the child chose to share (null when not linked / consent pending) */
+  childSharing: ShareChoices | null;
 }

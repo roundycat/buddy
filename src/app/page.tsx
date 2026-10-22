@@ -1,9 +1,14 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import nextDynamic from "next/dynamic";
-import { loadHospitalDay, loadPersona } from "@/app/_server/loaders";
+import {
+  loadChildConsentPending,
+  loadHospitalDay,
+  loadPersona,
+} from "@/app/_server/loaders";
 import { getSessionUser } from "@/backend/shared/http/auth";
 import { CompanionRoomSkeleton } from "@/frontend/shared/components/ChildUi";
+import { ChildConsentPendingScreen } from "@/frontend/features/consent/components/ChildConsentPendingScreen";
 
 export const dynamic = "force-dynamic";
 
@@ -27,13 +32,20 @@ export default async function HomePage() {
     redirect("/guardian");
   }
 
-  const [{ persona, setupCompleted }, hospital] = await Promise.all([
-    loadPersona(),
-    loadHospitalDay(),
-  ]);
+  const [{ persona, setupCompleted }, hospital, consentPending] =
+    await Promise.all([
+      loadPersona(),
+      loadHospitalDay(),
+      loadChildConsentPending(),
+    ]);
 
   if (!setupCompleted) {
     redirect("/onboarding");
+  }
+
+  // Under 14 and the guardian withdrew / has not given consent yet
+  if (consentPending) {
+    return <ChildConsentPendingScreen />;
   }
 
   const scheduleTeaser = hospital.items

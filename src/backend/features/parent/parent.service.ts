@@ -28,6 +28,7 @@ import {
 } from "./parent-empathy-guide.store";
 import { getPreparedParentSummary } from "./parent-daily-prep.store";
 import {
+  buildEmpathyFallback,
   composeEmpathyGuideWithLlm,
   childProfileFingerprint,
   retrieveEmpathyContext,
@@ -36,12 +37,27 @@ import {
 import { listScheduleForChild } from "@/backend/features/hospital-day/hospital-day.store";
 import { autoCompleteDueScheduleItems } from "@/backend/features/hospital-day/hospital-day.service";
 import { listParentChildMedia } from "./parent-media.service";
-import { getActiveChildSafetyAlert } from "@/backend/features/safety/safety-alert.store";
+import { resolveGuardianSharing } from "./parent-sharing.service";
+import {
+  getActiveChildSafetyAlert,
+  type ChildSafetyAlert,
+} from "@/backend/features/safety/safety-alert.store";
 import {
   formatKbHitsForPrompt,
   kbSourceLabels,
+  type KbHit,
 } from "@/backend/ai/kb/retrieve";
 import { retrieveGuardianContext } from "@/backend/ai/rag/guardian-rag";
+import { detectLeak, guardGuardianText } from "@/backend/ai/bridge/leak-guard";
+import { recentChildWording } from "@/backend/ai/bridge/child-wording";
+import { isChildConsentPending } from "@/backend/features/consent/consent.guard";
+import { getGuardianConsentView } from "@/backend/features/consent/consent.service";
+import { getChildShareChoices } from "@/backend/features/sharing/sharing.service";
+import {
+  decideShare,
+  guardianVisibilityKey,
+} from "@/backend/features/sharing/share-policy";
+import { listSharedConcernNotices } from "@/backend/features/sharing/concern-request.service";
 import type {
   ParentCalendarDay,
   ParentCalendarMark,
@@ -55,6 +71,8 @@ import type {
   ParentProfileResponse,
   ParentReportAnswer,
   ParentReportResponse,
+  ParentSafetyAlert,
+  ParentSharingFlags,
   ParentTimelineEntry,
   ParentTimelineResponse,
   ParentTimelineScheduleItem,
@@ -103,8 +121,120 @@ async function resolveChild(guardianUserId: string) {
   return { linked: true as const, childUserId, childName, persona };
 }
 
+/** Names that are not third parties for the guardian (child, companion). */
+function ownNames(persona: {
+  name?: string;
+  self?: { nickname?: string } | null;
+  profile?: { nickname?: string } | null;
+} | null): string[] {
+  if (!persona) return [];
+  return [persona.self?.nickname, persona.profile?.nickname, persona.name]
+    .map((n) => (n ?? "").trim())
+    .filter(Boolean);
+}
+
+const MINIMAL_SAFETY_SUMMARY =
+  "아이에게 도움이 필요할 수 있다는 신호가 있었어요. 곁에서 이야기를 들어 주시고, 필요하면 의료진이나 자살예방 상담전화(109)·응급(119)의 도움을 받아 주세요.";
+
+/** Safety notices reach the guardian as "help is needed" only — never content. */
+function toGuardianSafetyAlert(
+  alert: ChildSafetyAlert | null,
+  childWording: string[]
+): ParentSafetyAlert | null {
+  if (!alert) return null;
+  const { decision } = decideShare({ kind: "safety", crisisLevel: alert.level });
+  // protect_route: the crisis module routes elsewhere, never to the guardian
+  if (decision !== "minimal") return null;
+  return {
+    id: alert.id,
+    level: alert.level,
+    summary: guardGuardianText(
+      alert.summary,
+      childWording,
+      MINIMAL_SAFETY_SUMMARY
+    ).text,
+    createdAt: alert.createdAt,
+  };
+}
+
+/** Each field falls back to the template guide when it would leak. */
+function guardEmpathyGuide(
+  guide: ParentEmpathyGuide,
+  childWording: string[],
+  fallback: ParentEmpathyGuide
+): ParentEmpathyGuide {
+  const safe = (text: string, alt: string) =>
+    guardGuardianText(text, childWording, alt).text;
+  const safeList = (items: string[], alts: string[]) =>
+    Array.from(
+      new Set(items.map((item, i) => safe(item, alts[i] ?? alts[0] ?? "")))
+    ).filter(Boolean);
+  return {
+    ...guide,
+    emotionalSummary: safe(guide.emotionalSummary, fallback.emotionalSummary),
+    empathyCoaching: {
+      avoidSaying: safe(
+        guide.empathyCoaching.avoidSaying,
+        fallback.empathyCoaching.avoidSaying
+      ),
+      trySaying: safe(
+        guide.empathyCoaching.trySaying,
+        fallback.empathyCoaching.trySaying
+      ),
+      why: safe(guide.empathyCoaching.why, fallback.empathyCoaching.why),
+    },
+    thingsToDo: safeList(guide.thingsToDo, fallback.thingsToDo),
+    thingsToAvoid: safeList(guide.thingsToAvoid, fallback.thingsToAvoid),
+    encouragingMessage: safe(
+      guide.encouragingMessage,
+      fallback.encouragingMessage
+    ),
+  };
+}
+
+/** Active safety notice for the linked child, under the same minimal rule. */
+export async function getParentSafetyAlert(
+  guardianUserId: string
+): Promise<ParentSafetyAlert | null> {
+  const link = await resolveChild(guardianUserId);
+  if (!link.linked || !link.childUserId) return null;
+  const [alert, childWording] = await Promise.all([
+    getActiveChildSafetyAlert(link.childUserId),
+    recentChildWording(link.childUserId, {
+      exclude: [link.childName, ...ownNames(link.persona)],
+    }),
+  ]);
+  return toGuardianSafetyAlert(alert, childWording);
+}
+
+function emptyHome(
+  companionNote: string,
+  updatedLabel: string
+): ParentHomeDashboard {
+  return {
+    linked: false,
+    companionNote,
+    child: null,
+    todayMessage: null,
+    emotion: null,
+    adventures: [],
+    memories: [],
+    media: [],
+    dailySummary: null,
+    careSuggestions: [],
+    empathyGuide: null,
+    safetyAlert: null,
+    consentGate: null,
+    sharing: null,
+    concernNotices: [],
+    updatedLabel,
+  };
+}
+
 /**
  * Parent Home — answers “How was my child today?” without private chat.
+ * A category appears only when the child shares it AND the guardian's toggle
+ * is on; generated text passes the leak guard against the child's own words.
  */
 export async function getParentHome(
   guardianUserId: string,
@@ -113,93 +243,148 @@ export async function getParentHome(
   const preferPrepared = opts?.preferPrepared !== false;
   const link = await resolveChild(guardianUserId);
   if (!link.linked || !link.childUserId || !link.persona) {
-    return {
-      linked: false,
-      companionNote: "아이와 연결하면, 오늘 하루의 마음을 따뜻하게 볼 수 있어요.",
-      child: null,
-      todayMessage: null,
-      emotion: null,
-      adventures: [],
-      memories: [],
-      media: [],
-      dailySummary: null,
-      careSuggestions: [],
-      empathyGuide: null,
-      safetyAlert: null,
-      updatedLabel: "연결 전",
-    };
+    return emptyHome(
+      "아이와 연결하면, 오늘 하루의 마음을 따뜻하게 볼 수 있어요.",
+      "연결 전"
+    );
   }
 
   const childId = link.childUserId;
-  const day = todayKey();
-  const [garden, memory, wishes, adventure, settings, scheduleItems, safetyAlert] =
-    await Promise.all([
-      getGardenAccount(childId),
-      getConversationMemory(childId),
-      getWishTreeAccount(childId),
-      getAdventureQuest(childId),
-      getParentSettings(guardianUserId),
-      listScheduleForChild(childId, day).catch(() => []),
+  const childWording = await recentChildWording(childId, {
+    exclude: [link.childName, ...ownNames(link.persona)],
+  });
+
+  // Under 14 without legal-guardian consent: the consent form comes first.
+  if (await isChildConsentPending(childId)) {
+    const [consent, safetyAlert] = await Promise.all([
+      getGuardianConsentView(guardianUserId),
       getActiveChildSafetyAlert(childId),
     ]);
+    return {
+      ...emptyHome(
+        "보호자 동의가 끝나면 아이의 하루를 볼 수 있어요. 대화 내용은 동의한 뒤에도 보이지 않아요.",
+        "동의 전"
+      ),
+      linked: true,
+      safetyAlert: toGuardianSafetyAlert(safetyAlert, childWording),
+      consentGate: {
+        childName: consent.childName ?? link.childName,
+        consentVersion: consent.consentVersion,
+      },
+    };
+  }
 
-  const todayMood = todayMoodFromGarden(garden.flowers);
+  const day = todayKey();
+  const settings = await getParentSettings(guardianUserId);
+  const sharing = await resolveGuardianSharing(guardianUserId, childId, settings);
+  const moodShown = sharing.mood === "shown";
+  const adventuresShown = sharing.adventures === "shown";
+  const highlightsShown = sharing.memoryHighlights === "shown";
+  const mediaShown = sharing.media === "shown";
+
+  // Private categories are not even loaded.
+  const [garden, memory, wishes, adventure, scheduleItems, safetyAlert, concernNotices] =
+    await Promise.all([
+      moodShown ? getGardenAccount(childId) : Promise.resolve(null),
+      moodShown ? getConversationMemory(childId) : Promise.resolve(null),
+      highlightsShown ? getWishTreeAccount(childId) : Promise.resolve(null),
+      adventuresShown ? getAdventureQuest(childId) : Promise.resolve(null),
+      listScheduleForChild(childId, day).catch(() => []),
+      getActiveChildSafetyAlert(childId),
+      listSharedConcernNotices(childId),
+    ]);
+
+  const todayMood = garden ? todayMoodFromGarden(garden.flowers) : null;
   const meta = moodMeta(todayMood);
   const hospitalDay = link.persona.dayCount ?? 1;
-  const themes = (memory.emotionalThemes ?? []).slice(0, 3);
+  // Themes come from chat learning — drop any that carry the child's wording.
+  const themes = (memory?.emotionalThemes ?? [])
+    .filter((t) => !detectLeak(t, childWording).leak)
+    .slice(0, 3);
 
-  const adventuresRaw = await Promise.all(
-    adventure.quests.map(async (q) => {
-      const done = q.status === "done" || (await hasLedgerRef(childId, q.id));
-      return {
-        id: q.id,
-        title: q.title,
-        emoji: q.emoji,
-        completed: done,
-      };
-    })
-  );
+  const adventuresRaw = adventure
+    ? await Promise.all(
+        adventure.quests.map(async (q) => {
+          const done =
+            q.status === "done" || (await hasLedgerRef(childId, q.id));
+          return {
+            id: q.id,
+            title: q.title,
+            emoji: q.emoji,
+            completed: done,
+          };
+        })
+      )
+    : [];
 
-  const adventures = settings.privacy.shareAdventures ? adventuresRaw : [];
+  const adventures = adventuresRaw;
   const completedCount = adventuresRaw.filter((a) => a.completed).length;
   const completedTitles = adventuresRaw
     .filter((a) => a.completed)
     .map((a) => a.title);
+  // Guardian-entered schedules are a care action — always theirs to see.
+  const schedulesShared =
+    decideShare({ kind: "schedule", careAction: true }).decision === "share";
   const scheduleTitles = (scheduleItems ?? [])
-    .filter((s) => s.source === "parent")
+    .filter((s) => schedulesShared && s.source === "parent")
     .map((s) => s.title);
+  const dayStoryNarrative =
+    adventure && highlightsShown ? adventure.dayStory?.narrative ?? null : null;
+  const wishCount = wishes?.wishes.length ?? 0;
+  const memorySummary =
+    memory && highlightsShown ? formatMemoryForPrompt(memory) : "";
 
-  const memoryHighlights = settings.privacy.shareMemoryHighlights
+  const memoryHighlights = highlightsShown
     ? buildMemoryHighlights({
         moodLabel: meta?.label,
         moodEmoji: meta?.emoji,
         adventureTitles: completedTitles,
-        wishCount: wishes.wishes.length,
+        wishCount,
         themes,
-        dayStory: adventure.dayStory?.narrative?.slice(0, 40) ?? null,
+        dayStory: dayStoryNarrative?.slice(0, 40) ?? null,
       })
     : [];
 
-  const media: ParentMediaItem[] = settings.privacy.shareMemoryHighlights
+  const media: ParentMediaItem[] = mediaShown
     ? await listParentChildMedia(childId)
     : [];
 
-  const summaryInput = {
+  const summaryInput: ParentSummaryInput = {
     childName: link.childName,
     moodLabel: meta?.label ?? null,
     themes,
-    adventureHeadline: adventure.headline,
+    adventureHeadline: adventure?.headline ?? null,
     completedCount,
     totalQuests: adventuresRaw.length,
-    wishCount: wishes.wishes.length,
-    dayStory: adventure.dayStory?.narrative?.slice(0, 80) ?? null,
-    memorySummary: formatMemoryForPrompt(memory),
+    wishCount,
+    dayStory: dayStoryNarrative?.slice(0, 80) ?? null,
+    memorySummary,
   };
 
-  // Dawn batch may already have warmed todayMessage / empathyGuide
-  const prepared = preferPrepared
+  // Dawn batch may already have warmed todayMessage / empathyGuide —
+  // only reuse it when it was built with today's sharing choices.
+  const visibilityKey = guardianVisibilityKey(sharing);
+  const preparedRow = preferPrepared
     ? await getPreparedParentSummary(guardianUserId, day)
     : null;
+  const prepared =
+    preparedRow?.visibilityKey === visibilityKey ? preparedRow : null;
+
+  const empathyInput = {
+    guardianUserId,
+    childUserId: childId,
+    dateKey: day,
+    childName: link.childName,
+    moodLabel: meta?.label ?? null,
+    themes,
+    memorySummary,
+    scheduleTitles,
+    completedAdventures: completedTitles,
+    memoryCaptions: memoryHighlights.map((m) => m.caption),
+    dayStoryHint: dayStoryNarrative?.slice(0, 80) ?? null,
+    childProfile: buildEmpathyChildProfile(link.persona),
+    visibilityKey,
+  };
 
   const [todayMessageText, dailySummaryText, empathyGuide] = await Promise.all([
     prepared?.todayMessage
@@ -211,47 +396,67 @@ export async function getParentHome(
     settings.notifications.careTips
       ? prepared?.empathyGuide
         ? Promise.resolve(prepared.empathyGuide)
-        : getOrCreateEmpathyGuide({
-            guardianUserId,
-            childUserId: childId,
-            dateKey: day,
-            childName: link.childName,
-            moodLabel: meta?.label ?? null,
-            themes,
-            memorySummary: formatMemoryForPrompt(memory),
-            scheduleTitles,
-            completedAdventures: completedTitles,
-            memoryCaptions: memoryHighlights.map((m) => m.caption),
-            dayStoryHint: adventure.dayStory?.narrative?.slice(0, 80) ?? null,
-            childProfile: buildEmpathyChildProfile(link.persona),
-          })
+        : getOrCreateEmpathyGuide(empathyInput)
       : Promise.resolve(null),
   ]);
+
+  // Leak guard — template fallbacks never carry the child's own wording.
+  const todayMessageSafe = guardGuardianText(
+    todayMessageText,
+    childWording,
+    buildTodayMessage(summaryInput)
+  ).text;
+  const dailySummarySafe = dailySummaryText
+    ? guardGuardianText(
+        dailySummaryText,
+        childWording,
+        buildDailySummary({
+          childName: summaryInput.childName,
+          moodLabel: summaryInput.moodLabel,
+          themes: summaryInput.themes,
+          completed: summaryInput.completedCount,
+          total: summaryInput.totalQuests,
+          wishCount: summaryInput.wishCount,
+        })
+      ).text
+    : null;
+  const empathyGuideSafe = empathyGuide
+    ? guardEmpathyGuide(
+        empathyGuide,
+        childWording,
+        buildEmpathyFallback(retrieveEmpathyContext(empathyInput), day)
+      )
+    : null;
 
   return {
     linked: true,
     companionNote:
-      "대화 내용은 보이지 않아요. 오늘의 마음만 부드럽게 보여 드릴게요.",
+      "대화 내용은 보이지 않아요. 아이가 나누기로 한 오늘의 마음만 부드럽게 보여 드릴게요.",
     child: {
       childName: link.childName,
       hospitalDay,
-      moodLabel: meta?.label ?? "아직 기록 전",
-      moodEmoji: meta?.emoji ?? "🌱",
-      statusLine: meta
-        ? `오늘은 ${meta.label} 기운이 느껴져요`
-        : "아직 오늘의 꽃이 피기 전이에요",
+      moodLabel: moodShown ? meta?.label ?? "아직 기록 전" : "",
+      moodEmoji: moodShown ? meta?.emoji ?? "🌱" : "🔒",
+      statusLine: !moodShown
+        ? sharing.mood === "child_private"
+          ? "아이가 오늘의 마음은 아직 나누지 않았어요"
+          : "감정 보기가 꺼져 있어요"
+        : meta
+          ? `오늘은 ${meta.label} 기운이 느껴져요`
+          : "아직 오늘의 꽃이 피기 전이에요",
     },
     todayMessage: {
-      text: todayMessageText,
+      text: todayMessageSafe,
       generatedAtLabel: "방금 정리됨",
     },
-    emotion: settings.privacy.shareEmotionTrends
-      ? buildEmotionOverview(garden.flowers, todayMood, meta?.label ?? "아직 모름")
-      : null,
+    emotion:
+      moodShown && garden
+        ? buildEmotionOverview(garden.flowers, todayMood, meta?.label ?? "아직 모름")
+        : null,
     adventures,
     memories: memoryHighlights,
     media,
-    dailySummary: dailySummaryText,
+    dailySummary: dailySummarySafe,
     careSuggestions: settings.notifications.careTips
       ? buildCareSuggestions({
           mood: todayMood,
@@ -259,15 +464,11 @@ export async function getParentHome(
           completedAdventures: completedTitles,
         })
       : [],
-    empathyGuide,
-    safetyAlert: safetyAlert
-      ? {
-          id: safetyAlert.id,
-          level: safetyAlert.level,
-          summary: safetyAlert.summary,
-          createdAt: safetyAlert.createdAt,
-        }
-      : null,
+    empathyGuide: empathyGuideSafe,
+    safetyAlert: toGuardianSafetyAlert(safetyAlert, childWording),
+    consentGate: null,
+    sharing,
+    concernNotices,
     updatedLabel: day,
   };
 }
@@ -285,8 +486,10 @@ async function getOrCreateEmpathyGuide(input: {
   memoryCaptions: string[];
   dayStoryHint: string | null;
   childProfile: EmpathyChildProfile;
+  /** Sharing visibility the guide is built with — part of the cache key */
+  visibilityKey: string;
 }): Promise<ParentEmpathyGuide> {
-  const fingerprint = childProfileFingerprint(input.childProfile);
+  const fingerprint = `${childProfileFingerprint(input.childProfile)}#${input.visibilityKey}`;
   const cached = await getStoredEmpathyGuide(
     input.guardianUserId,
     input.dateKey,
@@ -830,15 +1033,39 @@ export async function getParentTimeline(
   }
 
   const childId = link.childUserId;
+  if (await isChildConsentPending(childId)) {
+    const consent = await getGuardianConsentView(guardianUserId);
+    return {
+      linked: true,
+      consentRequired: true,
+      childName: consent.childName ?? link.childName,
+      monthKey,
+      monthLabel: monthLabelKo(year, month),
+      calendarDays: buildMonthGrid(year, month, new Map()),
+      entries: [],
+      sharing: null,
+    };
+  }
   await autoCompleteDueScheduleItems(childId);
 
-  const [garden, stories, timeline, todayPack, schedules] = await Promise.all([
-    getGardenAccount(childId),
-    listDayStoriesForUser(childId),
-    getMemoryTimeline(childId),
-    getAdventurePack(childId, todayKey()),
-    listScheduleForChild(childId),
-  ]);
+  const sharing = await resolveGuardianSharing(guardianUserId, childId);
+  const moodShown = sharing.mood === "shown";
+  const adventuresShown = sharing.adventures === "shown";
+  const highlightsShown = sharing.memoryHighlights === "shown";
+
+  // Only categories the child shares (and the guardian views) are loaded.
+  const [gardenAccount, stories, timeline, todayPack, schedules] =
+    await Promise.all([
+      moodShown ? getGardenAccount(childId) : Promise.resolve(null),
+      adventuresShown ? listDayStoriesForUser(childId) : Promise.resolve([]),
+      highlightsShown ? getMemoryTimeline(childId) : Promise.resolve(null),
+      adventuresShown
+        ? getAdventurePack(childId, todayKey())
+        : Promise.resolve(null),
+      listScheduleForChild(childId),
+    ]);
+  const garden = { flowers: gardenAccount?.flowers ?? [] };
+  const timelineEvents = timeline?.events ?? [];
 
   const moodByDay = new Map(
     garden.flowers.map((f) => [f.plantedOn, f.mood] as const)
@@ -913,7 +1140,7 @@ export async function getParentTimeline(
     const mood = moodByDay.get(dateKey) ?? null;
     const meta = moodMeta(mood);
     const story = storyByDay.get(dateKey);
-    const dayEvents = timeline.events.filter((e) => {
+    const dayEvents = timelineEvents.filter((e) => {
       const key = (e.adventureDate || e.occurredAt || "").slice(0, 10);
       return key === dateKey;
     });
@@ -934,7 +1161,7 @@ export async function getParentTimeline(
           ? `${daySchedules[0].type === "exam" ? "검사" : "치료"} · ${daySchedules[0].title}`
           : `${link.childName}의 ${hospitalDay}일째 이야기`),
       reflection:
-        story?.dayStory?.narrative?.trim() ||
+        (highlightsShown ? story?.dayStory?.narrative?.trim() : "") ||
         dayEvents[0]?.summary?.trim() ||
         (daySchedules.length
           ? `이날은 ${daySchedules.map((s) => s.title).join(", ")} 일정이 있었어요.`
@@ -953,6 +1180,7 @@ export async function getParentTimeline(
     monthLabel: monthLabelKo(year, month),
     calendarDays,
     entries,
+    sharing,
   };
 }
 
@@ -980,6 +1208,24 @@ function pickFollowUpQuestions(exclude: string[] = []): string[] {
   return rotated.slice(0, 4);
 }
 
+/** kb-summaries/{child}/{date}-{kind}.md → which share category it belongs to */
+function kbHitAllowed(hit: KbHit, sharing: ParentSharingFlags): boolean {
+  const kind = /\d{4}-\d{2}-\d{2}-([a-z]+)\.md/.exec(hit.sourceUri ?? "")?.[1];
+  switch (kind) {
+    case "emotion":
+      return sharing.mood === "shown";
+    case "mission":
+      return sharing.adventures === "shown";
+    case "timeline":
+    case "interests":
+      return sharing.memoryHighlights === "shown";
+    case "memory":
+      return sharing.mood === "shown" && sharing.memoryHighlights === "shown";
+    default:
+      return false;
+  }
+}
+
 export async function askParentReport(
   guardianUserId: string,
   question: string
@@ -995,27 +1241,18 @@ export async function askParentReport(
   }
 
   const childId = link.childUserId;
-  const settings = await getParentSettings(guardianUserId);
-  const [garden, memory, adventure, wishes, dayStoryPacks] = await Promise.all([
-    getGardenAccount(childId),
-    getConversationMemory(childId),
-    getAdventureQuest(childId),
-    getWishTreeAccount(childId),
-    listDayStoriesForUser(childId),
-  ]);
+  if (await isChildConsentPending(childId)) {
+    const consent = await getGuardianConsentView(guardianUserId);
+    return {
+      linked: true,
+      consentRequired: true,
+      childName: consent.childName ?? link.childName,
+      suggestedQuestions: pickFollowUpQuestions(),
+      answer: null,
+    };
+  }
 
-  const themes = settings.privacy.shareEmotionTrends
-    ? memory.emotionalThemes ?? []
-    : [];
-  const todayMood = todayMoodFromGarden(garden.flowers);
-  const mood = todayMood
-    ? MOOD_OPTIONS.find((m) => m.id === todayMood)?.label ?? null
-    : null;
-  const completed = settings.privacy.shareAdventures
-    ? adventure.quests.filter((q) => q.status === "done").map((q) => q.title)
-    : [];
   const q = question.trim();
-
   if (!q) {
     return {
       linked: true,
@@ -1025,19 +1262,62 @@ export async function askParentReport(
     };
   }
 
-  const weeklyMoods = settings.privacy.shareEmotionTrends
+  const sharing = await resolveGuardianSharing(guardianUserId, childId);
+  const moodShown = sharing.mood === "shown";
+  const adventuresShown = sharing.adventures === "shown";
+  const highlightsShown = sharing.memoryHighlights === "shown";
+  const memoryShown = moodShown && highlightsShown;
+
+  const [garden, memory, adventure, wishes, dayStoryPacks, childWording] =
+    await Promise.all([
+      moodShown ? getGardenAccount(childId) : Promise.resolve(null),
+      getConversationMemory(childId),
+      adventuresShown ? getAdventureQuest(childId) : Promise.resolve(null),
+      highlightsShown ? getWishTreeAccount(childId) : Promise.resolve(null),
+      adventuresShown && highlightsShown
+        ? listDayStoriesForUser(childId)
+        : Promise.resolve([]),
+      recentChildWording(childId, {
+        exclude: [link.childName, ...ownNames(link.persona)],
+      }),
+    ]);
+
+  const themes = moodShown
+    ? (memory.emotionalThemes ?? []).filter(
+        (t) => !detectLeak(t, childWording).leak
+      )
+    : [];
+  const todayMood = garden ? todayMoodFromGarden(garden.flowers) : null;
+  const mood = todayMood
+    ? MOOD_OPTIONS.find((m) => m.id === todayMood)?.label ?? null
+    : null;
+  const completed = adventure
+    ? adventure.quests
+        .filter((quest) => quest.status === "done")
+        .map((quest) => quest.title)
+    : [];
+  const wishCount = wishes?.wishes.length ?? 0;
+
+  const weeklyMoods = garden
     ? [...garden.flowers]
         .sort((a, b) => a.plantedOn.localeCompare(b.plantedOn))
         .slice(-7)
         .map((f) => MOOD_OPTIONS.find((o) => o.id === f.mood)?.label ?? "기록")
     : [];
 
-  const rag = await retrieveGuardianContext({
-    childUserId: childId,
-    question: q,
-    maxResults: 5,
-  });
-  const kbHits = rag.hits;
+  // KB summaries are filtered by the same category rule, then leak-checked.
+  const rag =
+    moodShown || adventuresShown || highlightsShown
+      ? await retrieveGuardianContext({
+          childUserId: childId,
+          question: q,
+          maxResults: 5,
+        })
+      : { hits: [] as KbHit[] };
+  const kbHits = rag.hits.filter(
+    (hit) =>
+      kbHitAllowed(hit, sharing) && !detectLeak(hit.text, childWording).leak
+  );
 
   const context = {
     childName: link.childName,
@@ -1046,28 +1326,24 @@ export async function askParentReport(
     weeklyMoods,
     emotionalThemes: themes,
     // Learned summary from child↔Beddy chat — NOT raw transcripts
-    conversationMemorySummary: formatMemoryForPrompt(memory),
-    turnCount: memory.turnCount,
+    conversationMemorySummary: memoryShown ? formatMemoryForPrompt(memory) : "",
+    turnCount: memoryShown ? memory.turnCount : 0,
     completedAdventures: completed,
-    adventureHeadline: settings.privacy.shareAdventures
-      ? adventure.headline
-      : null,
-    wishCount: wishes.wishes.length,
-    recentDayStoryTitles: settings.privacy.shareMemoryHighlights
-      ? dayStoryPacks
-          .slice(0, 3)
-          .map((p) => p.dayStory?.narrative?.slice(0, 48))
-          .filter((v): v is string => Boolean(v))
-      : [],
+    adventureHeadline: adventure?.headline ?? null,
+    wishCount,
+    recentDayStoryTitles: dayStoryPacks
+      .slice(0, 3)
+      .map((p) => p.dayStory?.narrative?.slice(0, 48))
+      .filter((v): v is string => Boolean(v)),
     kbSummaries: formatKbHitsForPrompt(kbHits),
   };
 
   const sources: string[] = [];
   if (mood) sources.push("오늘의 감정");
   if (themes.length) sources.push("마음 키워드");
-  if (memory.turnCount > 0) sources.push("학습된 대화 메모리");
+  if (context.turnCount > 0) sources.push("학습된 대화 메모리");
   if (completed.length) sources.push("완료한 모험");
-  if (wishes.wishes.length) sources.push("소원 나무");
+  if (wishCount) sources.push("소원 나무");
   if (weeklyMoods.length) sources.push("주간 감정 흐름");
   if (context.recentDayStoryTitles.length) sources.push("하루 이야기");
   for (const label of kbSourceLabels(kbHits)) {
@@ -1081,17 +1357,24 @@ export async function askParentReport(
     mood,
     themes,
     completed,
-    wishCount: wishes.wishes.length,
+    wishCount,
     weeklyMoods,
   });
 
   const answer: ParentReportAnswer = llmAnswer
     ? {
         question: q,
-        answer: llmAnswer,
+        answer: guardGuardianText(llmAnswer, childWording, fallback.answer).text,
         sources: sources.length ? sources : ["요약 인사이트"],
       }
-    : fallback;
+    : {
+        ...fallback,
+        answer: guardGuardianText(
+          fallback.answer,
+          childWording,
+          "요약된 기록만으로는 아직 답하기 어려워요. 조금 더 기록이 쌓이면 다시 물어봐 주세요."
+        ).text,
+      };
 
   return {
     linked: true,
@@ -1237,18 +1520,28 @@ export async function getParentProfile(
   guardian: { name: string; email: string }
 ): Promise<ParentProfileResponse> {
   const link = await resolveChild(guardianUserId);
-  const settings = await getParentSettings(guardianUserId);
+  const [settings, consent] = await Promise.all([
+    getParentSettings(guardianUserId),
+    getGuardianConsentView(guardianUserId),
+  ]);
+  const consentPending = consent.linked && consent.status === "pending";
+  const childSharing =
+    link.linked && link.childUserId && !consentPending
+      ? await getChildShareChoices(link.childUserId)
+      : null;
   return {
     guardianName: guardian.name,
     guardianEmail: guardian.email,
     linked: link.linked,
-    childName: link.childName,
+    childName: consentPending ? consent.childName : link.childName,
     hospitalDay: link.linked ? link.persona?.dayCount ?? 1 : null,
     notifications: settings.notifications,
     privacy: {
       ...settings.privacy,
       hidePrivateChat: true,
     },
+    consent,
+    childSharing,
   };
 }
 

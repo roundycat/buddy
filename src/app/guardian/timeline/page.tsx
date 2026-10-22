@@ -11,5 +11,7 @@ export default async function GuardianTimelinePage() {
   if (user.role !== "guardian") redirect("/");
 
   const data = await getParentTimeline(user.id);
+  // Consent form lives on the guardian home and comes first.
+  if (data.consentRequired) redirect("/guardian");
   return <ParentTimelineView data={data} />;
 }

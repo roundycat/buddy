@@ -11,6 +11,9 @@ import { getWallet } from "@/backend/features/wallet/wallet.service";
 import { getGrowthStorybook } from "@/backend/features/growth-storybook/growth-storybook.service";
 import { getWishTree } from "@/backend/features/wish-tree/wish-tree.service";
 import { getPictureDiary } from "@/backend/features/picture-diary/picture-diary.service";
+import { getChildSharingView } from "@/backend/features/sharing/sharing.service";
+import { withDefaultShareChoices } from "@/backend/features/sharing/sharing.types";
+import { isChildConsentPending } from "@/backend/features/consent/consent.guard";
 
 /**
  * App-layer loaders — Server Components only.
@@ -88,4 +91,22 @@ export async function loadWishTree() {
 export async function loadPictureDiary() {
   const userId = await currentUserId();
   return getPictureDiary(userId);
+}
+
+export async function loadChildSharing() {
+  const userId = await currentUserId();
+  if (!userId) {
+    return { choices: withDefaultShareChoices(null), updatedAt: null };
+  }
+  return getChildSharingView(userId);
+}
+
+/**
+ * True while the signed-in child (under 14) waits for legal-guardian consent.
+ * Pages that would run AI on load show the consent screen instead.
+ */
+export async function loadChildConsentPending(): Promise<boolean> {
+  const user = await getSessionUser();
+  if (!user || user.role === "guardian") return false;
+  return isChildConsentPending(user.id);
 }

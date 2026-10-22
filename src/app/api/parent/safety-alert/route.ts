@@ -1,10 +1,8 @@
 import { requireGuardianUser } from "@/backend/shared/http/auth";
 import { withApiGuard } from "@/backend/shared/http/route";
 import { resolveLinkedChildUserId } from "@/backend/features/guardian-link/guardian-link.service";
-import {
-  acknowledgeChildSafetyAlert,
-  getActiveChildSafetyAlert,
-} from "@/backend/features/safety/safety-alert.store";
+import { acknowledgeChildSafetyAlert } from "@/backend/features/safety/safety-alert.store";
+import { getParentSafetyAlert } from "@/backend/features/parent/parent.service";
 
 export const dynamic = "force-dynamic";
 
@@ -24,20 +22,7 @@ export async function POST() {
 export async function GET() {
   return withApiGuard(async () => {
     const user = await requireGuardianUser();
-    const childUserId = await resolveLinkedChildUserId(user.id);
-    if (!childUserId) {
-      return { alert: null };
-    }
-    const alert = await getActiveChildSafetyAlert(childUserId);
-    return {
-      alert: alert
-        ? {
-            id: alert.id,
-            level: alert.level,
-            summary: alert.summary,
-            createdAt: alert.createdAt,
-          }
-        : null,
-    };
+    // Same rule as the guardian home: "help is needed" only, never content
+    return { alert: await getParentSafetyAlert(user.id) };
   }, "안전 알림을 불러오지 못했어요.", "[api/parent/safety-alert GET]");
 }

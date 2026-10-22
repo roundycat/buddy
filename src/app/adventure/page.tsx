@@ -2,7 +2,11 @@ import { Suspense } from "react";
 import nextDynamic from "next/dynamic";
 import { FeaturePageShell } from "@/frontend/shared/components/FeaturePageShell";
 import { SoftSkeleton } from "@/frontend/shared/components/ChildUi";
-import { loadAdventureQuest } from "@/app/_server/loaders";
+import { ChildConsentPendingScreen } from "@/frontend/features/consent/components/ChildConsentPendingScreen";
+import {
+  loadAdventureQuest,
+  loadChildConsentPending,
+} from "@/app/_server/loaders";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +21,10 @@ const AdventureQuestView = nextDynamic(
 );
 
 export default async function AdventurePage() {
+  // The mission agent plans today's pack on first open
+  if (await loadChildConsentPending()) {
+    return <ChildConsentPendingScreen showBack />;
+  }
   const quest = await loadAdventureQuest();
 
   return (

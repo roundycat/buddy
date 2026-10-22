@@ -10,6 +10,8 @@ import { getWishTreeAccount } from "@/backend/features/wish-tree/wish-tree.store
 import { getMemoryTimeline } from "@/backend/features/memory-timeline/memory-timeline.service";
 import { getPersonaForUser } from "@/backend/features/persona/persona.store";
 import { filterBridgeText } from "@/backend/ai/bridge/privacy-filter";
+import { guardGuardianText } from "@/backend/ai/bridge/leak-guard";
+import { recentChildWording } from "@/backend/ai/bridge/child-wording";
 import { isLocalKbMode, putLocalSummaryDoc } from "./local-kb";
 
 /**
@@ -38,6 +40,18 @@ function bucket(): string | null {
 function target(): "s3" | "local" | null {
   if (isLocalKbMode()) return "local";
   return bucket() ? "s3" : null;
+}
+
+/**
+ * Guardian RAG reads these docs, so each line passes the leak guard against
+ * the child's own recent chat; a line that would leak is dropped.
+ */
+function guardKbBody(body: string, childWording: string[]): string {
+  return body
+    .split("\n")
+    .map((line) => guardGuardianText(line, childWording, "").text)
+    .filter((line) => line.trim())
+    .join("\n");
 }
 
 async function putSummaryDoc(input: {
@@ -100,6 +114,10 @@ export async function indexChildSummariesForKb(
         getMemoryTimeline(childUserId),
         getPersonaForUser(childUserId),
       ]);
+    const childWording = await recentChildWording(childUserId, {
+      exclude: [persona.self?.nickname, persona.profile?.nickname, persona.name],
+    });
+    const guard = (body: string) => guardKbBody(body, childWording);
 
     let docs = 0;
 
@@ -118,7 +136,7 @@ export async function indexChildSummariesForKb(
         dateKey,
         kind: "memory",
         title: "대화 학습 메모리 요약",
-        body: memoryBody,
+        body: guard(memoryBody),
       })
     )
       docs += 1;
@@ -138,7 +156,7 @@ export async function indexChildSummariesForKb(
         dateKey,
         kind: "emotion",
         title: "감정 이력 요약",
-        body: recentFlowers,
+        body: guard(recentFlowers),
       }))
     )
       docs += 1;
@@ -161,7 +179,7 @@ export async function indexChildSummariesForKb(
         dateKey,
         kind: "mission",
         title: "미션·모험 이력",
-        body: missionBody,
+        body: guard(missionBody),
       })
     )
       docs += 1;
@@ -177,7 +195,7 @@ export async function indexChildSummariesForKb(
         dateKey,
         kind: "timeline",
         title: "타임라인 하이라이트",
-        body: timelineBody,
+        body: guard(timelineBody),
       }))
     )
       docs += 1;
@@ -197,7 +215,7 @@ export async function indexChildSummariesForKb(
         dateKey,
         kind: "interests",
         title: "관심사·소원 요약",
-        body: interests,
+        body: guard(interests),
       }))
     )
       docs += 1;

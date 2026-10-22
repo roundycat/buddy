@@ -3,11 +3,13 @@ import { requireChildUser } from "@/backend/shared/http/auth";
 import { HttpError, withApiGuard } from "@/backend/shared/http/route";
 import { synthesizeStorybookNarration } from "@/backend/features/growth-storybook/storybook-narration.service";
 import { env } from "@/backend/shared/config/env";
+import { assertChildConsented } from "@/backend/features/consent/consent.guard";
 
 export async function POST(request: Request) {
   return withApiGuard(
     async () => {
-      await requireChildUser();
+      const user = await requireChildUser();
+      await assertChildConsented(user.id);
       // Without Polly the device reads the story aloud (speechSynthesis fallback).
       if (env.ttsProvider !== "polly") {
         throw new HttpError("이 기기에서 바로 읽어 줄게요.", 503);

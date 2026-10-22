@@ -12,6 +12,9 @@ import { clearDischargeTale } from "@/backend/features/growth-storybook/growth-s
 import { clearStorybookParentLetter } from "@/backend/features/growth-storybook/storybook-parent-letter.store";
 import { clearStorybookIllustrations } from "@/backend/features/growth-storybook/storybook-illustration.service";
 import { clearMemoryLetters } from "@/backend/features/memory-post/memory-post.store";
+import { clearConsentForUser } from "@/backend/features/consent/consent.store";
+import { clearSharingForUser } from "@/backend/features/sharing/sharing.store";
+import { clearConcernRequestsForUser } from "@/backend/features/sharing/concern-request.store";
 import type { AuthUser } from "./auth.types";
 import { deleteUser } from "./auth.users.repo";
 
@@ -35,6 +38,9 @@ export async function deleteAccount(user: AuthUser): Promise<void> {
     clearDischargeTale(user.id),
     clearStorybookParentLetter(user.id),
     clearMemoryLetters(user.id),
+    clearConsentForUser(user.id),
+    clearSharingForUser(user.id),
+    clearConcernRequestsForUser(user.id),
   ]);
 
   await deleteUser(user.id);

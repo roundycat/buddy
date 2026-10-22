@@ -56,6 +56,7 @@ function SettingRow({
   locked,
   lockedNote,
   disabled,
+  childNote,
 }: {
   title: string;
   description?: string;
@@ -64,6 +65,8 @@ function SettingRow({
   locked?: boolean;
   lockedNote?: string;
   disabled?: boolean;
+  /** The child keeps (part of) this category private */
+  childNote?: string | null;
 }) {
   return (
     <div className="flex items-start justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
@@ -74,6 +77,11 @@ function SettingRow({
         {description ? (
           <p className="mt-1 text-[12px] leading-relaxed text-slate-400">
             {description}
+          </p>
+        ) : null}
+        {childNote ? (
+          <p className="mt-1 text-[12px] leading-relaxed text-slate-500">
+            {childNote}
           </p>
         ) : null}
         {locked ? (
@@ -113,13 +121,29 @@ function SettingRow({
 /**
  * Persistable notification / privacy settings for guardians.
  */
+const CHILD_PRIVATE_NOTE = "🔒 아이가 아직 나누지 않았어요 — 켜 두어도 보이지 않아요";
+
 export function ParentProfileSettings({
   initialNotifications,
   initialPrivacy,
+  childSharing,
 }: {
   initialNotifications: Notifications;
   initialPrivacy: ParentProfileResponse["privacy"];
+  /** What the child shares — a guardian toggle only matters when the child shares too */
+  childSharing?: ParentProfileResponse["childSharing"];
 }) {
+  const privateNote = (
+    ...categories: Array<keyof NonNullable<typeof childSharing>>
+  ): string | null => {
+    if (!childSharing) return null;
+    const hidden = categories.filter((c) => childSharing[c] === "private");
+    if (hidden.length === 0) return null;
+    if (hidden.length === categories.length) return CHILD_PRIVATE_NOTE;
+    return hidden.includes("media")
+      ? "🔒 사진·그림은 아이가 아직 나누지 않았어요"
+      : "🔒 기억 하이라이트는 아이가 아직 나누지 않았어요";
+  };
   const [notifications, setNotifications] = useState(initialNotifications);
   const [privacy, setPrivacy] = useState<Privacy>({
     shareEmotionTrends: initialPrivacy.shareEmotionTrends,
@@ -228,7 +252,8 @@ export function ParentProfileSettings({
           </p>
           <p className="mt-2 text-[13px] leading-relaxed text-slate-500">
             베디와의 대화·비밀 일기는 보호자에게 공개되지 않아요. 아래는 홈에
-            보여줄 요약만 골라요.
+            보여줄 요약만 골라요. 아이가 「보호자와 나누기」에서 나누기로 한
+            항목만 보여요.
           </p>
         </div>
 
@@ -237,6 +262,7 @@ export function ParentProfileSettings({
             title="감정 트렌드"
             description="최근 감정의 흐름을 부드럽게 보여 줘요"
             checked={privacy.shareEmotionTrends}
+            childNote={privateNote("mood")}
             disabled={saving}
             onChange={(shareEmotionTrends) => {
               setPrivacy((p) => ({ ...p, shareEmotionTrends }));
@@ -247,6 +273,7 @@ export function ParentProfileSettings({
             title="모험 요약"
             description="오늘 한 작은 모험 목록을 공유해요"
             checked={privacy.shareAdventures}
+            childNote={privateNote("adventures")}
             disabled={saving}
             onChange={(shareAdventures) => {
               setPrivacy((p) => ({ ...p, shareAdventures }));
@@ -257,6 +284,7 @@ export function ParentProfileSettings({
             title="기억 · 사진 · 그림"
             description="하이라이트와 아이가 올린 사진·그림 일기를 보여 줘요"
             checked={privacy.shareMemoryHighlights}
+            childNote={privateNote("memoryHighlights", "media")}
             disabled={saving}
             onChange={(shareMemoryHighlights) => {
               setPrivacy((p) => ({ ...p, shareMemoryHighlights }));

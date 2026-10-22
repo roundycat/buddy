@@ -3,6 +3,7 @@ import { ParentCard } from "@/frontend/features/parent/components/ParentUi";
 import { ParentProfileSettings } from "@/frontend/features/parent/components/ParentProfileSettings";
 import { ParentLogoutButton } from "@/frontend/features/parent/components/ParentLogoutButton";
 import { GuardianUnlinkControl } from "@/frontend/features/guardian/components/GuardianUnlinkControl";
+import { GuardianConsentCard } from "@/frontend/features/consent/components/GuardianConsentCard";
 import type { ParentProfileResponse } from "@/frontend/features/parent/types";
 
 export function ParentProfileView({ data }: { data: ParentProfileResponse }) {
@@ -47,9 +48,12 @@ export function ParentProfileView({ data }: { data: ParentProfileResponse }) {
           )}
         </ParentCard>
 
+        <GuardianConsentCard consent={data.consent} />
+
         <ParentProfileSettings
           initialNotifications={data.notifications}
           initialPrivacy={data.privacy}
+          childSharing={data.childSharing}
         />
 
         {data.linked ? <GuardianUnlinkControl /> : null}

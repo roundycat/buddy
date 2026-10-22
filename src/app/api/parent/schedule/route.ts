@@ -4,6 +4,7 @@ import {
   listParentSchedule,
 } from "@/backend/features/hospital-day/hospital-day.service";
 import type { ScheduleRepeatRule } from "@/backend/features/hospital-day/hospital-day.types";
+import { assertLinkedChildConsented } from "@/backend/features/consent/consent.guard";
 import { HttpError, readJsonBody, withApiGuard } from "@/backend/shared/http/route";
 import { todayKey } from "@/backend/shared/time/date";
 
@@ -30,6 +31,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   return withApiGuard(async () => {
     const user = await requireGuardianUser();
+    // Schedule copy + illustrations are AI-generated for the child
+    await assertLinkedChildConsented(user.id);
     const body = await readJsonBody<{
       type?: unknown;
       title?: unknown;
