@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   return withApiGuard(
     async () => {
       const user = await requireAuthUser();
-      await assertChildConsented(user.id);
+      await assertChildConsented(user);
       const body = (await request.json().catch(() => null)) as {
         text?: string;
         drawingBase64?: string;

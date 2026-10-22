@@ -20,7 +20,7 @@ export async function GET() {
 export async function POST(request: Request) {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
-    await assertChildConsented(user.id);
+    await assertChildConsented(user);
     const contentType = request.headers.get("content-type") || "";
 
     let bytes: Buffer | null = null;

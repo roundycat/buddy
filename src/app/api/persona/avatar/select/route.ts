@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
-    await assertChildConsented(user.id);
+    await assertChildConsented(user);
     const body = await readJsonBody<{ candidateId?: unknown }>(request);
     const candidateId =
       typeof body?.candidateId === "string" || typeof body?.candidateId === "number"

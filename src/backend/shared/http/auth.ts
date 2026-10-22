@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import type { AuthUser } from "@/backend/features/auth/auth.types";
 import { AUTH_COOKIE_NAME } from "@/backend/features/auth/auth.constants";
 import { verifySessionToken } from "@/backend/features/auth/auth.service";
+import { accountExists } from "@/backend/features/auth/auth.users.repo";
 
 export class UnauthorizedError extends Error {
   readonly status = 401;
@@ -18,7 +19,10 @@ export class UnauthorizedError extends Error {
 export async function getSessionUser(): Promise<AuthUser | null> {
   const token = cookies().get(AUTH_COOKIE_NAME)?.value;
   if (!token) return null;
-  return verifySessionToken(token);
+  const user = await verifySessionToken(token);
+  // A deleted account's cookie (another tab or device) is no longer a session.
+  if (!user || !(await accountExists(user.id))) return null;
+  return user;
 }
 
 /**

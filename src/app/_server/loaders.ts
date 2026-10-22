@@ -108,5 +108,5 @@ export async function loadChildSharing() {
 export async function loadChildConsentPending(): Promise<boolean> {
   const user = await getSessionUser();
   if (!user || user.role === "guardian") return false;
-  return isChildConsentPending(user.id);
+  return isChildConsentPending(user);
 }

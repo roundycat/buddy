@@ -21,6 +21,7 @@ import {
   type GuardianConsentView,
 } from "./consent.types";
 import { eraseChildCollectedData } from "@/backend/features/privacy/child-data-erase";
+import { env } from "@/backend/shared/config/env";
 
 const GUARDIAN_NAME_MAX = 20;
 
@@ -84,10 +85,23 @@ export async function discardChildSignupConsent(childUserId: string) {
   await deleteChildConsentState(childUserId);
 }
 
+/**
+ * The consent row, or — for a child account that has none (made before consent
+ * existed, or a signup that broke half-way) — a pending under-14 row that is
+ * saved once a guardian consents. Unknown age is treated as under 14, the
+ * stricter rule. The local mock provider keeps such accounts open.
+ */
+async function consentStateOrPending(childUserId: string): Promise<ChildConsentState | null> {
+  const stored = await getChildConsentState(childUserId);
+  if (stored || env.authProvider === "mock") return stored;
+  const at = nowIso();
+  return { childUserId, ageBand: "under14", status: "pending", createdAt: at, updatedAt: at };
+}
+
 export async function getChildConsentView(
   childUserId: string
 ): Promise<ChildConsentView> {
-  const state = await getChildConsentState(childUserId);
+  const state = await consentStateOrPending(childUserId);
   if (!state) {
     return { required: false, status: "not_required", ageBand: null };
   }
@@ -122,6 +136,7 @@ function toView(input: {
     required: state?.ageBand === "under14",
     status: state ? state.status : "not_required",
     consentVersion: CONSENT_VERSION,
+    canWithdraw: input.linked && state?.ageBand === "under14" && state.status === "granted",
     mine: mine
       ? {
           relationship: mine.relationship,
@@ -138,7 +153,7 @@ async function loadForGuardian(guardianUserId: string) {
   const link = await getLinkForGuardian(guardianUserId);
   if (!link) return null;
   const [state, records] = await Promise.all([
-    getChildConsentState(link.childUserId),
+    consentStateOrPending(link.childUserId),
     listGuardianConsentsForChild(link.childUserId),
   ]);
   const mine =
@@ -235,10 +250,12 @@ export async function grantGuardianConsent(
 }
 
 /**
- * Withdraw this guardian's consent (동의 철회). The child goes back to
- * pending unless another legal guardian's consent is still active; in that
- * case everything collected under the consent is erased without delay
- * (account, consent records and the guardian link stay).
+ * Withdraw consent (동의 철회). Any linked legal guardian may withdraw, whoever
+ * gave the consent, and it ends every guardian's consent for the child: the
+ * child goes back to pending and everything collected under the consent is
+ * erased without delay (account, consent records and the guardian link stay).
+ * A consent left behind by a guardian who later unlinked can therefore never
+ * keep the child's data alive against a linked guardian's withdrawal.
  */
 export async function withdrawGuardianConsent(
   guardianUserId: string
@@ -247,26 +264,24 @@ export async function withdrawGuardianConsent(
   if (!loaded) {
     throw new DomainError("먼저 아이와 연결해 주세요.", "FORBIDDEN");
   }
-  const { childUserId, state, records, mine } = loaded;
-  if (!mine || !state) {
+  const { childUserId, state, records } = loaded;
+  if (!state || state.ageBand !== "under14" || state.status !== "granted") {
     throw new DomainError("철회할 동의가 없어요.", "NOT_FOUND");
   }
 
   const at = nowIso();
-  await saveGuardianConsentRecord({ ...mine, withdrawnAt: at });
-
-  const othersActive = records.some(
-    (r) => r.id !== mine.id && isActive(r)
+  await Promise.all(
+    records
+      .filter(isActive)
+      .map((r) => saveGuardianConsentRecord({ ...r, withdrawnAt: at, withdrawnBy: guardianUserId }))
   );
   const nextState = await saveChildConsentState({
     ...state,
-    status: othersActive ? "granted" : "pending",
-    basis: othersActive ? "guardian" : undefined,
+    status: "pending",
+    basis: undefined,
     updatedAt: at,
   });
-  if (!othersActive) {
-    await eraseChildCollectedData(childUserId);
-  }
+  await eraseChildCollectedData(childUserId);
 
   return toView({
     linked: true,

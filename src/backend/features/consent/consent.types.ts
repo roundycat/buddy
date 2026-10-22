@@ -73,7 +73,12 @@ export interface GuardianConsentRecord {
   consentVersion: string;
   consentedAt: string;
   withdrawnAt?: string;
+  /** The linked guardian who withdrew (any linked guardian can). */
+  withdrawnBy?: string;
 }
+
+/** Shown instead of a guardian's name once that guardian deleted their account. */
+export const DELETED_GUARDIAN_NAME = "탈퇴한 보호자";
 
 /** Child-facing status. not_required = legacy account or no record. */
 export interface ChildConsentView {
@@ -90,7 +95,12 @@ export interface GuardianConsentView {
   required: boolean;
   status: "not_required" | ChildConsentStatus;
   consentVersion: string;
-  /** This guardian's own active consent, if any (withdrawable) */
+  /**
+   * Consent is in force and this linked guardian may withdraw it — whoever gave
+   * it. Withdrawal ends every guardian's consent for the child.
+   */
+  canWithdraw: boolean;
+  /** This guardian's own active consent, if any */
   mine: {
     relationship: GuardianRelationship;
     relationshipLabel: string;

@@ -6,6 +6,7 @@ import {
   deleteDynamoUser,
   dynamoProfileToAuthUser,
   findDynamoUserByEmail,
+  findDynamoUserById,
   upsertDynamoUser,
   verifyDynamoPassword,
   type DynamoUserProfile,
@@ -14,6 +15,7 @@ import {
   createJsonUser,
   deleteJsonUser,
   findJsonUserByEmail,
+  findJsonUserById,
   upsertJsonUser,
   verifyJsonPassword,
 } from "./auth.users.json.repo";
@@ -29,6 +31,35 @@ const jsonStore = () => env.authProvider === "json";
 
 export function findUserByEmail(email: string): Promise<UserProfileRow | null> {
   return jsonStore() ? findJsonUserByEmail(email) : findDynamoUserByEmail(email);
+}
+
+export function findUserById(userId: string): Promise<UserProfileRow | null> {
+  return jsonStore() ? findJsonUserById(userId) : findDynamoUserById(userId);
+}
+
+/**
+ * Does the account behind a session still exist? A signed session outlives
+ * account deletion (another tab or device keeps its cookie), so request
+ * handlers ask here. Positive answers are cached briefly; deletion clears them.
+ * A store error answers yes — the consent gate still applies — so an outage
+ * does not log everyone out.
+ */
+const EXISTS_TTL_MS = 60_000;
+const knownAccounts = new Map<string, number>();
+
+export async function accountExists(userId: string): Promise<boolean> {
+  if (env.authProvider === "mock") return true;
+  const seen = knownAccounts.get(userId);
+  if (seen && Date.now() - seen < EXISTS_TTL_MS) return true;
+  try {
+    const row = await findUserById(userId);
+    if (row) knownAccounts.set(userId, Date.now());
+    else knownAccounts.delete(userId);
+    return Boolean(row);
+  } catch (error) {
+    console.error("[auth] account lookup failed", error);
+    return true;
+  }
 }
 
 export function verifyUserPassword(password: string, passwordHash: string): Promise<boolean> {
@@ -48,6 +79,7 @@ export function createUser(input: {
 }
 
 export function deleteUser(userId: string): Promise<boolean> {
+  knownAccounts.delete(userId);
   return jsonStore() ? deleteJsonUser(userId) : deleteDynamoUser(userId);
 }
 

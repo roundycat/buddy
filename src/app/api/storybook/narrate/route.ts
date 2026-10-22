@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   return withApiGuard(
     async () => {
       const user = await requireChildUser();
-      await assertChildConsented(user.id);
+      await assertChildConsented(user);
       // Without Polly the device reads the story aloud (speechSynthesis fallback).
       if (env.ttsProvider !== "polly") {
         throw new HttpError("이 기기에서 바로 읽어 줄게요.", 503);

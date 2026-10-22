@@ -1,4 +1,6 @@
 import { getPersonaForUser } from "@/backend/features/persona/persona.store";
+import { clearParentPrepForGuardian } from "@/backend/features/parent/parent-daily-prep.store";
+import { clearEmpathyGuidesForGuardian } from "@/backend/features/parent/parent-empathy-guide.store";
 
 import {
 
@@ -345,9 +347,15 @@ export async function linkGuardianWithCode(
 
 
 
+/**
+ * Unlink: the guardian also loses what was prepared from the child's records
+ * (daily summary, empathy guides). Their own settings stay.
+ */
 export async function unlinkGuardian(guardianUserId: string) {
-
   await clearLinkForGuardian(guardianUserId);
-
+  await Promise.all([
+    clearParentPrepForGuardian(guardianUserId),
+    clearEmpathyGuidesForGuardian(guardianUserId),
+  ]);
 }
 

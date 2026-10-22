@@ -1,11 +1,14 @@
 import "server-only";
 import { DomainError } from "@/backend/shared/http/domain-error";
 import { getLinkForGuardian } from "@/backend/features/guardian-link/guardian-link.store";
+import { env } from "@/backend/shared/config/env";
 import { getChildConsentState } from "./consent.store";
 
 /**
  * Consent gate for AI and data-collecting endpoints.
- * Legacy children (no consent state) are never blocked.
+ * A child account with no consent record (made before consent existed, or a
+ * signup that broke half-way) is treated like a pending one: consent first.
+ * Guardians never need it. Only the local mock provider keeps old accounts open.
  */
 
 export const GUARDIAN_CONSENT_REQUIRED_MESSAGE =
@@ -30,21 +33,28 @@ export function isConsentRequiredError(
   return error instanceof ConsentRequiredError;
 }
 
-/** True only for under-14 children still waiting for guardian consent. */
+/** A user id (read as a child's) or the session user, whose role decides. */
+export type ConsentGateUser = string | { id: string; role?: string | null };
+
+/** True while this account may not use AI or data features yet. */
 export async function isChildConsentPending(
-  childUserId: string | null | undefined
+  user: ConsentGateUser | null | undefined
 ): Promise<boolean> {
-  if (!childUserId) return false;
-  const state = await getChildConsentState(childUserId);
-  return state?.status === "pending";
+  if (!user) return false;
+  const id = typeof user === "string" ? user : user.id;
+  const role = typeof user === "string" ? "child" : user.role;
+  if (!id || role === "guardian") return false;
+  const state = await getChildConsentState(id);
+  if (state) return state.status === "pending";
+  return env.authProvider !== "mock";
 }
 
 /**
  * Throw ConsentRequiredError when the child still needs guardian consent.
- * Safe to call with any user id: guardians and legacy children pass.
+ * Pass the session user so guardians pass; a bare id is read as a child's.
  */
-export async function assertChildConsented(userId: string): Promise<void> {
-  if (await isChildConsentPending(userId)) {
+export async function assertChildConsented(user: ConsentGateUser): Promise<void> {
+  if (await isChildConsentPending(user)) {
     throw new ConsentRequiredError();
   }
 }

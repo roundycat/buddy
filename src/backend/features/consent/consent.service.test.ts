@@ -6,7 +6,10 @@ vi.mock("@/backend/shared/persist/map-store", () =>
 
 import { resetMemoryMapStores } from "@/test/stubs/memory-map-store";
 import { DomainError } from "@/backend/shared/http/domain-error";
-import { saveLink } from "@/backend/features/guardian-link/guardian-link.store";
+import {
+  clearLinkForGuardian,
+  saveLink,
+} from "@/backend/features/guardian-link/guardian-link.store";
 import {
   discardChildSignupConsent,
   getChildConsentView,
@@ -20,8 +23,12 @@ import {
   assertChildConsented,
   isChildConsentPending,
 } from "./consent.guard";
-import { listGuardianConsentsForChild } from "./consent.store";
-import { CONSENT_VERSION } from "./consent.types";
+import {
+  anonymizeGuardianConsentRecords,
+  getChildConsentState,
+  listGuardianConsentsForChild,
+} from "./consent.store";
+import { CONSENT_VERSION, DELETED_GUARDIAN_NAME } from "./consent.types";
 
 const CHILD = "child-under14";
 const MOM = "guardian-mom";
@@ -59,14 +66,17 @@ beforeEach(() => {
 });
 
 describe("child consent gate", () => {
-  it("legacy children without any consent state keep working", async () => {
+  it("a child account without any consent record must get guardian consent first", async () => {
     expect(await getChildConsentView("legacy-child")).toEqual({
-      required: false,
-      status: "not_required",
-      ageBand: null,
+      required: true,
+      status: "pending",
+      ageBand: "under14",
     });
-    expect(await isChildConsentPending("legacy-child")).toBe(false);
-    await expect(assertChildConsented("legacy-child")).resolves.toBeUndefined();
+    expect(await isChildConsentPending("legacy-child")).toBe(true);
+    await expect(assertChildConsented("legacy-child")).rejects.toBeInstanceOf(ConsentRequiredError);
+    // Guardians never need it.
+    expect(await isChildConsentPending({ id: "legacy-guardian", role: "guardian" })).toBe(false);
+    await expect(assertChildConsented({ id: "legacy-guardian", role: "guardian" })).resolves.toBeUndefined();
   });
 
   it("under-14 signup starts pending and is blocked with a 403-mapped error", async () => {
@@ -118,7 +128,7 @@ describe("child consent gate", () => {
   it("signup rollback returns the id to a clean slate", async () => {
     await recordChildSignupConsent({ childUserId: CHILD, ageBand: "under14" });
     await discardChildSignupConsent(CHILD);
-    expect((await getChildConsentView(CHILD)).status).toBe("not_required");
+    expect(await getChildConsentState(CHILD)).toBeNull();
   });
 });
 
@@ -147,9 +157,26 @@ describe("guardian consent", () => {
   });
 
   it("refuses consent for children who do not need it", async () => {
-    await link(MOM, "legacy-child");
+    await recordChildSignupConsent({
+      childUserId: "teen-child",
+      ageBand: "14plus",
+      selfItems: { privacyCollection: true, sensitiveData: true },
+    });
+    await link(MOM, "teen-child");
     expect((await getGuardianConsentView(MOM)).required).toBe(false);
     await expectDomainError(grantGuardianConsent(MOM, validConsent), "CONFLICT");
+  });
+
+  it("a linked guardian can consent for a child that has no consent record", async () => {
+    await link(MOM, "legacy-child");
+    expect(await getGuardianConsentView(MOM)).toMatchObject({ required: true, status: "pending" });
+    await grantGuardianConsent(MOM, validConsent);
+    expect(await getChildConsentState("legacy-child")).toMatchObject({
+      ageBand: "under14",
+      status: "granted",
+      basis: "guardian",
+    });
+    expect(await isChildConsentPending("legacy-child")).toBe(false);
   });
 
   it.each([
@@ -214,7 +241,7 @@ describe("guardian consent", () => {
     expect(await listGuardianConsentsForChild(CHILD)).toHaveLength(2);
   });
 
-  it("another guardian's active consent keeps the child granted", async () => {
+  it("one guardian's withdrawal ends every guardian's consent", async () => {
     await link(MOM);
     await link(DAD);
     await grantGuardianConsent(MOM, validConsent);
@@ -225,8 +252,38 @@ describe("guardian consent", () => {
     });
 
     const view = await withdrawGuardianConsent(MOM);
-    expect(view.status).toBe("granted");
-    expect(await isChildConsentPending(CHILD)).toBe(false);
+    expect(view.status).toBe("pending");
+    expect(await isChildConsentPending(CHILD)).toBe(true);
+    const records = await listGuardianConsentsForChild(CHILD);
+    expect(records).toHaveLength(2);
+    expect(records.every((r) => r.withdrawnAt && r.withdrawnBy === MOM)).toBe(true);
+  });
+
+  it("a linked guardian who did not give the consent can still withdraw it", async () => {
+    await link(MOM);
+    await grantGuardianConsent(MOM, validConsent);
+    await link(DAD);
+    expect(await getGuardianConsentView(DAD)).toMatchObject({ canWithdraw: true, mine: null });
+    await withdrawGuardianConsent(DAD);
+    expect(await isChildConsentPending(CHILD)).toBe(true);
+  });
+
+  it("a consent left by a guardian who unlinked cannot outlive a withdrawal", async () => {
+    await link(MOM);
+    await grantGuardianConsent(MOM, validConsent);
+    await clearLinkForGuardian(MOM);
+    await link(DAD);
+    await withdrawGuardianConsent(DAD);
+    expect(await isChildConsentPending(CHILD)).toBe(true);
+    expect((await listGuardianConsentsForChild(CHILD)).every((r) => r.withdrawnAt)).toBe(true);
+  });
+
+  it("a guardian who deletes their account leaves the proof without their name", async () => {
+    await link(MOM);
+    await grantGuardianConsent(MOM, validConsent);
+    await anonymizeGuardianConsentRecords(MOM);
+    const [record] = await listGuardianConsentsForChild(CHILD);
+    expect(record).toMatchObject({ guardianName: DELETED_GUARDIAN_NAME, relationship: "mother" });
   });
 
   it("cannot withdraw a consent that was never given", async () => {

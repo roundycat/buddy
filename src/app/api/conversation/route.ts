@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
     // Under-14 children talk to the AI only after legal-guardian consent.
-    await assertChildConsented(user.id);
+    await assertChildConsented(user);
     const body = await readJsonBody<{ message?: unknown; history?: unknown }>(
       request
     );
@@ -64,7 +64,7 @@ async function streamConversation(request: Request) {
   try {
     const user = await requireAuthUser();
     // Checked before the stream starts so the client gets a real 403.
-    await assertChildConsented(user.id);
+    await assertChildConsented(user);
     const body = await readJsonBody<{ message?: unknown; history?: unknown }>(
       request
     );

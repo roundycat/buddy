@@ -1,8 +1,9 @@
 import "server-only";
 import { createMapStore } from "@/backend/shared/persist/map-store";
-import type {
-  ChildConsentState,
-  GuardianConsentRecord,
+import {
+  DELETED_GUARDIAN_NAME,
+  type ChildConsentState,
+  type GuardianConsentRecord,
 } from "./consent.types";
 
 /**
@@ -61,4 +62,17 @@ export async function clearConsentForUser(userId: string) {
     childStates.delete(userId),
     guardianConsents.clearByUserId(userId),
   ]);
+}
+
+/**
+ * A guardian deleted their account: their consent records stay as proof
+ * (relationship, dates, version) but no longer carry their name.
+ */
+export async function anonymizeGuardianConsentRecords(guardianUserId: string) {
+  const rows = await guardianConsents.entries();
+  await Promise.all(
+    rows
+      .filter(([, r]) => r.guardianUserId === guardianUserId && r.guardianName !== DELETED_GUARDIAN_NAME)
+      .map(([key, r]) => guardianConsents.set(key, { ...r, guardianName: DELETED_GUARDIAN_NAME }))
+  );
 }

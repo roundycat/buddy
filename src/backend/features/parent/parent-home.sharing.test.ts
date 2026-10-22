@@ -28,7 +28,10 @@ import { createEmptyMemory } from "@/backend/features/conversation/memory.types"
 import { createChildSafetyAlert } from "@/backend/features/safety/safety-alert.store";
 import { savePreparedParentSummary } from "@/backend/features/parent/parent-daily-prep.store";
 import { saveParentSettings, getParentSettings } from "@/backend/features/parent/parent-settings.store";
-import { recordChildSignupConsent } from "@/backend/features/consent/consent.service";
+import {
+  grantGuardianConsent,
+  recordChildSignupConsent,
+} from "@/backend/features/consent/consent.service";
 import { updateChildShareChoices } from "@/backend/features/sharing/sharing.service";
 import {
   answerConcernRequest,
@@ -106,14 +109,28 @@ describe("guardian home — consent gate", () => {
     expect(home.empathyGuide).toBeNull();
     expect(home.sharing).toBeNull();
   });
+
+  it("gates a child account that has no consent record the same way", async () => {
+    await seedChildDay();
+    const home = await getParentHome(GUARDIAN);
+    expect(home.consentGate).not.toBeNull();
+    expect(home.child).toBeNull();
+    expect(home.todayMessage).toBeNull();
+  });
 });
 
 describe("guardian home — child-controlled sharing", () => {
   beforeEach(async () => {
     await seedChildDay();
+    await recordChildSignupConsent({ childUserId: CHILD, childName: "지민", ageBand: "under14" });
+    await grantGuardianConsent(GUARDIAN, {
+      relationship: "mother",
+      guardianName: "김엄마",
+      items: { privacyCollection: true, sensitiveData: true, aiFeatures: true },
+    });
   });
 
-  it("uses the defaults for a legacy child (media private)", async () => {
+  it("uses the defaults before the child has chosen (media private)", async () => {
     const home = await getParentHome(GUARDIAN);
     expect(home.consentGate).toBeNull();
     expect(home.sharing).toEqual({

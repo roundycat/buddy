@@ -9,7 +9,7 @@ export async function GET() {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
     // May ask the LLM for today's seed suggestion
-    await assertChildConsented(user.id);
+    await assertChildConsented(user);
     return getEmotionGarden(user.id);
   }, "정원을 불러오지 못했어요.", "[api/garden GET]");
 }

@@ -12,7 +12,7 @@ export async function GET() {
   return withApiGuard(async () => {
     const user = await getSessionUser();
     // Moments are polished by the LLM
-    if (user) await assertChildConsented(user.id);
+    if (user) await assertChildConsented(user);
     return getGrowthJournal(user?.id);
   }, "감정·성장 기록을 불러올 수 없습니다.", "[api/growth]");
 }

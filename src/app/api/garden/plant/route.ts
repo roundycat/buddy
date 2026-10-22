@@ -11,7 +11,7 @@ import {
 export async function POST(request: Request) {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
-    await assertChildConsented(user.id);
+    await assertChildConsented(user);
     const body = await readJsonBody<{ mood?: string }>(request);
     if (!isMoodId(body?.mood)) {
       throw new HttpError("오늘의 감정 씨앗을 선택해 주세요.", 400);

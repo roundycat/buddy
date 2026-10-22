@@ -50,7 +50,7 @@ export function GuardianConsentCard({
 
       {!consent.required ? (
         <p className="mt-2 text-sm leading-relaxed text-slate-500">
-          만 14세 이상이거나 이전에 가입한 계정이라, 보호자 동의가 따로 필요하지
+          만 14세 이상이라 아이가 직접 동의했어요. 보호자 동의가 따로 필요하지
           않아요.
         </p>
       ) : consent.status === "pending" ? (
@@ -69,45 +69,54 @@ export function GuardianConsentCard({
             동의하러 가기
           </Link>
         </>
-      ) : consent.mine ? (
+      ) : (
         <>
           <p className="mt-2 text-base font-medium text-slate-800">동의 완료</p>
-          <dl className="mt-2 space-y-1 text-sm text-slate-500">
-            <div className="flex gap-2">
-              <dt className="w-16 shrink-0 text-slate-400">관계</dt>
-              <dd>{consent.mine.relationshipLabel}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="w-16 shrink-0 text-slate-400">이름</dt>
-              <dd>{consent.mine.guardianName}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="w-16 shrink-0 text-slate-400">동의일</dt>
-              <dd>
-                {formatKoreanMonthDay(consent.mine.consentedAt)} · 버전{" "}
-                {consent.mine.consentVersion}
-              </dd>
-            </div>
-          </dl>
-          {error ? (
-            <div className="mt-3">
-              <ErrorState message={error} />
-            </div>
+          {consent.mine ? (
+            <dl className="mt-2 space-y-1 text-sm text-slate-500">
+              <div className="flex gap-2">
+                <dt className="w-16 shrink-0 text-slate-400">관계</dt>
+                <dd>{consent.mine.relationshipLabel}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="w-16 shrink-0 text-slate-400">이름</dt>
+                <dd>{consent.mine.guardianName}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="w-16 shrink-0 text-slate-400">동의일</dt>
+                <dd>
+                  {formatKoreanMonthDay(consent.mine.consentedAt)} · 버전{" "}
+                  {consent.mine.consentVersion}
+                </dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="mt-1 text-sm leading-relaxed text-slate-500">
+              다른 보호자가 동의를 마쳤어요.
+            </p>
+          )}
+          {consent.canWithdraw ? (
+            <>
+              <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                연결된 보호자는 누구든 동의를 철회할 수 있어요. 철회하면 모든
+                보호자의 동의가 끝나요.
+              </p>
+              {error ? (
+                <div className="mt-3">
+                  <ErrorState message={error} />
+                </div>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void withdraw()}
+                disabled={pending}
+                className="mt-3 min-h-11 rounded-full border border-rose-200 px-4 text-xs font-medium text-rose-700 transition-colors hover:bg-rose-50 disabled:opacity-50"
+              >
+                {pending ? "철회하는 중…" : "동의 철회"}
+              </button>
+            </>
           ) : null}
-          <button
-            type="button"
-            onClick={() => void withdraw()}
-            disabled={pending}
-            className="mt-3 min-h-11 rounded-full border border-rose-200 px-4 text-xs font-medium text-rose-700 transition-colors hover:bg-rose-50 disabled:opacity-50"
-          >
-            {pending ? "철회하는 중…" : "동의 철회"}
-          </button>
         </>
-      ) : (
-        <p className="mt-2 text-sm leading-relaxed text-slate-500">
-          다른 보호자가 동의를 마쳤어요. 동의 철회는 동의한 보호자 계정에서 할
-          수 있어요.
-        </p>
       )}
     </ParentCard>
   );

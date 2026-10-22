@@ -74,6 +74,28 @@ export async function findDynamoUserByEmail(
   };
 }
 
+export async function findDynamoUserById(
+  userId: string
+): Promise<DynamoUserProfile | null> {
+  const doc = getDynamoDocClient();
+  const profile = await doc.send(
+    new GetCommand({
+      TableName: bediTableName(),
+      Key: { pk: userPk(userId), sk: "PROFILE" },
+    })
+  );
+  const item = profile.Item;
+  if (!item?.passwordHash) return null;
+  return {
+    userId: String(item.userId ?? userId),
+    email: String(item.email),
+    name: String(item.name),
+    role: item.role === "guardian" ? "guardian" : "child",
+    passwordHash: String(item.passwordHash),
+    createdAt: String(item.createdAt ?? ""),
+  };
+}
+
 export async function createDynamoUser(input: {
   id: string;
   email: string;

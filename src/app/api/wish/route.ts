@@ -19,7 +19,7 @@ export async function GET() {
 export async function POST(request: Request) {
   return withApiGuard(async () => {
     const user = await requireAuthUser();
-    await assertChildConsented(user.id);
+    await assertChildConsented(user);
     const body = await readJsonBody<{
       text?: string;
       horizon?: WishHorizon;
