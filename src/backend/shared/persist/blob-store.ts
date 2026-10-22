@@ -11,11 +11,12 @@ import os from "os";
 import path from "path";
 import { env } from "@/backend/shared/config/env";
 import { observeFailure } from "@/backend/shared/observability";
+import { dataDir } from "@/backend/shared/persist/json-file";
 
 /**
  * Owner-scoped binary storage.
  * Cloud: private S3 under `${prefix}/${ownerId}/${blobId}` with a local mirror.
- * Local: `.data/${localSubdir}` (falls back to the OS temp dir).
+ * Local: `${BEDDY_DATA_DIR or .data}/${localSubdir}` (falls back to the OS temp dir).
  *
  * Callers own the metadata — this only moves bytes.
  * Optional key builders preserve legacy S3/local layouts during migrations.
@@ -83,7 +84,7 @@ export function createBlobStore(options: {
       cachedDir = fromEnv;
       return cachedDir;
     }
-    const preferred = path.join(process.cwd(), ".data", options.localSubdir);
+    const preferred = path.join(dataDir(), options.localSubdir);
     try {
       if (!existsSync(preferred)) mkdirSync(preferred, { recursive: true });
       cachedDir = preferred;

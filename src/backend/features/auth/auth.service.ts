@@ -7,18 +7,19 @@ import type {
 import { createSessionToken, verifySessionToken } from "./auth.session";
 import { env } from "@/backend/shared/config/env";
 import {
-  createDynamoUser,
-  dynamoProfileToAuthUser,
-  findDynamoUserByEmail,
-  verifyDynamoPassword,
-} from "./auth.users.dynamo.repo";
+  createUser,
+  findUserByEmail,
+  profileToAuthUser,
+  verifyUserPassword,
+} from "./auth.users.repo";
 import { passwordValidationMessage } from "@/shared/auth/password";
 
 /**
  * Auth Service
  *
- * DynamoDB users (AUTH_PROVIDER=dynamodb | auto).
- * mock only when AUTH_PROVIDER=mock (blocked in production).
+ * Stored users: DynamoDB (AUTH_PROVIDER=dynamodb | auto) or data-directory files
+ * (AUTH_PROVIDER=json, hosting without AWS). mock only when AUTH_PROVIDER=mock
+ * (blocked in production).
  */
 
 // 계정 목록이 seed-dynamo-users.js / wipe-fresh-start.js 와 중복이다.
@@ -89,14 +90,15 @@ function rejectLogin(reason: "no_account" | "bad_password", store: string): neve
   throw new AuthError(INVALID_CREDENTIALS, 401);
 }
 
-async function loginWithDynamo(request: LoginRequest): Promise<LoginResult> {
+async function loginWithStore(request: LoginRequest): Promise<LoginResult> {
   const email = request.email.trim().toLowerCase();
-  const row = await findDynamoUserByEmail(email);
-  if (!row) rejectLogin("no_account", "dynamodb");
-  if (!(await verifyDynamoPassword(request.password, row.passwordHash))) {
-    rejectLogin("bad_password", "dynamodb");
+  const store = env.authProvider === "json" ? "json" : "dynamodb";
+  const row = await findUserByEmail(email);
+  if (!row) rejectLogin("no_account", store);
+  if (!(await verifyUserPassword(request.password, row.passwordHash))) {
+    rejectLogin("bad_password", store);
   }
-  const user = dynamoProfileToAuthUser(row);
+  const user = profileToAuthUser(row);
   const token = await createSessionToken(user);
   return { user, token };
 }
@@ -109,12 +111,12 @@ export async function login(request: LoginRequest): Promise<LoginResult> {
     throw new AuthError("이메일과 비밀번호를 입력해 주세요.", 400);
   }
 
-  if (env.authProvider === "dynamodb") {
+  if (env.authProvider === "dynamodb" || env.authProvider === "json") {
     try {
-      return await loginWithDynamo(request);
+      return await loginWithStore(request);
     } catch (error) {
       if (error instanceof AuthError) throw error;
-      console.error("[auth] DynamoDB login failed:", error);
+      console.error(`[auth] ${env.authProvider} login failed:`, error);
       throw new AuthError("데이터베이스 로그인에 실패했습니다.", 503);
     }
   }
@@ -139,7 +141,7 @@ export async function login(request: LoginRequest): Promise<LoginResult> {
 
   // Legacy auto: DynamoDB first → production 503 / development mock
   try {
-    return await loginWithDynamo(request);
+    return await loginWithStore(request);
   } catch (error) {
     if (error instanceof AuthError && error.status === 401) throw error;
   }
@@ -196,12 +198,12 @@ export async function signup(request: SignupRequest): Promise<LoginResult> {
     throw new AuthError("mock 모드에서는 회원가입을 지원하지 않습니다.", 503);
   }
 
-  const existing = await findDynamoUserByEmail(email);
+  const existing = await findUserByEmail(email);
   if (existing) {
     throw new AuthError("이미 가입된 이메일입니다.", 409);
   }
   try {
-    const user = await createDynamoUser({
+    const user = await createUser({
       id: `user-${crypto.randomUUID()}`,
       email,
       name,
@@ -214,7 +216,7 @@ export async function signup(request: SignupRequest): Promise<LoginResult> {
     if (error instanceof Error && error.message === "DUPLICATE_EMAIL") {
       throw new AuthError("이미 가입된 이메일입니다.", 409);
     }
-    console.error("[auth] DynamoDB signup failed:", error);
+    console.error(`[auth] ${env.authProvider} signup failed:`, error);
     throw new AuthError("회원가입에 실패했습니다.", 500);
   }
 }

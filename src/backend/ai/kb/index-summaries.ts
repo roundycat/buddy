@@ -10,10 +10,13 @@ import { getWishTreeAccount } from "@/backend/features/wish-tree/wish-tree.store
 import { getMemoryTimeline } from "@/backend/features/memory-timeline/memory-timeline.service";
 import { getPersonaForUser } from "@/backend/features/persona/persona.store";
 import { filterBridgeText } from "@/backend/ai/bridge/privacy-filter";
+import { isLocalKbMode, putLocalSummaryDoc } from "./local-kb";
 
 /**
- * Write privacy-safe summary documents to S3 for Bedrock KB ingestion.
- * Path: kb-summaries/{childUserId}/{dateKey}-{kind}.md
+ * Write privacy-safe summary documents for guardian Q&A retrieval.
+ * AWS: S3 kb-summaries/{childUserId}/{dateKey}-{kind}.md → Bedrock KB ingestion.
+ * Elsewhere (no BEDROCK_KB_ID): the same documents in the data directory,
+ * searched by ./local-kb.
  * Never writes raw chat transcripts.
  */
 
@@ -32,6 +35,11 @@ function bucket(): string | null {
   return env.avatar.s3Bucket || null;
 }
 
+function target(): "s3" | "local" | null {
+  if (isLocalKbMode()) return "local";
+  return bucket() ? "s3" : null;
+}
+
 async function putSummaryDoc(input: {
   childUserId: string;
   dateKey: string;
@@ -39,13 +47,24 @@ async function putSummaryDoc(input: {
   title: string;
   body: string;
 }): Promise<boolean> {
-  const b = bucket();
-  if (!b) return false;
+  const where = target();
+  if (!where) return false;
   const cleaned = filterBridgeText(input.body);
   if (!cleaned) return false;
 
   const key = `kb-summaries/${input.childUserId}/${input.dateKey}-${input.kind}.md`;
   const body = `# ${input.title}\n\nchildUserId: ${input.childUserId}\ndate: ${input.dateKey}\nkind: ${input.kind}\n\n${cleaned}\n`;
+
+  if (where === "local") {
+    putLocalSummaryDoc({
+      childUserId: input.childUserId,
+      dateKey: input.dateKey,
+      kind: input.kind,
+      markdown: body,
+    });
+    return true;
+  }
+  const b = bucket()!;
 
   await getS3().send(
     new PutObjectCommand({
@@ -67,7 +86,7 @@ export async function indexChildSummariesForKb(
   childUserId: string,
   dateKey = todayKey()
 ): Promise<{ ok: boolean; docs: number }> {
-  if (!bucket()) {
+  if (!target()) {
     return { ok: true, docs: 0 };
   }
 

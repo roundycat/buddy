@@ -250,6 +250,10 @@ export async function generateStabilityPng(input: {
   /** Overrides the configured default; other models stay as fallbacks. */
   modelId?: string;
 }): Promise<{ bytes: Buffer; model: string }> {
+  if (env.imageProvider !== "bedrock") {
+    // Hosting without Bedrock image models: callers fall back to their bundled art.
+    throw new Error("IMAGE_PROVIDER=bundled — 이 배포에서는 그림을 새로 그리지 않아요.");
+  }
   if (!takeDailyBudget("image")) {
     throw new Error("오늘 그림 생성 한도에 도달했어요. 내일 다시 그려 볼게요.");
   }
@@ -294,14 +298,18 @@ export async function generateCrayonAvatar(input: {
 
   let generated: { bytes: Buffer; model: string } | null = null;
 
-  // Past today's image cap: hand back the bundled crayon drawing of the same animal.
-  if (styleImage && !takeDailyBudget("image")) {
+  // No image model in this deployment, or past today's image cap: hand back the
+  // bundled crayon drawing of the same animal.
+  if (styleImage && (env.imageProvider !== "bedrock" || !takeDailyBudget("image"))) {
     return {
       bytes: Buffer.from(styleImage, "base64"),
       contentType: "image/png",
       model: "bundled-style-ref",
       prompt,
     };
+  }
+  if (env.imageProvider !== "bedrock") {
+    throw new Error("IMAGE_PROVIDER=bundled — 준비된 그림을 찾지 못했어요.");
   }
 
   if (styleImage) {

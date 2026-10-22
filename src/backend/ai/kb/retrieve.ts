@@ -7,6 +7,8 @@ import {
 import { env } from "@/backend/shared/config/env";
 import { observeKbSearch } from "@/backend/ai/llm-gateway";
 import { logObservation, newRequestId, recordCount } from "@/backend/shared/observability";
+import { isLocalKbMode, latestLocalSummaryAt, searchLocalSummaries } from "./local-kb";
+import { indexChildSummariesForKb } from "./index-summaries";
 
 export type KbHit = {
   text: string;
@@ -65,11 +67,38 @@ function hitFromResult(r: KnowledgeBaseRetrievalResult): KbHit | null {
  * Retrieve privacy-safe summary chunks for a child.
  * Filters to S3 keys under kb-summaries/{childUserId}/ so raw chat never leaks cross-child.
  */
+/** Local mode refreshes a child's summaries at most this often (no LLM, file writes only). */
+const LOCAL_REFRESH_MS = 20 * 60_000;
+const localRefreshAt = new Map<string, number>();
+
+async function refreshLocalSummaries(childUserId: string) {
+  const now = Date.now();
+  const last = Math.max(localRefreshAt.get(childUserId) ?? 0, latestLocalSummaryAt(childUserId));
+  if (now - last < LOCAL_REFRESH_MS) return;
+  localRefreshAt.set(childUserId, now);
+  await indexChildSummariesForKb(childUserId).catch((error) => {
+    console.warn("[kb.local] refresh failed", error);
+  });
+}
+
 export async function retrieveChildSummaries(input: {
   childUserId: string;
   query: string;
   maxResults?: number;
 }): Promise<KbHit[]> {
+  if (isLocalKbMode()) {
+    if (!input.query.trim()) return [];
+    return observeKbSearch("kb.retrieve.local", async () => {
+      // Guardian questions see today's summaries, not only the dawn batch's.
+      await refreshLocalSummaries(input.childUserId);
+      return searchLocalSummaries({
+        childUserId: input.childUserId,
+        query: input.query,
+        maxResults: input.maxResults ?? 6,
+      });
+    });
+  }
+
   const kbId = env.bedrock.knowledgeBaseId;
   if (!kbId || !input.query.trim()) return [];
 
@@ -138,5 +167,5 @@ export function kbSourceLabels(hits: KbHit[]): string[] {
 }
 
 export function isKbConfigured(): boolean {
-  return Boolean(env.bedrock.knowledgeBaseId);
+  return Boolean(env.bedrock.knowledgeBaseId) || isLocalKbMode();
 }

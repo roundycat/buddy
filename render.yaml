@@ -1,0 +1,67 @@
+# Render Blueprint — Beddy 2.0 without AWS
+#   Web service (Docker, Singapore) + 1 GB persistent disk + Claude API.
+#   Step-by-step guide (Korean): deploy/render/README.md
+#
+# Values marked `sync: false` are typed into the Render dashboard when the
+# Blueprint is created. Never commit them. `generateValue` secrets are created
+# by Render.
+services:
+  - type: web
+    name: beddy2
+    runtime: docker
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    disk:
+      name: beddy-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      # --- AI: Claude API ---
+      - key: LLM_PROVIDER
+        value: anthropic
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL_CHAT
+        value: claude-haiku-5-5
+      - key: ANTHROPIC_MODEL_QUALITY
+        value: claude-haiku-5-5
+      # Offline Beddy answers if the API is unreachable or the daily cap is hit
+      - key: LLM_FALLBACK_TO_MOCK
+        value: "true"
+      - key: AI_DAILY_LLM_CAP
+        value: "3000"
+      - key: IMAGE_PROVIDER
+        value: bundled
+      - key: TTS_PROVIDER
+        value: browser
+
+      # --- Storage on the persistent disk ---
+      - key: PERSISTENCE
+        value: json
+      - key: AUTH_PROVIDER
+        value: json
+      - key: BEDDY_DATA_DIR
+        value: /var/data
+      - key: AVATAR_LOCAL_DIR
+        value: /var/data/avatars
+
+      # --- Secrets ---
+      - key: AUTH_SESSION_SECRET
+        generateValue: true
+      - key: CRON_SECRET
+        generateValue: true
+      # Judge / demo accounts (8–20 chars, letter + number + special character)
+      - key: JUDGE_PASSWORD
+        sync: false
+      - key: DEMO_PASSWORD
+        sync: false
+
+      # --- Runtime ---
+      - key: INPROCESS_SCHEDULER
+        value: "1"
+      - key: BEDDY_METRICS
+        value: "0"
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=384

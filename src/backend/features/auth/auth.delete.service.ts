@@ -13,7 +13,7 @@ import { clearStorybookParentLetter } from "@/backend/features/growth-storybook/
 import { clearStorybookIllustrations } from "@/backend/features/growth-storybook/storybook-illustration.service";
 import { clearMemoryLetters } from "@/backend/features/memory-post/memory-post.store";
 import type { AuthUser } from "./auth.types";
-import { deleteDynamoUser } from "./auth.users.dynamo.repo";
+import { deleteUser } from "./auth.users.repo";
 
 /**
  * Wipe app data + auth user row for account deletion.
@@ -37,5 +37,5 @@ export async function deleteAccount(user: AuthUser): Promise<void> {
     clearMemoryLetters(user.id),
   ]);
 
-  await deleteDynamoUser(user.id);
+  await deleteUser(user.id);
 }

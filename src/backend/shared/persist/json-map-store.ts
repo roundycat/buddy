@@ -1,9 +1,83 @@
 import { readJsonFile, writeJsonFile } from "@/backend/shared/persist/json-file";
 
 /**
- * Generic in-memory + JSON-file map store for local MVP persistence.
- * TODO [AWS DynamoDB]: replace with table access; keep the same get/save/clear API.
+ * In-memory + JSON-file map store (PERSISTENCE=json).
+ *
+ * One Map per file for the whole Node process: Next.js can evaluate a module more
+ * than once (separate server bundles), and two modules may open the same file.
+ * Separate Maps would overwrite each other's writes, so every store for a given
+ * file shares the instance kept on globalThis.
+ *
+ * Writes are coalesced (one file write per burst, ~50 ms) and flushed
+ * synchronously when the process exits.
  */
+
+type Shared = {
+  map: Map<string, unknown>;
+  timer: ReturnType<typeof setTimeout> | null;
+};
+
+type Registry = {
+  files: Map<string, Shared>;
+  exitHook: boolean;
+};
+
+const REGISTRY_KEY = Symbol.for("beddy.jsonMapStores");
+const WRITE_DELAY_MS = 50;
+
+function registry(): Registry {
+  const g = globalThis as unknown as Record<symbol, Registry | undefined>;
+  let r = g[REGISTRY_KEY];
+  if (!r) {
+    r = { files: new Map(), exitHook: false };
+    g[REGISTRY_KEY] = r;
+  }
+  return r;
+}
+
+function writeNow(filename: string, shared: Shared) {
+  if (shared.timer) {
+    clearTimeout(shared.timer);
+    shared.timer = null;
+  }
+  const obj: Record<string, unknown> = {};
+  shared.map.forEach((value, id) => {
+    obj[id] = value;
+  });
+  writeJsonFile(filename, obj);
+}
+
+/** Write every pending file now (process exit, tests). */
+export function flushJsonMapStores() {
+  registry().files.forEach((shared, filename) => {
+    if (shared.timer) writeNow(filename, shared);
+  });
+}
+
+function sharedFor(filename: string): Shared {
+  const r = registry();
+  let shared = r.files.get(filename);
+  if (!shared) {
+    shared = {
+      map: new Map(Object.entries(readJsonFile<Record<string, unknown>>(filename, {}))),
+      timer: null,
+    };
+    r.files.set(filename, shared);
+  }
+  if (!r.exitHook && typeof process !== "undefined" && typeof process.on === "function") {
+    r.exitHook = true;
+    process.on("exit", flushJsonMapStores);
+    // Write pending data as soon as the platform asks the server to stop (deploys).
+    // Next.js registers its own SIGTERM handler; if nothing else listens, exit here
+    // so this listener never keeps a terminating process alive.
+    process.on("SIGTERM", () => {
+      flushJsonMapStores();
+      if (process.listenerCount("SIGTERM") <= 1) process.exit(0);
+    });
+  }
+  return shared;
+}
+
 export function createJsonMapStore<T extends { userId?: string } | object>(
   filename: string,
   options?: {
@@ -13,17 +87,14 @@ export function createJsonMapStore<T extends { userId?: string } | object>(
 ) {
   type MapValue = T;
   const userIdKey = (options?.userIdKey ?? "userId") as string;
-
-  const store = new Map<string, MapValue>(
-    Object.entries(readJsonFile<Record<string, MapValue>>(filename, {}))
-  );
+  const shared = sharedFor(filename);
+  const store = shared.map as Map<string, MapValue>;
 
   function persist() {
-    const obj: Record<string, MapValue> = {};
-    Array.from(store.entries()).forEach(([id, value]) => {
-      obj[id] = value;
-    });
-    writeJsonFile(filename, obj);
+    if (shared.timer) return;
+    shared.timer = setTimeout(() => writeNow(filename, shared), WRITE_DELAY_MS);
+    // Never keep a short-lived script alive just for this timer.
+    (shared.timer as { unref?: () => void }).unref?.();
   }
 
   return {

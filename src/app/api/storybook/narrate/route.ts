@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 import { requireChildUser } from "@/backend/shared/http/auth";
 import { HttpError, withApiGuard } from "@/backend/shared/http/route";
 import { synthesizeStorybookNarration } from "@/backend/features/growth-storybook/storybook-narration.service";
+import { env } from "@/backend/shared/config/env";
 
 export async function POST(request: Request) {
   return withApiGuard(
     async () => {
       await requireChildUser();
+      // Without Polly the device reads the story aloud (speechSynthesis fallback).
+      if (env.ttsProvider !== "polly") {
+        throw new HttpError("이 기기에서 바로 읽어 줄게요.", 503);
+      }
       const body = (await request.json().catch(() => null)) as {
         text?: string;
       } | null;
