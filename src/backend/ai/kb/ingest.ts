@@ -8,8 +8,8 @@ import { recordCount } from "@/backend/shared/observability";
 
 /**
  * Re-index the guardian Knowledge Base after the dawn batch writes new
- * summaries to S3. (v1 wrote summaries but never started ingestion, so the
- * guardian Q&A kept answering from whatever was indexed at setup time.)
+ * summaries to S3. (Without this, guardian Q&A keeps answering from whatever
+ * was indexed at setup time.)
  */
 export async function startKbIngestion(): Promise<{
   started: boolean;

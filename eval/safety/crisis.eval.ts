@@ -1,5 +1,5 @@
 /**
- * Offline evaluation: v1 crisis regex vs Beddy 2.0 safety signal rules.
+ * Offline evaluation: baseline crisis regex (기존 방식) vs Beddy 2.0 safety signal rules.
  *
  *   npm run eval:safety                         # dev set
  *   EVAL_SET=heldout npm run eval:safety        # held-out set (final measurement only)
@@ -66,19 +66,19 @@ describe(`safety eval — ${SET}`, () => {
     md.push("");
     md.push(`라벨 분포: ${Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(" · ")}`);
     md.push("");
-    md.push("| 지표 | v1 (정규식) | v2 (Beddy 2.0 규칙) |");
+    md.push("| 지표 | 기존 방식 | Beddy 2.0 규칙 |");
     md.push("|---|---|---|");
     for (const [label, key] of METRIC_LABELS) {
       md.push(`| ${label} | ${pct(m1[key])} | ${pct(m2[key])} |`);
     }
     md.push("");
-    md.push("| 범주 | 문장 수 | v1 맞음 | v2 맞음 |");
+    md.push("| 범주 | 문장 수 | 기존 방식 맞음 | 2.0 맞음 |");
     md.push("|---|---|---|---|");
     for (const key of Object.keys(c2).sort()) {
       md.push(`| ${key} | ${c2[key].n} | ${rate(c1[key].correct, c1[key].n)} | ${rate(c2[key].correct, c2[key].n)} |`);
     }
     md.push("");
-    md.push("v1은 '관찰'과 '보호' 단계가 없어 해당 지표는 구조적으로 0입니다.");
+    md.push("기존 방식은 '관찰'과 '보호' 단계가 없어 해당 지표는 구조적으로 0입니다.");
 
     fs.mkdirSync("eval/results", { recursive: true });
     const stem = SET === "dev" || SET === "heldout" ? SET : path.basename(SET, ".jsonl");

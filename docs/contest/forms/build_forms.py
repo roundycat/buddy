@@ -216,7 +216,7 @@ def build_markdown(report, results):
         "",
         "> 이 파일은 `docs/contest/forms/report_content.py`에서 만들어집니다. 고칠 때는 그 파일을 고치고"
         " `python3 docs/contest/forms/build_forms.py`를 실행하세요. 제출 파일은 `docs/contest/forms/out/`에 생깁니다.",
-        "> `[ ]` 칸(양식에서는 노란색)은 제출 전에 채웁니다: 위기 평가 수치·해석, 배포 주소, v1 수상 여부, 역할, 설문·자문.",
+        "> `[ ]` 칸(양식에서는 노란색)은 제출 전에 채웁니다: 위기 평가 수치·해석, 배포 주소.",
         "",
     ]
     for key, title in titles:

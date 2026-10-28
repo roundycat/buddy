@@ -10,37 +10,32 @@
 ![AI](https://img.shields.io/badge/AI-LLM%20%2B%20Agent%20%2B%20RAG-8A2BE2)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-**v1: 2026 강원 LRS 공유대학 AWS 해커톤 수상 프로젝트**(원작 팀 README 기준) · **v2: 2026 AI 라이프 솔루션 챌린지 탐구개발** · 비임상(진단·처방 금지) · 아동 안전 계층 + Bridge 프라이버시
+**2026 AI 라이프 솔루션 챌린지 출품작 — 팀 YSA** · 비임상(진단·처방 금지) · 아동 안전 계층 + Bridge 프라이버시
 
-> ### 출처와 버전 구분
-> | 구분 | 범위 | 만든 사람 |
-> |---|---|---|
-> | **v1** | 브랜치 `v1` (커밋 `79ba316`, 2026-08-05 ~ 08-09) | 2026 강원 LRS 공유대학 AWS 해커톤 원작 팀(최유경 참여). MIT License로 공개된 [원본 저장소](https://github.com/evan-kim-dev/2026-aws-healthcare-ai-prompthon-beddy) |
-> | **v2 (Beddy 2.0)** | `v1` 이후 커밋 (2026-10-22 ~) | 2026 AI 라이프 솔루션 챌린지 팀 **YSA**(대표 정하민) — 최유경·정하민·최유현·최태웅. 최유경은 v1 원작 팀원 |
->
-> v2는 v1 위에서 **아동 안전·프라이버시 성능을 높이는 탐구개발**을 합니다. 무엇이 새로 바뀌었는지는 [`docs/v2/CHANGES.md`](docs/v2/CHANGES.md)에 정리합니다. 원작 저작권 표시는 [`LICENSE`](LICENSE)에 그대로 둡니다.
+> ### 출처
+> 2026 강원 LRS 공유대학 AWS 해커톤 출품작 Beddy(MIT License, [원본 저장소](https://github.com/evan-kim-dev/2026-aws-healthcare-ai-prompthon-beddy))를 원작 팀장 최유경이 새 팀 **YSA**(대표 정하민 · 최유경·최유현·최태웅)와 이어서 개발했습니다. 기본 서비스는 원작에서 이어받았고, 이번에 새로 만든 것은 [`docs/v2/CHANGES.md`](docs/v2/CHANGES.md)에 정리했습니다. 원작 기준점은 `v1` 브랜치, 원작 저작권 표시는 [`LICENSE`](LICENSE)에 있습니다.
 
 ## Beddy 2.0에서 달라진 점 — "아이에게 안전한 AI 친구"
 
-아동용 AI 친구에게 가장 먼저 물어야 할 질문은 "안전한가, 아이를 AI에 기대게 만들지 않나"입니다. v2는 이 질문에 숫자로 답하는 데 집중했습니다.
+아동용 AI 친구에게 가장 먼저 물어야 할 질문은 "안전한가, 아이를 AI에 기대게 만들지 않나"입니다. Beddy 2.0은 이 질문에 숫자로 답하는 데 집중했습니다.
 
-| | v1 | v2 |
-|---|---|---|
-| 위기 신호 | 정규식 26개, 3단계 | 5단계(관찰·위험·긴급·보호) 규칙 계층 + LLM 2차 판정(상향만) |
-| 표기 변형 | 띄어쓰기만 일부 허용 | 초성(ㅈㄱㅅㄷ), 숫자 끼우기(자1살), 띄어쓰기, 오타 |
-| 오경보 | "자살골", "죽고 싶을 만큼 웃겼어"에 긴급 알림 | 과장·게임·교육·부정문·제3자·사과 초성·병원 단어 억제 |
-| 학대·폭력 노출 | 구분 없음 | 보호자 자동 알림 대신 간호사·사회복지·112·1388 안내(죽음 소망이 함께 있어도). 그 대화는 보호자가 읽는 요약·질문 답변의 재료에서도 뺌 |
-| 보호자 공유 | 고정 요약 | 사실만 알리고, 반복 신호는 **아이에게 먼저 동의**를 구함. 아이가 범주별로 공유 여부 선택 |
-| 법정대리인 동의 | 아이가 직접 체크 | 만 14세 미만은 보호자 계정 동의 후에만 AI·기록 기능 사용(개인정보보호법 제22조의2), 동의 기록, 철회하면 기록 파기 |
-| 원문 유출 | 대화 기록 형식·좌표만 차단 | 원문·인용·비밀·제3자 실명·위치 검사. 독립 평가셋 탐지율 0% → 72.0% |
-| 응답 안전 | Bedrock 가드레일(AWS 판) | 문장 단위 출력 필터(개인정보·약 지시·위험 방법·관계 규칙)를 화면에 나가기 전에 적용. 이야기·미션 같은 다른 아이용 AI 글에도 적용 |
-| AI 의존 | — | AI 고지, 독점·비밀·연애 문장 가드, 사용 리듬, 사람 연결 미션 |
-| 측정 | — | 라벨 기준서 + 독립 평가셋, `npm run eval:safety` |
+| 영역 | Beddy 2.0에서 새로 만든 것 |
+|---|---|
+| 위기 신호 | 5단계(관찰·위험·긴급·보호) 규칙 계층 + LLM 2차 판정(상향만) |
+| 표기 변형 | 초성(ㅈㄱㅅㄷ), 숫자 끼우기(자1살), 띄어쓰기, 오타 |
+| 오경보 | 과장·게임·교육·부정문·제3자·사과 초성·병원 단어 억제 |
+| 학대·폭력 노출 | 보호자 자동 알림 대신 간호사·사회복지·112·1388 안내(죽음 소망이 함께 있어도). 그 대화는 보호자가 읽는 요약·질문 답변의 재료에서도 뺌 |
+| 보호자 공유 | 사실만 알리고, 반복 신호는 **아이에게 먼저 동의**를 구함. 아이가 범주별로 공유 여부 선택 |
+| 법정대리인 동의 | 만 14세 미만은 보호자 계정 동의 후에만 AI·기록 기능 사용(개인정보보호법 제22조의2), 동의 기록, 철회하면 기록 파기 |
+| 원문 유출 | 원문·인용·비밀·제3자 실명·위치 검사. 독립 평가셋 탐지율 72.0%(기존 방식 0%) |
+| 응답 안전 | 문장 단위 출력 필터(개인정보·약 지시·위험 방법·관계 규칙)를 화면에 나가기 전에 적용. 이야기·미션 같은 다른 아이용 AI 글에도 적용 |
+| AI 의존 | AI 고지, 독점·비밀·연애 문장 가드, 사용 리듬, 사람 연결 미션 |
+| 측정 | 라벨 기준서 + 독립 평가셋, `npm run eval:safety` |
 
 자세한 변경 내역은 [`docs/v2/CHANGES.md`](docs/v2/CHANGES.md), 평가 방법은 [`eval/LABELING_GUIDE.md`](eval/LABELING_GUIDE.md)에 있습니다.
 
 ```bash
-# v1 vs v2 위기 평가 — 개발셋 (결과는 eval/results/에 덮어씀)
+# 기존 방식 vs Beddy 2.0 위기 평가 — 개발셋 (결과는 eval/results/에 덮어씀)
 npx vitest run --config vitest.eval.config.mts eval/safety/crisis.eval.ts
 # 독립 일상 170문장
 EVAL_SET=eval/heldout/crisis-none.jsonl npx vitest run --config vitest.eval.config.mts eval/safety/crisis.eval.ts
@@ -208,7 +203,6 @@ npm run check:bedrock   # Bedrock 연결 시
 ### 배포 (요약)
 - Render + Claude API(대회 시제품): [`deploy/render/README.md`](deploy/render/README.md) — 배포 뒤 `BASE_URL=… node scripts/smoke/smoke.mjs`로 1분 점검
 - AWS(Bedrock·DynamoDB, EC2 + CloudFront): [`deploy/aws/README.md`](deploy/aws/README.md) — CloudShell에서 한 번 실행
-- v1의 ECS·PowerShell 배포 기록: `scripts/deploy/`, [`docs/production/05-DEPLOYMENT_CHECKLIST.md`](docs/production/05-DEPLOYMENT_CHECKLIST.md)
 
 ---
 
@@ -306,8 +300,8 @@ scripts/
 |---|---|
 | [`docs/README.md`](docs/README.md) | 문서 인덱스 |
 | [`docs/architecture/`](docs/architecture/) | 시스템·AI 플로우 다이어그램 |
-| [`docs/production/`](docs/production/) | 아키텍처 확정·보안·배포 체크리스트 |
-| [`docs/demo/step7-demo.md`](docs/demo/step7-demo.md) | 시연 노트 |
+| [`docs/v2/CHANGES.md`](docs/v2/CHANGES.md) | 이번 탐구개발에서 새로 만든 것 |
+| [`docs/contest/`](docs/contest/) | 공모전 제출 자료(보고서 본문·심사 안내·시연 대본) |
 | [`docs/api/README.md`](docs/api/README.md) | API 맵 |
 
 ### 스크립트

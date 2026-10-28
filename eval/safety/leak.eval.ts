@@ -1,7 +1,7 @@
 /**
  * Offline evaluation: does guardian-facing text leak the child's chat?
- *   v1 = Bridge privacy filter (raw-chat format / coordinates only)
- *   v2 = leak guard (verbatim, quote, secret, third-party name, location)
+ *   baseline (기존 방식) = Bridge privacy filter (raw-chat format / coordinates only)
+ *   Beddy 2.0 = leak guard (verbatim, quote, secret, third-party name, location)
  *
  *   npm run eval:safety -- leak            # held-out leak set (150)
  *   LEAK_SET=path/to/file.jsonl npm run eval:safety -- leak
@@ -77,14 +77,14 @@ describe(`leak eval — ${path.basename(FILE)}`, () => {
     const md: string[] = [];
     md.push(`# 보호자 글 유출 평가 — ${path.basename(FILE)} (${items.length}문장, 유출 ${leaks} · 정상 ${items.length - leaks})`);
     md.push("");
-    md.push("| 지표 | v1 (Bridge 필터) | v2 (유출 검사) |");
+    md.push("| 지표 | 기존 방식 | Beddy 2.0 유출 검사 |");
     md.push("|---|---|---|");
     md.push(`| 유출 탐지율 | ${pct(m1.tp, m1.tp + m1.fn)} | ${pct(m2.tp, m2.tp + m2.fn)} |`);
     md.push(`| 정상 요약 오탐률 | ${pct(m1.fp, m1.fp + m1.tn)} | ${pct(m2.fp, m2.fp + m2.tn)} |`);
     md.push(`| 정밀도 | ${pct(m1.tp, m1.tp + m1.fp)} | ${pct(m2.tp, m2.tp + m2.fp)} |`);
     md.push(`| F1 | ${(m1.f1 * 100).toFixed(1)} | ${(m2.f1 * 100).toFixed(1)} |`);
     md.push("");
-    md.push("| 유출 유형 | 문장 수 | v1 탐지 | v2 탐지 |");
+    md.push("| 유출 유형 | 문장 수 | 기존 방식 탐지 | 2.0 탐지 |");
     md.push("|---|---|---|---|");
     for (const t of Object.keys(m2.byType).sort()) {
       const a = m1.byType[t] ?? { n: m2.byType[t]!.n, caught: 0 };
@@ -92,7 +92,7 @@ describe(`leak eval — ${path.basename(FILE)}`, () => {
       md.push(`| ${t} | ${b.n} | ${pct(a.caught, a.n)} | ${pct(b.caught, b.n)} |`);
     }
     md.push("");
-    md.push("v1 필터는 대화 기록 형식(\"아이: …\" 여러 줄)과 좌표만 막습니다. 문장 단위 유출은 구조적으로 보지 못합니다.");
+    md.push("기존 방식은 대화 기록 형식(\"아이: …\" 여러 줄)과 좌표만 막아, 문장 단위 유출은 구조적으로 보지 못합니다.");
 
     const stem = path.basename(FILE, ".jsonl");
     fs.mkdirSync("eval/results", { recursive: true });

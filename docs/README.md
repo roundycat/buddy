@@ -3,13 +3,9 @@
 | Folder | Contents |
 |--------|----------|
 | [`architecture/`](./architecture/) | System & AI pipeline diagrams (SVG/PNG) |
-| [`aws/`](./aws/) | AWS integration notes + migration step docs |
-| [`aws/integration/`](./aws/integration/) | DynamoDB, S3, Bedrock, KB, EventBridge, … |
-| [`demo/`](./demo/) | Demo walkthrough |
-| [`production/`](./production/) | Architecture final, security, deploy checklists |
-| [`presentation/`](./presentation/) | Pitch / diagram worksheets |
-| [`images/`](./images/) | Shared assets (e.g. AWS icons for exports) |
 | [`api/`](./api/) | API documentation index |
-| [`internal/`](./internal/) | Historical refactor / performance notes |
+| [`images/`](./images/) | Shared assets (e.g. AWS icons for exports) |
+| [`v2/`](./v2/) | Beddy 2.0 — what this round of development added |
+| [`contest/`](./contest/) | 2026 AI 라이프 솔루션 챌린지 submission materials |
 
-Start with the root [`README.md`](../README.md) and [`production/00-FINAL_ARCHITECTURE.md`](./production/00-FINAL_ARCHITECTURE.md).
+Start with the root [`README.md`](../README.md).

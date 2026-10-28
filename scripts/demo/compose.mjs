@@ -178,7 +178,7 @@ function measureHtml(scene) {
     const rows = MEASUREMENTS.map(
       ([label, v1, v2]) => `<div style="background:rgba(255,255,255,.8);border-radius:26px;padding:30px 36px;text-align:left">
           <div style="font-size:30px;color:${C.slate}">${esc(label)}</div>
-          <div style="margin-top:14px;font-size:30px;color:${C.muted}">v1 ${esc(v1)} <span style="color:${C.sage}">→</span> <b style="font-size:56px;color:${C.ink}">v2 ${esc(v2)}</b></div>
+          <div style="margin-top:14px;font-size:30px;color:${C.muted}">기존 ${esc(v1)} <span style="color:${C.sage}">→</span> <b style="font-size:56px;color:${C.ink}">2.0 ${esc(v2)}</b></div>
         </div>`
     ).join("");
     return `<div style="width:920px"><div style="font-size:52px;font-weight:800;margin-bottom:40px">${esc(scene.title)}</div>
@@ -193,7 +193,7 @@ function measureHtml(scene) {
   return `<div>
     <div style="font-size:46px;font-weight:700;color:${C.ink};margin-bottom:46px">${esc(scene.title)}</div>
     <table style="border-collapse:collapse;margin:0 auto;background:rgba(255,255,255,.75);border-radius:28px;overflow:hidden;box-shadow:0 20px 50px rgba(51,65,85,.12)">
-      <tr><th></th><th style="padding:22px 34px;font-size:28px;color:${C.muted}">v1</th><th style="padding:22px 34px;font-size:28px;color:${C.sageDeep}">v2</th></tr>
+      <tr><th></th><th style="padding:22px 34px;font-size:28px;color:${C.muted}">기존 방식</th><th style="padding:22px 34px;font-size:28px;color:${C.sageDeep}">Beddy 2.0</th></tr>
       ${rows}
     </table>
     ${scene.foot ? `<div style="margin-top:34px;font-size:24px;color:${C.muted}">${esc(scene.foot)}</div>` : ""}

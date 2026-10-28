@@ -54,7 +54,7 @@ const ACCOUNTS = {
   guardian: process.env.DEMO_GUARDIAN_EMAIL || `demo-parent-${stamp}@beddy.test`,
 };
 
-/** Comfort, then two jokes that only sound alarming (v1 sent an urgent alert on the first). */
+/** Comfort, then two jokes that only sound alarming (a keyword-only detector raises an urgent alert on the first). */
 const CHATS = [
   "오늘 주사 맞아서 무서웠어",
   "어제 축구에서 자살골 넣었어ㅋㅋ",
@@ -342,7 +342,7 @@ async function main() {
     await shot(child, "03-child-home");
     await finish(child);
 
-    // 4. Chats: comfort, a joke that v1 alarmed on, and a blurred crisis message.
+    // 4. Chats: comfort, a joke a keyword-only detector alarms on, and a blurred crisis message.
     page = await childCtx.newPage();
     const c0 = (await startRecording(page, "03-chat")).startedAt;
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });

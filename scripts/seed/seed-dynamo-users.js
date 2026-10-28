@@ -10,7 +10,7 @@
  *   DEMO_CHILD_PASSWORD / DEMO_GUARDIAN_PASSWORD → demo-child@beddy.test / demo-guardian@beddy.test
  *   (or DEMO_PASSWORD for both demo accounts)
  *
- * The v1 accounts with passwords written in the repository are retired.
+ * Accounts whose passwords used to live in the repository are retired.
  * To restore specific accounts, use scripts/seed/restore-dynamo-users.js.
  */
 console.log(

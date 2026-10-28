@@ -20,8 +20,8 @@ const OUT = join(HERE, "out");
 const DOCS = [
   {
     source: "docs/v2/CHANGES.md",
-    output: "Beddy2.0_v1-v2_구분표.pdf",
-    note: "성과보고서 별첨 · 팀 YSA · 저장소 roundycat/buddy의 docs/v2/CHANGES.md",
+    output: "Beddy2.0_탐구개발_내역.pdf",
+    note: "성과보고서 별첨 · 팀 YSA · github.com/roundycat/buddy 의 docs/v2/CHANGES.md",
   },
 ];
 
