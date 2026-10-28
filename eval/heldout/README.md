@@ -11,3 +11,5 @@
 | `crisis-test.jsonl` | 위 두 crisis 파일을 합친 최종 평가셋 | `python3 eval/heldout/build_crisis_test.py` |
 
 측정: `EVAL_SET=heldout npm run eval:safety`, 배포 환경에서는 `bash deploy/aws/run-eval.sh`.
+
+`crisis-risk.jsonl`·`crisis-test.jsonl`과 팀원이 보낸 CSV는 저장소에 올리지 않습니다(`.gitignore`). 저장소가 공개라서, 위기 문장 원문 대신 `eval/results/`의 집계 결과만 커밋합니다.

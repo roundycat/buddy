@@ -67,3 +67,9 @@ __pycache__/
 
 # form previews (docs/contest/forms/preview.sh)
 docs/contest/forms/out/preview/
+
+# 팀원이 쓴 위기 평가 문장 — 공개 저장소에 올리지 않음(결과 요약만 eval/results/에 커밋)
+eval/heldout/crisis-risk.jsonl
+eval/heldout/crisis-test.jsonl
+eval/heldout/*.csv
+!eval/heldout/risk-template.csv
