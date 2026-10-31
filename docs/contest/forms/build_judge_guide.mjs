@@ -5,7 +5,8 @@
  *   node docs/contest/forms/build_judge_guide.mjs
  *
  * Writes docs/contest/forms/out/Beddy2.0_심사안내.pdf and docs/contest/judge-guide.md (same content as Markdown).
- * The password is never written here — it lives only in the submission email.
+ * The password is never written into the repo — pass JUDGE_PASSWORD (and TEST_URL, GUIDE_OUT) only when
+ * building the copy that goes into the submission email.
  * Needs Playwright's Chromium (same setup as scripts/demo).
  */
 import { createRequire } from "node:module";
@@ -16,7 +17,11 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../../..");
 const IMG = join(ROOT, "docs/contest/img");
-const OUT_PDF = join(HERE, "out", "Beddy2.0_심사안내.pdf");
+const OUT_PDF = process.env.GUIDE_OUT || join(HERE, "out", "Beddy2.0_심사안내.pdf");
+// Submission copy only: JUDGE_PASSWORD / TEST_URL in the environment put the real values into the PDF
+// (never into the repo's copy or the Markdown). Without them the PDF points to the submission email.
+const PW = process.env.JUDGE_PASSWORD || "";
+const URL = process.env.TEST_URL || "";
 const OUT_MD = join(ROOT, "docs/contest/judge-guide.md");
 
 // ---------------------------------------------------------------- content
@@ -45,7 +50,7 @@ const STEPS = [
     ],
     todo: [
       "휴대폰 브라우저에서 테스트 URL을 엽니다. 첫 화면에서 **로그인**을 누릅니다.",
-      "이메일 칸에 아이 계정(예: `judge1-child@beddy.test`), 비밀번호 칸에 제출 메일의 비밀번호를 넣고 로그인합니다.",
+      "이메일 칸에 아이 계정(예: `judge1-child@beddy.test`), 비밀번호 칸에 1쪽 표의 비밀번호를 넣고 로그인합니다.",
       "처음 들어오면 **친구 만들기**가 시작됩니다(9단계, 1분 정도). 성향·취향 설문 → 친구 모습 고르기 → 이름 짓기 순서이고, 아무 답이나 골라도 됩니다.",
       "홈 화면이 나오면 가운데에 아이가 고른 친구가, 아래에 대화창이 있습니다.",
     ],
@@ -205,7 +210,7 @@ const RESULTS = [
 ];
 
 const FAQ = [
-  ["로그인이 안 돼요", "제출 메일의 비밀번호를 다시 확인해 주세요(영문 대소문자·숫자·특수문자를 포함합니다). 같은 곳에서 10번 틀리면 10분 동안 잠깁니다. 계속 안 되면 메일이나 전화로 알려 주시면 바로 확인하겠습니다."],
+  ["로그인이 안 돼요", "1쪽 표의 비밀번호를 다시 확인해 주세요(영문 대소문자·숫자·특수문자를 포함합니다). 같은 곳에서 10번 틀리면 10분 동안 잠깁니다. 계속 안 되면 메일이나 전화로 알려 주시면 바로 확인하겠습니다."],
   ["다른 분이 남긴 대화가 보여요", "같은 번호 계정을 여러 분이 쓰신 경우입니다. 다른 번호 계정을 써 주세요. 매일 새벽 5시에 모든 심사 계정이 처음 상태로 돌아갑니다."],
   ["PC에서 화면이 넓게 퍼져 보여요", "휴대폰 화면 기준으로 만들었습니다. 브라우저 창 폭을 휴대폰처럼 좁히거나, 휴대폰으로 열어 주세요."],
   ["답이 짧고 정해진 말처럼 느껴져요", "하루 AI 사용 상한을 넘었거나 AI 서버에 잠시 연결되지 않으면, 미리 정한 답을 하는 '오프라인 베디'가 대신 답합니다. 잠시 뒤 다시 보내 주세요. 이때 위기 판정은 AI 재판정 없이 규칙만으로 합니다."],
@@ -322,7 +327,8 @@ function coverPage() {
   const steps = STEPS.map((s, idx) => `<tr><td class="c"><b>${s.num}</b></td><td><b>${esc(s.title)}</b><br><span style="color:#5b6878;font-size:8.2pt">${esc(s.account)}</span></td><td>${s.inputs.map((t, i) => `<div><span style="color:#b4532a;font-size:8pt;font-weight:700">문장 ${stepInputNo(idx, i)}</span> ${esc(t)}</div>`).join("") || "—"}</td><td>${esc(s.brief)}</td><td class="c">${esc(s.time)}</td></tr>`).join("");
   return `<section class="page">
     <h1>Beddy 2.0 심사위원 안내서</h1>
-    <p class="sub">장기입원 아동을 위한 '안전한' AI 정서 동행자 · 팀 YSA · 테스트 URL과 비밀번호는 제출 메일 본문에 있습니다</p>
+    <p class="sub">장기입원 아동을 위한 '안전한' AI 정서 동행자 · 팀 YSA${URL ? ` · 테스트 URL: <b>${esc(URL)}</b>` : " · 테스트 URL과 비밀번호는 제출 메일 본문에 있습니다"}</p>
+    ${PW ? `<div class="box blue" style="display:flex;gap:7mm;align-items:center;margin:2mm 0 3mm;white-space:nowrap"><div style="flex:none"><b>테스트 URL</b><br><span style="font-size:11.5pt;font-weight:700">${esc(URL || "제출 메일 본문 참조")}</span></div><div style="flex:none"><b>심사 계정 비밀번호(다섯 쌍 공통)</b><br><code style="font-size:13pt;font-weight:700;background:#fff">${esc(PW)}</code></div><div style="font-size:8.4pt;color:#5b6878;white-space:normal">아이 judge1~5-child@beddy.test<br>보호자 judge1~5-guardian@beddy.test</div></div>` : ""}
     <p>이 안내서는 심사위원께서 <b>10분 안에 Beddy 2.0의 주요 기능을 직접 확인</b>하실 수 있도록 만들었습니다. 쪽마다 한 단계씩, 왼쪽에 실제 화면, 오른쪽에 할 일·입력할 문장·확인할 것을 적었습니다.</p>
     <div class="box blue"><h3>가장 빠른 길 — 5분</h3><ol class="quick">${QUICK.map((q) => `<li>${inline(q)}</li>`).join("")}</ol>
       <p style="margin-top:1.5mm;font-size:8.8pt;color:#5b6878">보낼 문장과 단계별 확인 사항은 다음 쪽 '한 장 체크리스트'에 모아 두었습니다.</p></div>
@@ -330,12 +336,12 @@ function coverPage() {
     <ul>${OVERVIEW.map((o) => `<li>${inline(o)}</li>`).join("")}</ul>
     <h2>접속과 계정</h2>
     <ul>
-      <li>휴대폰 브라우저(사파리·크롬)로 테스트 URL을 여시면 가장 보기 좋습니다. PC에서는 브라우저 창 폭을 휴대폰처럼 좁혀 주세요.</li>
+      <li>휴대폰 브라우저(사파리·크롬)로 ${URL ? `<b>${esc(URL)}</b>` : "테스트 URL"}을 여시면 가장 보기 좋습니다. PC에서는 브라우저 창 폭을 휴대폰처럼 좁혀 주세요.</li>
       <li>회원가입 없이 아래 심사위원용 계정으로 로그인합니다. <b>심사위원마다 번호 하나</b>를 골라, 같은 번호의 아이·보호자 계정을 함께 써 주세요. 번호마다 기록이 따로 저장되고, 매일 새벽 5시에 처음 상태로 돌아갑니다.</li>
       <li>아이 계정은 만 14세 미만으로 등록돼 있고, 같은 번호의 보호자가 법정대리인 동의를 마친 상태입니다.</li>
     </ul>
     <table><tr><th class="c" style="width:10%">번호</th><th>아이 계정</th><th>보호자 계정</th><th style="width:28%">비밀번호(공통)</th></tr>
-      ${ACCOUNTS.map(([n, c, g], i) => `<tr><td class="c">${n}</td><td><code>${c}</code></td><td><code>${g}</code></td>${i === 0 ? `<td rowspan="5" style="vertical-align:middle">제출 메일 본문에 적었습니다</td>` : ""}</tr>`).join("")}</table>
+      ${ACCOUNTS.map(([n, c, g], i) => `<tr><td class="c">${n}</td><td><code>${c}</code></td><td><code>${g}</code></td>${i === 0 ? `<td rowspan="5" style="vertical-align:middle">${PW ? `<code style="font-size:11pt;font-weight:700">${esc(PW)}</code>` : "제출 메일 본문에 적었습니다"}</td>` : ""}</tr>`).join("")}</table>
     <div class="box warn"><b>주의</b> — 도움 패널의 109·119·112·1388 버튼은 휴대폰에서 누르면 실제 기관으로 전화가 걸립니다. 화면만 확인하시고 통화는 누르지 말아 주세요.</div>
   </section>
   <section class="page">
@@ -405,7 +411,7 @@ function markdown() {
   out.push("", "## 접속과 계정", "");
   out.push("- 주소는 제출 메일 본문의 테스트 URL입니다. 휴대폰 브라우저로 여시면 가장 보기 좋고, PC에서는 창 폭을 좁혀 주세요.");
   out.push("- 심사위원마다 번호 하나를 골라 같은 번호의 아이·보호자 계정을 함께 써 주세요. 번호마다 기록이 따로 저장되고, 매일 새벽 5시에 처음 상태로 돌아갑니다.");
-  out.push("- 아이 계정은 만 14세 미만으로 등록돼 있고, 같은 번호의 보호자가 법정대리인 동의를 마친 상태입니다. **비밀번호(공통)는 제출 메일 본문에 적었습니다.**", "");
+  out.push("- 아이 계정은 만 14세 미만으로 등록돼 있고, 같은 번호의 보호자가 법정대리인 동의를 마친 상태입니다. **비밀번호(공통)는 제출 메일 본문과 제출용 심사안내 PDF에 적었습니다.**", "");
   out.push("| 번호 | 아이 계정 | 보호자 계정 |", "|---|---|---|");
   ACCOUNTS.forEach(([n, c, g]) => out.push(`| ${n} | \`${c}\` | \`${g}\` |`));
   out.push("", "**주의**: 도움 패널의 109·119·112·1388 버튼은 휴대폰에서 누르면 실제 기관으로 전화가 걸립니다. 화면만 확인하시고 통화는 누르지 말아 주세요.", "");
