@@ -18,6 +18,8 @@ process.env.TRUST_CF_CONNECTING_IP = "1";
 afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
 
 const PASSWORD = "Throttle#2026";
+// Every request hashes or checks a bcryptjs password (pure JS); a full parallel run can pass 5 s.
+const SLOW = 30_000;
 const agreements = { terms: true, privacy: true, sensitive: true, ageOrGuardian: true, marketing: false };
 
 /** As on Render: Cloudflare sets CF-Connecting-IP; X-Forwarded-For starts with whatever the client sent. */
@@ -63,7 +65,7 @@ describe("login throttling", () => {
       post("/api/auth/login", { email: "throttle-guardian@x.test", password: PASSWORD }, "192.0.2.44")
     );
     expect(elsewhere.status).toBe(200);
-  });
+  }, SLOW);
 });
 
 describe("signup throttling", () => {
@@ -80,7 +82,7 @@ describe("signup throttling", () => {
     for (let i = 0; i < 20; i++) expect((await make(i, "198.51.100.9")).status).toBe(200);
     expect((await make(20, "198.51.100.9")).status).toBe(429);
     expect((await make(21, "198.51.100.10")).status).toBe(200);
-  });
+  }, SLOW);
 });
 
 describe("client address", () => {

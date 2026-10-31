@@ -38,7 +38,7 @@ import {
   requestChildConsentForConcern,
 } from "@/backend/features/sharing/concern-request.service";
 import { guardianVisibilityKey } from "@/backend/features/sharing/share-policy";
-import { getParentHome, getParentSafetyAlert } from "./parent.service";
+import { askParentReport, getParentHome, getParentSafetyAlert } from "./parent.service";
 import { requireGuardianMediaAccess } from "./parent-media.service";
 
 const CHILD = "child-1";
@@ -228,6 +228,15 @@ describe("guardian home — child-controlled sharing", () => {
     const home = await getParentHome(GUARDIAN);
     expect(home.concernNotices).toHaveLength(1);
     expect(home.concernNotices[0]!.summary).toBe("요즘 마음이 힘들어 보여요.");
+  });
+
+  it("answers guardians from the summary when the AI is offline (no key or daily cap)", async () => {
+    // The offline persona talks to the child ("…, 불안한 거 느껴져"); it must not reach a guardian.
+    const report = await askParentReport(GUARDIAN, "요즘 기분 흐름은 어때요?");
+    expect(report.answer?.answer).toContain("최근 기분 흐름은");
+    expect(report.answer?.answer).not.toMatch(/느껴져|나는 여기 있을게|숨 하나만/);
+    const home = await getParentHome(GUARDIAN);
+    expect(home.todayMessage?.text ?? "").not.toMatch(/느껴져|나는 여기 있을게|숨 하나만/);
   });
 
   it("keeps safety alerts to the fact that help is needed", async () => {

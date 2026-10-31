@@ -659,6 +659,8 @@ async function composeTodayMessageWithLlm(
         },
       ],
     });
+    // The offline persona (no key, daily cap) answers as the child's companion — not for guardians.
+    if (result.provider === "mock") return fallback;
     const text = result.content?.trim().replace(/^["「]|["」]$/g, "");
     return text && text.length >= 8 ? text.slice(0, 220) : fallback;
   } catch (error) {
@@ -716,6 +718,7 @@ async function composeDailySummaryWithLlm(
         },
       ],
     });
+    if (result.provider === "mock") return fallback;
     const text = result.content?.trim();
     return text && text.length >= 12 ? text.slice(0, 600) : fallback;
   } catch (error) {
@@ -1451,10 +1454,12 @@ ${context.kbSummaries}
       maxTokens: 420,
     });
 
+    // The offline persona speaks to the child; guardians get the rule-based answer instead.
+    if (result.provider === "mock") return null;
     const text = result.content?.trim();
     if (!text || text.length < 8) return null;
 
-    // Mock provider often echoes generic lines — still allow but strip fences
+    // Strip code fences the model sometimes adds
     return text
       .replace(/^```[\s\S]*?```$/g, (block) =>
         block.replace(/^```(?:json|text)?\n?/i, "").replace(/\n?```$/, "")
