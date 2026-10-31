@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * Supporting documents for the submission email, as A4 PDFs (공고 9: 성과 입증 자료 추가 제출 가능).
+ * 심사안내는 build_judge_guide.mjs 참고.
  *
  *   node docs/contest/forms/build_attachments.mjs
  *
@@ -24,12 +25,7 @@ const DOCS = [
     note: "성과보고서 별첨 · 팀 YSA · github.com/roundycat/buddy 의 docs/v2/CHANGES.md",
     cls: "changes",
   },
-  {
-    source: "docs/contest/judge-guide.md",
-    output: "Beddy2.0_심사안내.pdf",
-    note: "팀 YSA · 테스트 URL과 비밀번호는 제출 메일 본문에 있습니다",
-    cls: "guide",
-  },
+  // 심사안내 PDF는 build_judge_guide.mjs가 만듭니다 (한 단계 = 한 쪽, 화면 예시 포함).
 ];
 
 function loadPlaywright() {

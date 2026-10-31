@@ -4,6 +4,8 @@ KEIT가 배포한 「(Word양식) 2026 AI 라이프 솔루션 챌린지 성과�
 
 ```bash
 python3 docs/contest/forms/build_forms.py   # out/ 의 두 Word 파일과 ../report-draft.md 를 다시 만듦
+node docs/contest/forms/build_judge_guide.mjs   # out/Beddy2.0_심사안내.pdf 와 ../judge-guide.md (화면 예시 포함)
+node docs/contest/forms/build_attachments.mjs   # out/Beddy2.0_탐구개발_내역.pdf
 docs/contest/forms/preview.sh               # (선택) LibreOffice로 PDF를 만들어 쪽수 확인
 ```
 
