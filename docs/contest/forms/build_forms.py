@@ -184,10 +184,13 @@ def build_application(doc, members, applicant):
         f'<w:t xml:space="preserve"> :    {escape(applicant)}          (서명 또는 인)</w:t>',
         1,
     )
-    if new_table == table or signed == new_table:
-        raise SystemExit("template changed: member rows or applicant line not found")
+    # The separately published 참가신청서 form labels this block '개발자 정보'; the copy inside
+    # the 성과보고서 file still says '제안자 정보'. Follow the 참가신청서 form.
+    labelled = signed.replace("<w:t>제안자</w:t>", "<w:t>개발자</w:t>", 1)
+    if new_table == table or signed == new_table or labelled == signed:
+        raise SystemExit("template changed: member rows, applicant line or label not found")
     body = doc.index("<w:body>") + len("<w:body>")
-    return doc[:body] + signed + doc[t2e:]
+    return doc[:body] + labelled + doc[t2e:]
 
 
 def write_docx(template_zip, document_xml, target):
