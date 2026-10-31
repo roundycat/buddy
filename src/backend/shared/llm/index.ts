@@ -133,7 +133,7 @@ export async function* streamWithCompanion(
   userMessage: string,
   history: Array<{ role: "user" | "assistant"; content: string }> = [],
   companion?: CompanionPromptContext,
-  options?: { model?: string; systemAddendum?: string }
+  options?: { model?: string; systemAddendum?: string; onProvider?: (name: string) => void }
 ): AsyncIterable<string> {
   const provider = getLlmProvider();
   const request = buildCompanionRequest(
@@ -142,6 +142,8 @@ export async function* streamWithCompanion(
     companion,
     options
   );
+  // Who actually answers (the offline persona past the daily cap or without a key).
+  options?.onProvider?.(provider.name);
 
   try {
     if (provider.chatStream) {
@@ -156,6 +158,7 @@ export async function* streamWithCompanion(
     console.error(`[llm:${provider.name}:stream]`, error);
     if (env.llmFallbackToMock && provider.name !== "mock") {
       console.warn("[llm] stream 실패 → mock fallback");
+      options?.onProvider?.("mock");
       for await (const chunk of new MockLlmProvider().chatStream!(request)) {
         yield chunk;
       }

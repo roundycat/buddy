@@ -454,6 +454,9 @@ export async function* streamMessage(
   const { rules } = safety;
 
   const chatModel = resolveModelForPurpose("chat");
+  // The reply records who answered: the configured model, or the offline persona.
+  let answeredBy: string = env.llmProvider;
+  const replyModel = () => (answeredBy === "mock" ? "mock-rules" : chatModel);
   // Each sentence is checked before it reaches the child's screen.
   const outputGuard = createOutputGuardStream();
   let full = "";
@@ -473,7 +476,12 @@ export async function* streamMessage(
       request.message,
       historyForLlm,
       ctx.companion,
-      turnAddendum(rules, ctx.storedHistory)
+      {
+        ...turnAddendum(rules, ctx.storedHistory),
+        onProvider: (name) => {
+          answeredBy = name;
+        },
+      }
     )) {
       raw += token;
       const safe = outputGuard.push(token);
@@ -495,7 +503,7 @@ export async function* streamMessage(
       delivered = final.plan;
     }
 
-    reply = buildReply(full, env.llmProvider, chatModel);
+    reply = buildReply(full, answeredBy, replyModel());
     yield { type: "done", reply };
   } catch (error) {
     failed = true;
@@ -512,7 +520,7 @@ export async function* streamMessage(
       const endedAt = new Date().toISOString();
       void settled
         .then((final) => {
-          let saved = finished ?? buildReply(partial, env.llmProvider, chatModel, endedAt);
+          let saved = finished ?? buildReply(partial, answeredBy, replyModel(), endedAt);
           // The child left before the help panel reached them: the saved reply
           // says what was shared, so they read it when they come back.
           const note = final.plan.transparency;

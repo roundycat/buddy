@@ -190,7 +190,7 @@ export async function* streamCompanionChat(
   userMessage: string,
   history: Array<{ role: "user" | "assistant"; content: string }> = [],
   companion?: CompanionPromptContext,
-  options?: { systemAddendum?: string }
+  options?: { systemAddendum?: string; onProvider?: (name: string) => void }
 ): AsyncIterable<string> {
   const model = resolveModelForPurpose("chat");
   const requestId = newRequestId();
@@ -208,7 +208,7 @@ export async function* streamCompanionChat(
       userMessage,
       history,
       companion,
-      { model, systemAddendum: options?.systemAddendum }
+      { model, systemAddendum: options?.systemAddendum, onProvider: options?.onProvider }
     )) {
       if (firstTokenMs === null) firstTokenMs = Date.now() - started;
       const safe = nameFilter.push(token);
