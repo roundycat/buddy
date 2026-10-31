@@ -49,7 +49,7 @@
 | 보호자 글 150문장: 유출 탐지율 / 정상 글 오탐률 | 0% / 0% | 72.0% / 4.0% |
 
   - **해석**: 일상 대화의 보호자 오경보를 절반 이하로 줄이고(8.2%→3.5%) 기존 방식에 없던 보호 경로·유출 검사를 새로 갖춤. LLM 재판정은 단계를 올리기만 하므로 실서비스의 오경보율은 규칙 계층 값보다 높을 수 있음(측정 커밋 60c4d3d)
-  - **시제품**: 웹 테스트 URL·심사 계정 5쌍은 제출 메일에 기재 · Next.js·TypeScript 웹앱, 대화 AI는 Claude API(Claude Haiku 5.5) · 코드: github.com/roundycat/buddy · 시연 영상 첨부 · 자동 테스트 307개 통과
+  - **시제품**: 웹 테스트 URL·심사 계정 5쌍은 제출 메일에 기재 · Next.js·TypeScript 웹앱, 대화 AI는 Claude API(Claude Haiku 5.5) · 코드: github.com/roundycat/buddy · 시연 영상 첨부 · 자동 테스트 308개 통과
 
 ## 개발과정에서 애로점
 
