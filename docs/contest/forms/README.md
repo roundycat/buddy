@@ -14,7 +14,7 @@ docs/contest/forms/preview.sh               # (선택) LibreOffice로 PDF를 만
 ## 제출 전에 채울 칸
 | 칸 | 채우는 때 |
 |---|---|
-| 위기 140문장 지표 3줄과 해석 | 팀원 위기 문장 → `EVAL_SET=heldout` 측정 후 |
+| 위기 105문장 지표 3줄과 해석 | 팀원 위기 문장 → `EVAL_SET=heldout` 측정 후 |
 | 시제품 주소 | Render 배포 후 |
 
 역할·보호자 설문·전문가 자문은 자료가 없어 넣지 않았습니다. 생기면 `report_content.py`에 줄을 더합니다.

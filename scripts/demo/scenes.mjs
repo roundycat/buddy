@@ -182,7 +182,7 @@ export const MAIN = [
     card: "end",
     seconds: 6,
     title: "아이에게 안전한 AI 친구, Beddy 2.0",
-    body: "팀 YSA · 정하민 · 최유경 · 최유현 · 최태웅",
+    body: "팀 YSA · 정하민 · 최유경 · 최유현",
     foot: END_FOOT,
   },
 ];

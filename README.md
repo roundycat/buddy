@@ -13,7 +13,7 @@
 **2026 AI 라이프 솔루션 챌린지 출품작 — 팀 YSA** · 비임상(진단·처방 금지) · 아동 안전 계층 + Bridge 프라이버시
 
 > ### 출처
-> 2026 강원 LRS 공유대학 AWS 해커톤 출품작 Beddy(MIT License, [원본 저장소](https://github.com/evan-kim-dev/2026-aws-healthcare-ai-prompthon-beddy))를 원작 팀장 최유경이 새 팀 **YSA**(대표 정하민 · 최유경·최유현·최태웅)와 이어서 개발했습니다. 기본 서비스는 원작에서 이어받았고, 이번에 새로 만든 것은 [`docs/v2/CHANGES.md`](docs/v2/CHANGES.md)에 정리했습니다. 원작 기준점은 `v1` 브랜치, 원작 저작권 표시는 [`LICENSE`](LICENSE)에 있습니다.
+> 2026 강원 LRS 공유대학 AWS 해커톤 출품작 Beddy(MIT License, [원본 저장소](https://github.com/evan-kim-dev/2026-aws-healthcare-ai-prompthon-beddy))를 원작 팀장 최유경이 새 팀 **YSA**(대표 정하민 · 최유경·최유현)와 이어서 개발했습니다. 기본 서비스는 원작에서 이어받았고, 이번에 새로 만든 것은 [`docs/v2/CHANGES.md`](docs/v2/CHANGES.md)에 정리했습니다. 원작 기준점은 `v1` 브랜치, 원작 저작권 표시는 [`LICENSE`](LICENSE)에 있습니다.
 
 ## Beddy 2.0에서 달라진 점 — "아이에게 안전한 AI 친구"
 
