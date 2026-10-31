@@ -51,6 +51,7 @@ html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 body { font-family: "Malgun Gothic", "맑은 고딕", "Noto Sans CJK KR", sans-serif; font-size: 9.2pt; line-height: 1.5; color: #111; word-break: keep-all; overflow-wrap: anywhere; }
 h1 { font-size: 15pt; margin: 0 0 2mm; padding-bottom: 2mm; border-bottom: 2px solid #1f3b63; }
 h2 { font-size: 11.5pt; margin: 5mm 0 2mm; color: #1f3b63; }
+h2, h3 { break-after: avoid; }
 p, li { margin: 1mm 0; }
 ul { padding-left: 5mm; margin: 1mm 0; }
 .note { color: #555; font-size: 8.2pt; margin: 0 0 3mm; }
@@ -58,15 +59,28 @@ table { border-collapse: collapse; width: 100%; margin: 2mm 0; font-size: 8.3pt;
 th, td { border: 0.6pt solid #9aa5b1; padding: 1.3mm 1.6mm; vertical-align: top; text-align: left; }
 th { background: #e6eef7; }
 tr { break-inside: avoid; }
-.changes table:first-of-type td:first-child { text-align: center; }
-.changes table:first-of-type, .changes table:last-of-type { table-layout: fixed; }
-.changes table:first-of-type th:nth-child(1) { width: 6%; }
-.changes table:first-of-type th:nth-child(2) { width: 16%; }
+/* CHANGES.md tables in order: 1 핵심 변화, 2 예시, 3 영역별 번호, 4 변경 항목, 5 측정 */
+.changes table { table-layout: fixed; }
+.changes table:nth-of-type(1) th:nth-child(1) { width: 24%; }
+.changes table:nth-of-type(1) th:nth-child(2) { width: 36%; }
+.changes table:nth-of-type(2) th:nth-child(1) { width: 30%; }
+.changes table:nth-of-type(3) th:nth-child(1) { width: 55%; }
+.changes table:nth-of-type(4) td:first-child { text-align: center; }
+.changes table:nth-of-type(4) th:nth-child(1) { width: 6%; }
+.changes table:nth-of-type(4) th:nth-child(2) { width: 16%; }
 .changes table:last-of-type th:nth-child(1) { width: 29%; }
 .changes table:last-of-type th:nth-child(2), .changes table:last-of-type th:nth-child(3) { width: 10%; }
 .guide table { width: auto; }
 .guide td:first-child { text-align: center; }
-.guide { font-size: 10pt; }
+.guide { font-size: 9.6pt; }
+.guide h3 { font-size: 10.5pt; margin: 4mm 0 1.5mm; }
+.guide h3 { clear: both; padding-top: 1mm; }
+.guide h2 { clear: both; }
+.shots { float: right; display: flex; gap: 3mm; margin: 0 0 3mm 5mm; break-inside: avoid; }
+.shots figure { margin: 0; width: 38mm; text-align: center; break-inside: avoid; }
+.shots img { width: 100%; border: 0.6pt solid #c9d1db; border-radius: 2mm; }
+.shots figcaption { font-size: 7.6pt; line-height: 1.35; color: #555; margin-top: 1mm; }
+.overview { background: #f4f7fb; border: 0.6pt solid #c9d1db; border-radius: 2mm; padding: 2mm 3mm; margin: 2mm 0 4mm; }
 code { font-family: "D2Coding", "Noto Sans Mono CJK KR", monospace; font-size: 0.92em; background: #f1f3f5; padding: 0 0.6mm; border-radius: 1mm; }
 `;
 
@@ -77,7 +91,12 @@ async function main() {
   try {
     for (const doc of DOCS) {
       const markdown = readFileSync(join(ROOT, doc.source), "utf8");
-      const body = execFileSync("pandoc", ["-f", "gfm", "-t", "html5"], { input: markdown }).toString();
+      const html5 = execFileSync("pandoc", ["-f", "gfm", "-t", "html5"], { input: markdown }).toString();
+      // Screenshots next to the markdown file go into the PDF as data URIs (the page has no base URL).
+      const body = html5.replace(/src="([^":]+\.png)"/g, (_, rel) => {
+        const file = join(ROOT, dirname(doc.source), rel);
+        return `src="data:image/png;base64,${readFileSync(file).toString("base64")}"`;
+      });
       const withNote = body.replace(/(<\/h1>)/, `$1<p class="note">${doc.note}</p>`);
       const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><style>${CSS}</style></head><body class="${doc.cls || ""}">${withNote}</body></html>`;
       const page = await browser.newPage();
