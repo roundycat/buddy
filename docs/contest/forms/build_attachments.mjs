@@ -22,6 +22,13 @@ const DOCS = [
     source: "docs/v2/CHANGES.md",
     output: "Beddy2.0_탐구개발_내역.pdf",
     note: "성과보고서 별첨 · 팀 YSA · github.com/roundycat/buddy 의 docs/v2/CHANGES.md",
+    cls: "changes",
+  },
+  {
+    source: "docs/contest/judge-guide.md",
+    output: "Beddy2.0_심사안내.pdf",
+    note: "팀 YSA · 테스트 URL과 비밀번호는 제출 메일 본문에 있습니다",
+    cls: "guide",
   },
 ];
 
@@ -51,13 +58,15 @@ table { border-collapse: collapse; width: 100%; margin: 2mm 0; font-size: 8.3pt;
 th, td { border: 0.6pt solid #9aa5b1; padding: 1.3mm 1.6mm; vertical-align: top; text-align: left; }
 th { background: #e6eef7; }
 tr { break-inside: avoid; }
-table:first-of-type td:first-child { text-align: center; }
-table:first-of-type, table:last-of-type { table-layout: fixed; }
-table:first-of-type th:nth-child(1) { width: 5%; }
-table:first-of-type th:nth-child(2) { width: 12%; }
-table:first-of-type th:nth-child(3) { width: 22%; }
-table:last-of-type th:nth-child(1) { width: 29%; }
-table:last-of-type th:nth-child(2), table:last-of-type th:nth-child(3) { width: 10%; }
+.changes table:first-of-type td:first-child { text-align: center; }
+.changes table:first-of-type, .changes table:last-of-type { table-layout: fixed; }
+.changes table:first-of-type th:nth-child(1) { width: 6%; }
+.changes table:first-of-type th:nth-child(2) { width: 16%; }
+.changes table:last-of-type th:nth-child(1) { width: 29%; }
+.changes table:last-of-type th:nth-child(2), .changes table:last-of-type th:nth-child(3) { width: 10%; }
+.guide table { width: auto; }
+.guide td:first-child { text-align: center; }
+.guide { font-size: 10pt; }
 code { font-family: "D2Coding", "Noto Sans Mono CJK KR", monospace; font-size: 0.92em; background: #f1f3f5; padding: 0 0.6mm; border-radius: 1mm; }
 `;
 
@@ -70,7 +79,7 @@ async function main() {
       const markdown = readFileSync(join(ROOT, doc.source), "utf8");
       const body = execFileSync("pandoc", ["-f", "gfm", "-t", "html5"], { input: markdown }).toString();
       const withNote = body.replace(/(<\/h1>)/, `$1<p class="note">${doc.note}</p>`);
-      const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><style>${CSS}</style></head><body>${withNote}</body></html>`;
+      const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><style>${CSS}</style></head><body class="${doc.cls || ""}">${withNote}</body></html>`;
       const page = await browser.newPage();
       await page.setContent(html, { waitUntil: "load" });
       const target = join(OUT, doc.output);
